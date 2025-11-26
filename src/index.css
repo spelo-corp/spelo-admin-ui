@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Tailwind v4 design tokens */
+@theme {
+    /* ===== Colors ===== */
+    --color-brand: #1A9F6D;
+    --color-brand-dark: #0F7C52;
+    --color-brand-soft: #E2F3EC;
+    --color-shell: #F3F5F4;
+
+    /* Compatibility aliases (so to-brandDark works) */
+    --color-brandDark: #0F7C52;
+    --color-brandSoft: #E2F3EC;
+
+    /* ===== Radii ===== */
+    --radius-shell: 32px; /* rounded-shell */
+    --radius-card: 22px;  /* rounded-card */
+
+    /* ===== Shadows ===== */
+    --shadow-shell: 0 24px 60px rgba(0, 0, 0, 0.10);
+    --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.06);
+}
+
+/* Base styles */
+body {
+    @apply bg-slate-50 text-slate-900;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
