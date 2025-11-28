@@ -9,16 +9,17 @@ import {
     CheckCircle2,
     AlertTriangle,
     Clock,
-    Workflow,
+    Workflow, ListChecks,
 } from "lucide-react";
 
 interface JobCardProps {
     job: ProcessingJob;
     onExtract: () => void;
     onDelete: () => void;
+    onApprove: () => void;
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete }) => {
+const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }) => {
     const progress = job.progress_percent ?? 0;
 
     const statusStyles: Record<string, string> = {
@@ -29,19 +30,22 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete }) => {
         completed: "bg-emerald-100 text-emerald-700",
         failed: "bg-rose-100 text-rose-700",
         cancelled: "bg-slate-200 text-slate-700",
+        audio_uploaded: "bg-purple-100 text-purple-700",  // NEW
     };
 
     const currentStatus = job.current_step || "pending";
 
-    const StatusIcon = {
-        pending: Clock,
-        extracting: Workflow,
-        extracted: FileAudio,
-        reviewing: Pencil,
-        completed: CheckCircle2,
-        failed: AlertTriangle,
-        cancelled: AlertTriangle,
-    }[currentStatus];
+    const StatusIcon =
+        {
+            pending: Clock,
+            extracting: Workflow,
+            extracted: ListChecks,
+            reviewing: Pencil,
+            completed: CheckCircle2,
+            failed: AlertTriangle,
+            cancelled: AlertTriangle,
+            audio_uploaded: FileAudio,
+        }[currentStatus] || Clock;
 
     return (
         <div
@@ -140,6 +144,17 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete }) => {
                     >
                         <Pencil className="w-4 h-4" /> Review
                     </Link>
+                )}
+
+                {/* Approve (finalize job) */}
+                {currentStatus === "audio_uploaded" && (
+                    <button
+                        onClick={onApprove}
+                        className="flex-1 px-3 py-2 rounded-full bg-emerald-500 text-white text-xs
+                   flex items-center justify-center gap-1 hover:bg-emerald-600"
+                    >
+                        <CheckCircle2 className="w-4 h-4" /> Approve
+                    </button>
                 )}
 
                 {/* Completed */}

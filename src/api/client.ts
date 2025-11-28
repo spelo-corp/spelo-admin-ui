@@ -3,7 +3,7 @@ import type {
     Lesson,
     ProcessingJob,
     ProcessingJobDetail,
-    AudioFile,
+    AudioFile, LessonDetail,
 } from "../types";
 
 const BASE_URL = "http://localhost:8081";
@@ -178,6 +178,61 @@ export const api = {
         });
 
         return handle<{ success: boolean; file_path: string }>(res);
+    },
+
+    async uploadProcessedAudio(jobId: number) {
+        return handle<{ success: boolean; upload_task_id: string }>(
+            await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/upload-audio`, {
+                method: "POST",
+            })
+        );
+    },
+
+    async getUploadProgress(taskId: string) {
+        return handle<{
+            success: boolean;
+            status: string;     // "queued" | "uploading" | "completed" | "failed"
+            progress: number;   // % 0–100
+            message: string;
+            uploaded: number;
+            total: number;// "Uploading to R2..."
+        }>(
+            await fetch(`${BASE_URL}/api/admin/upload-tasks/${taskId}/status`)
+        );
+    },
+
+    async getLessonDetail(lessonId: number) {
+        return handle<{ success: boolean; lesson: LessonDetail }>(
+            await fetch(`${BASE_URL}/api/admin/lessons/${lessonId}`)
+        );
+    },
+
+    async updateSentenceTiming(
+        jobId: number,
+        index: number,
+        start: number,
+        end: number
+    ) {
+        return handle<{ success: boolean }>(
+            await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/timing/${index}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ start_time: start, end_time: end })
+            })
+        );
+    },
+
+    async updateAllTimings(
+        jobId: number,
+        payload: { updates: Array<{ index: number; start_time: number; end_time: number }> }
+    ) {
+        return handle<{ success: boolean }>(
+            await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/timing/batch`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            })
+        );
     },
 
 };

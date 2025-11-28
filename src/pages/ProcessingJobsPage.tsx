@@ -125,6 +125,12 @@ const ProcessingJobsPage: React.FC = () => {
                                     confirm("Delete this job?") &&
                                     api.deleteJob(job.id).then(loadData)
                                 }
+                                onApprove={() =>
+                                    api.approveJob(job.id, 1).then(() => {
+                                        alert("Job approved successfully!");
+                                        loadData();
+                                    })
+                                }
                             />
                         ))}
                     </div>

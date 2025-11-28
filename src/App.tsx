@@ -6,7 +6,8 @@ import ProcessingJobsPage from "./pages/ProcessingJobsPage";
 import LessonListPage from "./pages/LessonListPage";
 import AudioFilesPage from "./pages/AudioFilesPage";
 import UsersPage from "./pages/UsersPage";
-import JobReviewPage from "./pages/JobReviewPage";
+import AudioReviewPage from "./pages/AudioReviewPage.tsx";
+import LessonViewPage from "./pages/LessonViewPage.tsx";
 
 const App: React.FC = () => {
     return (
@@ -15,10 +16,12 @@ const App: React.FC = () => {
             <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="processing-jobs" element={<ProcessingJobsPage />} />
-                <Route path="processing-jobs/:jobId/review" element={<JobReviewPage />} />
+                <Route path="processing-jobs/:jobId/review" element={<AudioReviewPage />} />
                 <Route path="lessons" element={<LessonListPage />} />
                 <Route path="audio-files" element={<AudioFilesPage />} />
                 <Route path="users" element={<UsersPage />} />
+                <Route path="lesson/:lessonId" element={<LessonViewPage />}
+                />
             </Route>
         </Routes>
     );

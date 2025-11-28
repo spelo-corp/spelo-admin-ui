@@ -4,6 +4,7 @@ export type JobStatus =
     | "extracted"
     | "reviewing"
     | "completed"
+    | "audio_uploaded"
     | "failed"
     | "cancelled";
 
@@ -35,6 +36,7 @@ export interface Lesson {
 }
 
 export interface Sentence {
+    index: number;
     text: string;
     translated_text?: string;
     start_time: number;
@@ -53,4 +55,23 @@ export interface AudioFile {
     file_name: string;
     url: string;
     // add more fields here if your API returns them (e.g. duration, size, lesson_id, etc.)
+}
+
+export interface ListeningLesson {
+    listening_lesson_id: number;
+    sentences: Sentence[];
+}
+
+export interface AudioFile {
+    id: number;
+    url: string;
+    file_name: string;
+    lesson_id?: number;
+    duration?: number;
+    created_at: string;
+}
+
+export interface LessonDetail extends Lesson {
+    audio_files: AudioFile[];
+    listening: ListeningLesson | null;
 }
