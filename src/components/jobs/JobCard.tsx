@@ -1,6 +1,16 @@
 import React from "react";
-import type {ProcessingJob} from "../../types";
+import type { ProcessingJob } from "../../types";
 import { Link } from "react-router-dom";
+import {
+    FileAudio,
+    Trash2,
+    Pencil,
+    PlayCircle,
+    CheckCircle2,
+    AlertTriangle,
+    Clock,
+    Workflow,
+} from "lucide-react";
 
 interface JobCardProps {
     job: ProcessingJob;
@@ -11,93 +21,142 @@ interface JobCardProps {
 const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete }) => {
     const progress = job.progress_percent ?? 0;
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "pending":
-                return "bg-slate-100 text-slate-700";
-            case "extracting":
-                return "bg-sky-100 text-sky-700";
-            case "extracted":
-                return "bg-indigo-100 text-indigo-700";
-            case "reviewing":
-                return "bg-amber-100 text-amber-700";
-            case "completed":
-                return "bg-emerald-100 text-emerald-700";
-            case "failed":
-                return "bg-rose-100 text-rose-700";
-            case "cancelled":
-                return "bg-slate-200 text-slate-700";
-            default:
-                return "bg-slate-100 text-slate-700";
-        }
+    const statusStyles: Record<string, string> = {
+        pending: "bg-slate-100 text-slate-700",
+        extracting: "bg-sky-100 text-sky-700",
+        extracted: "bg-indigo-100 text-indigo-700",
+        reviewing: "bg-amber-100 text-amber-700",
+        completed: "bg-emerald-100 text-emerald-700",
+        failed: "bg-rose-100 text-rose-700",
+        cancelled: "bg-slate-200 text-slate-700",
     };
 
+    const currentStatus = job.current_step || "pending";
+
+    const StatusIcon = {
+        pending: Clock,
+        extracting: Workflow,
+        extracted: FileAudio,
+        reviewing: Pencil,
+        completed: CheckCircle2,
+        failed: AlertTriangle,
+        cancelled: AlertTriangle,
+    }[currentStatus];
+
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100">
-                <h3 className="text-sm font-semibold text-slate-800 truncate">
+        <div
+            className="
+                group relative bg-white rounded-card border border-slate-100 shadow-card
+                p-5 flex flex-col gap-4
+            "
+        >
+            {/* STATUS BADGE */}
+            <span
+                className={`
+                    absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px]
+                    font-medium shadow-sm flex items-center gap-1
+                    transition-all duration-200
+                    ${statusStyles[currentStatus] || statusStyles["pending"]}
+                `}
+            >
+                <StatusIcon className="w-3 h-3" />
+
+                <span
+                    className="
+                        hidden group-hover:inline
+                        whitespace-nowrap
+                        transition-all duration-200
+                    "
+                >
+                    {currentStatus}
+                </span>
+            </span>
+
+
+            {/* HEADER */}
+            <div className="flex flex-col pr-8">
+                <h3 className="text-sm font-semibold text-slate-900 truncate">
                     {job.lesson_name || `Lesson ${job.lesson_id}`}
                 </h3>
+                <p className="text-[11px] text-slate-500">Job #{job.id}</p>
+            </div>
+
+            {/* AUDIO URL */}
+            <div className="flex items-start gap-2 text-xs text-slate-600">
+                <FileAudio className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+
                 <span
-                    className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusColor(
-                        job.current_step
-                    )}`}
-                >
-          {job.current_step}
-        </span>
-            </div>
-            <div className="px-4 py-3 text-sm text-slate-600 flex-1">
-                <p className="break-all text-xs text-slate-500">
-                    <span className="font-medium text-slate-600">Audio URL:</span>{" "}
+                    className="
+                        line-clamp-2
+                        min-h-[32px]       /* force 2-line height */
+                        break-all
+                        leading-snug
+                        block
+                    ">
                     {job.original_audio_url}
-                </p>
-                <div className="mt-2">
-                    <div className="flex justify-between text-[11px] text-slate-500 mb-1">
-                        <span>Progress</span>
-                        <span>{progress}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                            className="h-full bg-speloPurple transition-all"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
-                <p className="mt-2 text-[11px] text-slate-500 flex justify-between">
-          <span>
-            Created: {new Date(job.created_at).toLocaleString()}
-          </span>
-                    <span>Job #{job.id}</span>
-                </p>
+                </span>
             </div>
-            <div className="px-4 py-3 border-t border-slate-100 flex gap-2">
-                {job.current_step === "pending" && (
+
+
+            {/* PROGRESS BAR */}
+            <div>
+                <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+                    <span>Progress</span>
+                    <span>{progress}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                        className="h-full bg-brand transition-all"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+            </div>
+
+            {/* CREATED DATE */}
+            <p className="text-[11px] text-slate-500">
+                Created: {new Date(job.created_at).toLocaleString()}
+            </p>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex gap-2 pt-2">
+
+                {/* Extract */}
+                {currentStatus === "pending" && (
                     <button
-                        className="flex-1 px-2 py-1.5 rounded-xl bg-speloPurple text-white text-xs hover:bg-speloPurpleDark"
                         onClick={onExtract}
+                        className="flex-1 px-3 py-2 rounded-full bg-brand text-white text-xs
+                                   flex items-center justify-center gap-1 hover:bg-brand-dark"
                     >
-                        ⚡ Extract Sentences
+                        <PlayCircle className="w-4 h-4" /> Extract
                     </button>
                 )}
-                {(job.current_step === "extracted" ||
-                    job.current_step === "reviewing") && (
+
+                {/* Review */}
+                {(currentStatus === "extracted" || currentStatus === "reviewing") && (
                     <Link
                         to={`/admin/processing-jobs/${job.id}/review`}
-                        className="flex-1 px-2 py-1.5 rounded-xl bg-amber-500 text-white text-xs text-center hover:bg-amber-600"
+                        className="flex-1 px-3 py-2 rounded-full bg-amber-500 text-white text-xs
+                                   flex items-center justify-center gap-1 hover:bg-amber-600"
                     >
-                        ✏️ Review Sentences
+                        <Pencil className="w-4 h-4" /> Review
                     </Link>
                 )}
-                {job.current_step === "completed" && (
-                    <span className="flex-1 px-2 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs text-center">
-            ✅ Completed
-          </span>
+
+                {/* Completed */}
+                {currentStatus === "completed" && (
+                    <div className="flex-1 px-3 py-2 rounded-full bg-emerald-50 text-emerald-700
+                                    flex items-center justify-center gap-1 text-xs">
+                        <CheckCircle2 className="w-4 h-4" /> Completed
+                    </div>
                 )}
+
+                {/* Delete */}
                 <button
-                    className="px-2 py-1.5 rounded-xl border border-rose-200 text-rose-600 text-xs hover:bg-rose-50"
                     onClick={onDelete}
+                    className="ml-auto px-3 py-2 rounded-full border border-rose-200 text-rose-600 text-xs
+               flex items-center justify-center hover:bg-rose-50"
                 >
-                    🗑
+                    <Trash2 className="w-4 h-4" />
                 </button>
             </div>
         </div>

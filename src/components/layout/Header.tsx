@@ -57,21 +57,20 @@ const Header: React.FC = () => {
                 {/* Profile chip */}
                 <div
                     className="
-            flex items-center gap-3 bg-white border border-slate-200
-            rounded-full pl-2 pr-4 py-1 shadow-card
-          "
+                        flex items-center gap-3 bg-white border border-slate-200
+                        rounded-full pl-2 pr-4 py-1 shadow-card
+                      "
                 >
                     <div
                         className="
-              w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark
-              text-white flex items-center justify-center text-sm font-bold
-            "
+                        w-9 h-9 rounded-full bg-gradient-to-br from-brand to-brand-dark
+                        text-white flex items-center justify-center text-sm font-bold"
                     >
                         NB
                     </div>
 
                     <div className="text-sm leading-tight">
-                        <div className="font-semibold text-slate-800">Ngọc Bích</div>
+                        <div className="font-semibold text-slate-800">Huu Phuc</div>
                         <div className="text-[11px] text-slate-400">Admin • Online ●</div>
                     </div>
                 </div>

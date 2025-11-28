@@ -58,6 +58,9 @@ export const api = {
     async createProcessingJob(payload: {
         lesson_id: number;
         audio_url: string;
+        transcript_text?: string;
+        transcript_file_name?: string;
+        transcript_url?: string;
         start_time: number;
         end_time: number;
         type: number;
@@ -149,4 +152,32 @@ export const api = {
             })
         );
     },
+
+    async uploadLocalTranscript(file: File, lessonId: number) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("lesson_id", lessonId.toString());
+
+        const res = await fetch(`${BASE_URL}/api/upload-local/transcript`, {
+            method: "POST",
+            body: form,
+        });
+
+        return handle<{ success: boolean; file_path: string }>(res);
+    },
+
+
+    async uploadLocalAudio(file: File, lessonId: number) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("lesson_id", lessonId.toString());
+
+        const res = await fetch(`${BASE_URL}/api/upload-local/audio`, {
+            method: "POST",
+            body: form,
+        });
+
+        return handle<{ success: boolean; file_path: string }>(res);
+    },
+
 };

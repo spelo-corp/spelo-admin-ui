@@ -10,11 +10,12 @@ export const Btn = {
         <button
             {...props}
             className={`
-        px-4 py-2 rounded-full bg-brand text-white font-medium
-        shadow-card hover:bg-brand-dark transition
-        ${className}
-      `}
-        >
+            px-4 py-2 rounded-full bg-brand text-white font-medium
+            shadow-card hover:bg-brand-dark transition
+            flex items-center gap-2
+            ${className}
+          `}
+            >
             {children}
         </button>
     ),
@@ -25,6 +26,7 @@ export const Btn = {
             className={`
         px-4 py-2 rounded-full bg-white border border-slate-200 
         text-slate-700 hover:bg-slate-100 transition
+        flex items-center gap-2
         ${className}
       `}
         >
