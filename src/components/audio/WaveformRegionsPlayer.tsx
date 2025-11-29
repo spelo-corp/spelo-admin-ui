@@ -29,9 +29,9 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
     const wsRef = useRef<WaveSurfer | null>(null);
     const regionsPluginRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null);
 
-    // Track previous values to detect changes
-    const prevAudioUrlRef = useRef(audioUrl);
-    const prevRegionsRef = useRef(regions);
+    // Track regions internally to avoid unnecessary recreations
+    const internalRegionsRef = useRef<Map<string, any>>(new Map());
+    const isUpdatingRegionRef = useRef(false);
 
     const [zoom, setZoom] = useState(0);
     const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
         return String(error);
     };
 
-    // Initialize WaveSurfer - only runs once on mount
+    // Initialize WaveSurfer
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -99,8 +99,19 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                         minLength: 0.1,
                     });
 
+                    // Store region internally
+                    internalRegionsRef.current.set(regionConfig.id, region);
+
+                    // Only update parent when user is done interacting
                     region.on("update-end", () => {
-                        onRegionUpdate?.(region.id, region.start, region.end);
+                        if (!isUpdatingRegionRef.current) {
+                            isUpdatingRegionRef.current = true;
+                            onRegionUpdate?.(region.id, region.start, region.end);
+                            // Reset flag after a short delay
+                            setTimeout(() => {
+                                isUpdatingRegionRef.current = false;
+                            }, 100);
+                        }
                     });
                 });
 
@@ -115,42 +126,144 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
             // Load audio
             ws.load(audioUrl);
 
-            // Store current values
-            prevAudioUrlRef.current = audioUrl;
-            prevRegionsRef.current = regions;
-
             // Cleanup function
             return () => {
                 ws.un("error", handleError);
                 ws.un("load", handleLoad);
                 ws.un("ready", handleReady);
                 ws.destroy();
+                internalRegionsRef.current.clear();
             };
 
         } catch (err: unknown) {
             console.error("Failed to initialize WaveSurfer:", err);
-            setError(`Initialization failed with error: ${getErrorMessage(err)}`);
+            setError(`Initialization failed: ${getErrorMessage(err)}`);
             setIsLoading(false);
         }
     }, []); // Empty dependency array - runs only once
 
-    // Handle audio URL changes by recreating the entire instance
+    // Handle audio URL changes
     useEffect(() => {
-        if (audioUrl !== prevAudioUrlRef.current) {
-            // Destroy existing instance
-            if (wsRef.current) {
-                wsRef.current.destroy();
-                wsRef.current = null;
-            }
-            regionsPluginRef.current = null;
+        if (!wsRef.current) return;
 
-            // Reinitialize
+        // Only reload if we have a valid WaveSurfer instance
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsLoading(true);
+        try {
+            wsRef.current.load(audioUrl);
+        } catch (err: unknown) {
+            console.error("Failed to load audio:", err);
+            setError(`Failed to load audio: ${getErrorMessage(err)}`);
+            setIsLoading(false);
+        }
+    }, [audioUrl]);
+
+    // Smart region updates - only update when necessary
+    useEffect(() => {
+        if (!regionsPluginRef.current || isLoading || isUpdatingRegionRef.current) {
+            return;
+        }
+
+        const currentRegions = internalRegionsRef.current;
+        const newRegionIds = new Set(regions.map(r => r.id));
+
+        try {
+            // Remove regions that are no longer in the props
+            for (const [id, region] of currentRegions) {
+                if (!newRegionIds.has(id)) {
+                    region.remove();
+                    currentRegions.delete(id);
+                }
+            }
+
+            // Update or add regions
+            regions.forEach(regionConfig => {
+                const existingRegion = currentRegions.get(regionConfig.id);
+
+                if (existingRegion) {
+                    // Update existing region if values changed
+                    if (Math.abs(existingRegion.start - regionConfig.start) > 0.01 ||
+                        Math.abs(existingRegion.end - regionConfig.end) > 0.01) {
+                        existingRegion.setOptions({
+                            start: regionConfig.start,
+                            end: regionConfig.end,
+                            color: regionConfig.color || "rgba(14,165,233,0.3)",
+                        });
+                    }
+                } else {
+                    // Add new region
+                    const region = regionsPluginRef.current!.addRegion({
+                        id: regionConfig.id,
+                        start: regionConfig.start,
+                        end: regionConfig.end,
+                        color: regionConfig.color || "rgba(14,165,233,0.3)",
+                        drag: true,
+                        resize: true,
+                        minLength: 0.1,
+                    });
+
+                    currentRegions.set(regionConfig.id, region);
+
+                    region.on("update-end", () => {
+                        if (!isUpdatingRegionRef.current) {
+                            isUpdatingRegionRef.current = true;
+                            onRegionUpdate?.(region.id, region.start, region.end);
+                            setTimeout(() => {
+                                isUpdatingRegionRef.current = false;
+                            }, 100);
+                        }
+                    });
+                }
+            });
+        } catch (err: unknown) {
+            console.error("Failed to update regions:", err);
+        }
+    }, [regions, isLoading, onRegionUpdate]);
+
+    // Apply zoom
+    const applyZoom = useCallback(() => {
+        if (!wsRef.current || isLoading) return;
+        try {
+            const minPxPerSec = 50 + zoom;
+            wsRef.current.setOptions({ minPxPerSec });
+        } catch (err: unknown) {
+            console.error("Failed to apply zoom:", getErrorMessage(err));
+        }
+    }, [zoom, isLoading]);
+
+    useEffect(() => {
+        applyZoom();
+    }, [applyZoom]);
+
+    // Zoom handlers
+    const handleZoomIn = useCallback(() => {
+        setZoom((z) => Math.min(z + 20, 600));
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+        setZoom((z) => Math.max(z - 20, 0)); // Fixed: don't allow negative zoom
+    }, []);
+
+    const handleResetZoom = useCallback(() => {
+        setZoom(0);
+    }, []);
+
+    // Retry handler
+    const handleRetry = useCallback(() => {
+        setError(null);
+        setIsLoading(true);
+        internalRegionsRef.current.clear();
+
+        if (wsRef.current) {
+            wsRef.current.destroy();
+            wsRef.current = null;
+        }
+        regionsPluginRef.current = null;
+
+        // Reinitialize after a brief delay
+        setTimeout(() => {
             const container = containerRef.current;
             if (!container) return;
-
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setIsLoading(true);
-            setError(null);
 
             try {
                 const regionsPlugin = RegionsPlugin.create();
@@ -171,109 +284,23 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
 
                 wsRef.current = ws;
 
-                const handleReady = () => {
+                ws.on("ready", () => {
                     setIsLoading(false);
-                    regions.forEach((regionConfig) => {
-                        const region = regionsPlugin.addRegion({
-                            id: regionConfig.id,
-                            start: regionConfig.start,
-                            end: regionConfig.end,
-                            color: regionConfig.color || "rgba(14,165,233,0.3)",
-                            drag: true,
-                            resize: true,
-                            minLength: 0.1,
-                        });
-
-                        region.on("update-end", () => {
-                            onRegionUpdate?.(region.id, region.start, region.end);
-                        });
-                    });
                     onReady?.(ws);
-                };
+                });
 
-                ws.on("ready", handleReady);
-                ws.on("error", (error) => setError(`Audio error: ${error.toString()}`));
+                ws.on("error", (error: unknown) => {
+                    setError(`Audio error: ${getErrorMessage(error)}`);
+                    setIsLoading(false);
+                });
+
                 ws.load(audioUrl);
-
-                prevAudioUrlRef.current = audioUrl;
             } catch (err: unknown) {
-                console.error("Failed to initialize WaveSurfer:", err);
-                setError(`Initialization failed with error: ${getErrorMessage(err)}`);
+                setError(`Initialization failed: ${getErrorMessage(err)}`);
                 setIsLoading(false);
             }
-        }
-    }, [audioUrl, regions, height, onReady, onRegionUpdate]);
-
-    // Update regions when regions prop changes (without audio URL change)
-    useEffect(() => {
-        if (!regionsPluginRef.current || !wsRef.current || isLoading) return;
-        if (regions === prevRegionsRef.current) return;
-
-        try {
-            regionsPluginRef.current.clearRegions();
-
-            regions.forEach((regionConfig) => {
-                const region = regionsPluginRef.current!.addRegion({
-                    id: regionConfig.id,
-                    start: regionConfig.start,
-                    end: regionConfig.end,
-                    color: regionConfig.color || "rgba(14,165,233,0.3)",
-                    drag: true,
-                    resize: true,
-                    minLength: 0.1,
-                });
-
-                region.on("update-end", () => {
-                    onRegionUpdate?.(region.id, region.start, region.end);
-                });
-            });
-
-            prevRegionsRef.current = regions;
-        } catch (err: unknown) {
-            console.error("Failed to update regions:", err);
-        }
-    }, [regions, onRegionUpdate, isLoading]);
-
-    // Apply zoom
-    const applyZoom = useCallback(() => {
-        if (!wsRef.current || isLoading) return;
-        try {
-            const minPxPerSec = 50 + zoom;
-            wsRef.current.setOptions({ minPxPerSec });
-        } catch (err) {
-            console.error("Failed to apply zoom:", err);
-        }
-    }, [zoom, isLoading]);
-
-    useEffect(() => {
-        applyZoom();
-    }, [applyZoom]);
-
-    // Zoom handlers
-    const handleZoomIn = useCallback(() => {
-        setZoom((z) => Math.min(z + 20, 600));
-    }, []);
-
-    const handleZoomOut = useCallback(() => {
-        setZoom((z) => Math.max(z - 20, -100));
-    }, []);
-
-    const handleResetZoom = useCallback(() => {
-        setZoom(0);
-    }, []);
-
-    // Retry handler
-    const handleRetry = useCallback(() => {
-        setError(null);
-        setIsLoading(true);
-
-        if (wsRef.current) {
-            wsRef.current.destroy();
-            wsRef.current = null;
-        }
-        regionsPluginRef.current = null;
-        prevAudioUrlRef.current = ""; // Force reinitialization
-    }, []);
+        }, 100);
+    }, [audioUrl, height, onReady]);
 
     // Error display
     if (error) {
