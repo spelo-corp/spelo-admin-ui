@@ -104,6 +104,31 @@ const AudioReviewPage: React.FC = () => {
         });
     };
 
+    const addNewSegment = () => {
+        setJob((prev) => {
+            if (!prev) return prev;
+
+            const last = prev.sentences[prev.sentences.length - 1];
+            const newStart = last ? last.end_time : 0;
+            const newEnd = newStart + 2; // default 2-second region
+
+            const newSentence = {
+                index: prev.sentences.length,
+                text: "",
+                translated_text: "",
+                start_time: newStart,
+                end_time: newEnd,
+                accuracy: undefined,
+                words: [],
+            };
+
+            return {
+                ...prev,
+                sentences: [...prev.sentences, newSentence],
+            };
+        });
+    };
+
     const saveAlignment = async () => {
         if (!job || !jobId) return;
 
@@ -217,13 +242,21 @@ const AudioReviewPage: React.FC = () => {
                     <h2 className="font-semibold text-slate-800 text-sm mb-2">
                         Original Audio
                     </h2>
-                    <button
-                        onClick={saveAlignment}
-                        className="px-4 py-2 rounded-xl bg-blue-500 text-white text-sm
-                        hover:bg-blue-600 disabled:opacity-50"
-                    >
-                        Save Alignment
-                    </button>
+                    <div className="flex items-center gap-3 mb-3">
+                        <button
+                            onClick={addNewSegment}
+                            className="px-3 py-2 rounded-lg bg-purple-500 text-white text-xs hover:bg-purple-600"
+                        >
+                            + Add Segment
+                        </button>
+
+                        <button
+                            onClick={saveAlignment}
+                            className="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs hover:bg-blue-600"
+                        >
+                            Save Alignment
+                        </button>
+                    </div>
 
                     <WaveformRegionsPlayer
                         audioUrl={job.audio_url}
@@ -262,15 +295,15 @@ const AudioReviewPage: React.FC = () => {
                             >
                                 {/* Header row */}
                                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-slate-600">
-                    Sentence {idx + 1}
-                  </span>
-                                    <span className="text-[11px] text-slate-500">
-                    {s.start_time.toFixed(2)}s – {s.end_time.toFixed(2)}s •{" "}
-                                        {duration.toFixed(2)}s
-                                        {typeof s.accuracy === "number" &&
-                                            ` · Accuracy ${(s.accuracy * 100).toFixed(0)}%`}
-                  </span>
+                                  <span className="text-xs font-medium text-slate-600">
+                                    Sentence {idx + 1}
+                                  </span>
+                                                    <span className="text-[11px] text-slate-500">
+                                    {s.start_time.toFixed(2)}s – {s.end_time.toFixed(2)}s •{" "}
+                                                        {duration.toFixed(2)}s
+                                                        {typeof s.accuracy === "number" &&
+                                                            ` · Accuracy ${(s.accuracy * 100).toFixed(0)}%`}
+                                  </span>
                                 </div>
 
                                 {/* Textareas */}
