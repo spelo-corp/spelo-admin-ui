@@ -91,13 +91,13 @@ const AudioReviewPage: React.FC = () => {
         });
     };
 
-    const handleApprove = async () => {
+    const handleApproveAudio = async () => {
         if (!jobId) return;
         setApproving(true);
         try {
-            const res = await api.approveJob(Number(jobId), 1);
+            const res = await api.uploadProcessedAudio(Number(jobId));
             if (res.success) {
-                alert(`Job approved! Listening lesson ID: ${res.listening_lesson_id}`);
+                alert(`Audio approved! Job ID`);
                 navigate("/admin/processing-jobs");
             }
         } finally {
@@ -288,11 +288,11 @@ const AudioReviewPage: React.FC = () => {
 
                 <button
                     disabled={approving}
-                    onClick={handleApprove}
+                    onClick={handleApproveAudio}
                     className="px-4 py-2 rounded-xl bg-emerald-500 text-white flex items-center gap-2"
                 >
                     <CheckCircle2 className="w-4 h-4" />
-                    Approve & Finalize
+                    Approve Audio
                 </button>
             </div>
 

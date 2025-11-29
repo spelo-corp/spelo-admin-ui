@@ -5,6 +5,7 @@ export type JobStatus =
     | "reviewing"
     | "completed"
     | "audio_uploaded"
+    | "uploading_audio"
     | "failed"
     | "cancelled";
 
@@ -23,6 +24,8 @@ export interface ProcessingJob {
     current_step: JobStatus;
     created_at: string;
     progress_percent?: number;
+
+    upload_task_id?: string;
 }
 
 export interface Lesson {

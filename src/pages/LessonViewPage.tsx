@@ -8,9 +8,10 @@ import { CloudUpload, CheckCircle2, AlertCircle } from "lucide-react";
 export interface LessonOutletContext {
     lesson: LessonDetail | null;
     loading: boolean;
+    setLesson: React.Dispatch<React.SetStateAction<LessonDetail | null>>;
 }
 
-/** -------- Simple Confirm Modal for Sync -------- */
+// confirm modal as before...
 interface ConfirmSyncModalProps {
     open: boolean;
     title: string;
@@ -59,7 +60,6 @@ const ConfirmSyncModal: React.FC<ConfirmSyncModalProps> = ({
     );
 };
 
-/** ---------------- Main Lesson View Page ---------------- */
 const LessonViewPage: React.FC = () => {
     const { lessonId } = useParams();
 
@@ -80,7 +80,6 @@ const LessonViewPage: React.FC = () => {
         { label: "Vocabulary", path: "vocab" },
     ];
 
-    // -------- LOAD LESSON ONCE, SHARE VIA OUTLET CONTEXT --------
     const loadLesson = useCallback(async () => {
         if (!lessonId) return;
         setLoading(true);
@@ -96,7 +95,6 @@ const LessonViewPage: React.FC = () => {
         loadLesson();
     }, [loadLesson]);
 
-    // -------- SYNC HANDLER (called from modal confirm) --------
     const handleSync = async () => {
         if (!lessonId) return;
 
@@ -131,14 +129,13 @@ const LessonViewPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full">
-            {/* HEADER ROW: title + sync button */}
+            {/* HEADER ROW */}
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-semibold text-slate-900">
                     Lesson #{lessonId}
                 </h1>
 
                 <div className="flex flex-col items-end gap-1">
-                    {/* Sync status message */}
                     {syncStatus.type && (
                         <div
                             className={`flex items-center gap-1 text-xs ${
@@ -156,7 +153,6 @@ const LessonViewPage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Sync button -> open confirm modal */}
                     <button
                         onClick={() => setShowConfirmSync(true)}
                         disabled={syncing || loading}
@@ -180,7 +176,7 @@ const LessonViewPage: React.FC = () => {
                     {tabs.map((t) => (
                         <NavLink
                             key={t.path}
-                            to={`/admin/lesson/${lessonId}/${t.path}`}
+                            to={`/admin/lessons/${lessonId}/${t.path}`}
                             className={({ isActive }) =>
                                 `
                                     px-4 py-2 text-sm font-medium
@@ -200,9 +196,17 @@ const LessonViewPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* CONTENT AREA (shared lesson context) */}
+            {/* CONTENT AREA */}
             <div className="bg-slate-50 border border-t-0 border-slate-200 rounded-b-md p-4 flex-1">
-                <Outlet context={{ lesson, loading } satisfies LessonOutletContext} />
+                <Outlet
+                    context={
+                        {
+                            lesson,
+                            loading,
+                            setLesson,
+                        } satisfies LessonOutletContext
+                    }
+                />
             </div>
 
             {/* CONFIRM MODAL */}

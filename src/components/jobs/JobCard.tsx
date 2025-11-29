@@ -1,6 +1,7 @@
+// src/components/jobs/JobCard.tsx
 import React from "react";
 import type { ProcessingJob } from "../../types";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     FileAudio,
     Trash2,
@@ -9,7 +10,9 @@ import {
     CheckCircle2,
     AlertTriangle,
     Clock,
-    Workflow, ListChecks,
+    Workflow,
+    ListChecks,
+    VideoIcon,
 } from "lucide-react";
 
 interface JobCardProps {
@@ -20,6 +23,7 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }) => {
+    const navigate = useNavigate();
     const progress = job.progress_percent ?? 0;
 
     const statusStyles: Record<string, string> = {
@@ -30,7 +34,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
         completed: "bg-emerald-100 text-emerald-700",
         failed: "bg-rose-100 text-rose-700",
         cancelled: "bg-slate-200 text-slate-700",
-        audio_uploaded: "bg-purple-100 text-purple-700",  // NEW
+        audio_uploaded: "bg-purple-100 text-purple-700",
+        uploading_audio: "bg-purple-200 text-purple-700",
     };
 
     const currentStatus = job.current_step || "pending";
@@ -45,7 +50,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
             failed: AlertTriangle,
             cancelled: AlertTriangle,
             audio_uploaded: FileAudio,
+            uploading_audio: FileAudio,
         }[currentStatus] || Clock;
+
+    const handleViewUploadProgress = () => {
+        if (!job.upload_task_id) return;
+        navigate(`/admin/upload-tasks/${job.upload_task_id}`);
+    };
 
     return (
         <div
@@ -64,7 +75,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
                 `}
             >
                 <StatusIcon className="w-3 h-3" />
-
                 <span
                     className="
                         hidden group-hover:inline
@@ -75,7 +85,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
                     {currentStatus}
                 </span>
             </span>
-
 
             {/* HEADER */}
             <div className="flex flex-col pr-8">
@@ -88,19 +97,18 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
             {/* AUDIO URL */}
             <div className="flex items-start gap-2 text-xs text-slate-600">
                 <FileAudio className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-
                 <span
                     className="
                         line-clamp-2
-                        min-h-[32px]       /* force 2-line height */
+                        min-h-[32px]
                         break-all
                         leading-snug
                         block
-                    ">
+                    "
+                >
                     {job.original_audio_url}
                 </span>
             </div>
-
 
             {/* PROGRESS BAR */}
             <div>
@@ -123,7 +131,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
 
             {/* ACTION BUTTONS */}
             <div className="flex gap-2 pt-2">
-
                 {/* Extract */}
                 {currentStatus === "pending" && (
                     <button
@@ -146,12 +153,23 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
                     </Link>
                 )}
 
-                {/* Approve (finalize job) */}
+                {/* 🔵 Uploading Progress -> navigate to page */}
+                {currentStatus === "uploading_audio" && job.upload_task_id && (
+                    <button
+                        onClick={handleViewUploadProgress}
+                        className="flex-1 px-3 py-2 rounded-full bg-emerald-500 text-white text-xs
+                                   flex items-center justify-center gap-1 hover:bg-emerald-600"
+                    >
+                        <VideoIcon className="w-4 h-4" /> Uploading Progress
+                    </button>
+                )}
+
+                {/* Approve (after audio uploaded) */}
                 {currentStatus === "audio_uploaded" && (
                     <button
                         onClick={onApprove}
                         className="flex-1 px-3 py-2 rounded-full bg-emerald-500 text-white text-xs
-                   flex items-center justify-center gap-1 hover:bg-emerald-600"
+                                   flex items-center justify-center gap-1 hover:bg-emerald-600"
                     >
                         <CheckCircle2 className="w-4 h-4" /> Approve
                     </button>
@@ -169,7 +187,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
                 <button
                     onClick={onDelete}
                     className="ml-auto px-3 py-2 rounded-full border border-rose-200 text-rose-600 text-xs
-               flex items-center justify-center hover:bg-rose-50"
+                               flex items-center justify-center hover:bg-rose-50"
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>

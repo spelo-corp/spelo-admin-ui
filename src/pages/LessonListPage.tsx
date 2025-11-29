@@ -97,7 +97,7 @@ const LessonListPage: React.FC = () => {
                             <LessonCard
                                 key={lesson.id}
                                 lesson={lesson}
-                                onView={() => (window.location.href = `/admin/lesson/${lesson.id}`)}
+                                onView={() => (window.location.href = `/admin/lessons/${lesson.id}`)}
                                 onAddAudio={() =>
                                     (window.location.href = `/admin/processing-jobs?lesson=${lesson.id}`)
                                 }

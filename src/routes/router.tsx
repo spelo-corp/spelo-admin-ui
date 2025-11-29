@@ -31,7 +31,7 @@ export const AppRoutes = () => {
                 <Route path="audio-files" element={<AudioFilesPage />} />
                 <Route path="users" element={<UsersPage />} />
 
-                <Route path="lesson/:lessonId" element={<LessonViewPage />}>
+                <Route path="lessons/:lessonId" element={<LessonViewPage />}>
                     <Route index element={<LessonInfoPage />} />
                     <Route path="info" element={<LessonInfoPage />} />
                     <Route path="audio" element={<LessonAudioPage />} />
