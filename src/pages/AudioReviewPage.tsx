@@ -2,19 +2,36 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { ProcessingJobDetail } from "../types";
+import type { ProcessingJobDetail, Sentence } from "../types";
 
-import { ArrowLeft, Play, CheckCircle2 } from "lucide-react";
+import {
+    ArrowLeft,
+    Play,
+    CheckCircle2,
+    Lock,
+    Unlock,
+    Scissors,
+    Combine,
+    Plus,
+} from "lucide-react";
+
 import type WaveSurfer from "wavesurfer.js";
 import { WaveformRegionsPlayer } from "../components/audio/WaveformRegionsPlayer";
+
+interface UISentence extends Sentence {
+    locked?: boolean;
+}
 
 const AudioReviewPage: React.FC = () => {
     const { jobId } = useParams();
     const navigate = useNavigate();
 
-    const [job, setJob] = useState<ProcessingJobDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [approving, setApproving] = useState(false);
+    const [job, setJob] = useState<(ProcessingJobDetail & { sentences: UISentence[] }) | null>(null);
+
+    // For merge mode
+    const [mergeSelection, setMergeSelection] = useState<number[]>([]);
 
     const wsRef = useRef<WaveSurfer | null>(null);
 
@@ -27,7 +44,15 @@ const AudioReviewPage: React.FC = () => {
             try {
                 const res = await api.getJobDetail(Number(jobId));
                 if (res.success) {
-                    setJob(res.job);
+                    // Add locked flag
+                    const withLocks: ProcessingJobDetail = {
+                        ...res.job,
+                        sentences: res.job.sentences.map((s) => ({
+                            ...s,
+                            locked: false,
+                        })),
+                    };
+                    setJob(withLocks);
                 }
             } finally {
                 setLoading(false);
@@ -37,8 +62,7 @@ const AudioReviewPage: React.FC = () => {
 
     // ---------------- HELPERS ----------------
     const playSegment = (start: number, end: number) => {
-        if (!wsRef.current) return;
-        wsRef.current.play(start, end);
+        wsRef.current?.play(start, end);
     };
 
     const updateSentence = async (
@@ -48,23 +72,22 @@ const AudioReviewPage: React.FC = () => {
     ) => {
         if (!jobId || !job) return;
 
-        const sentence = job.sentences[index];
-        const payload = {
-            text: field === "text" ? value : sentence.text,
+        await api.updateSentence(Number(jobId), index, {
+            text: field === "text" ? value : job.sentences[index].text,
             translated_text:
-                field === "translated_text" ? value : sentence.translated_text,
-        };
-
-        await api.updateSentence(Number(jobId), index, payload);
+                field === "translated_text"
+                    ? value
+                    : job.sentences[index].translated_text,
+        });
 
         setJob((prev) => {
             if (!prev) return prev;
-            const clone: ProcessingJobDetail = {
-                ...prev,
-                sentences: [...prev.sentences],
+            const updated = { ...prev, sentences: [...prev.sentences] };
+            updated.sentences[index] = {
+                ...updated.sentences[index],
+                [field]: value,
             };
-            clone.sentences[index] = { ...sentence, ...payload };
-            return clone;
+            return updated;
         });
     };
 
@@ -74,8 +97,6 @@ const AudioReviewPage: React.FC = () => {
         try {
             const res = await api.approveJob(Number(jobId), 1);
             if (res.success) {
-                // Optional: you can navigate to a "view lesson" page here instead
-                // navigate(`/admin/listening-lessons/${res.listening_lesson_id}`);
                 alert(`Job approved! Listening lesson ID: ${res.listening_lesson_id}`);
                 navigate("/admin/processing-jobs");
             }
@@ -84,19 +105,19 @@ const AudioReviewPage: React.FC = () => {
         }
     };
 
-    // Called whenever a draggable region is updated
-    // region drag → update local state only
+    // ---------------- REGION UPDATES ----------------
     const handleRegionUpdate = (id: string, start: number, end: number) => {
-        const index = Number(id);
-        if (Number.isNaN(index)) return;
+        const idx = Number(id);
+        if (Number.isNaN(idx) || !job) return;
 
-        // Local state only – no backend call yet
+        // Prevent updates on locked segments
+        if (job.sentences[idx].locked) return;
+
         setJob((prev) => {
             if (!prev) return prev;
-
             const updated = { ...prev, sentences: [...prev.sentences] };
-            updated.sentences[index] = {
-                ...updated.sentences[index],
+            updated.sentences[idx] = {
+                ...updated.sentences[idx],
                 start_time: start,
                 end_time: end,
             };
@@ -104,22 +125,23 @@ const AudioReviewPage: React.FC = () => {
         });
     };
 
+    // ---------------- ADD NEW SEGMENT ----------------
     const addNewSegment = () => {
         setJob((prev) => {
             if (!prev) return prev;
 
             const last = prev.sentences[prev.sentences.length - 1];
-            const newStart = last ? last.end_time : 0;
-            const newEnd = newStart + 2; // default 2-second region
+            const start = last ? last.end_time : 0;
+            const end = start + 2;
 
-            const newSentence = {
+            const newSentence: UISentence = {
                 index: prev.sentences.length,
                 text: "",
                 translated_text: "",
-                start_time: newStart,
-                end_time: newEnd,
+                start_time: start,
+                end_time: end,
                 accuracy: undefined,
-                words: [],
+                locked: false,
             };
 
             return {
@@ -129,227 +151,268 @@ const AudioReviewPage: React.FC = () => {
         });
     };
 
+    // ---------------- SPLIT SEGMENT ----------------
+    const splitSegment = (index: number) => {
+        if (!job) return;
+        const s = job.sentences[index];
+
+        if (s.locked) {
+            alert("Cannot split: Segment is locked.");
+            return;
+        }
+
+        const mid = (s.start_time + s.end_time) / 2;
+
+        const s1 = { ...s, end_time: mid };
+        const s2: Sentence & { locked?: boolean } = {
+            ...s,
+            start_time: mid,
+            end_time: s.end_time,
+            text: "",
+            translated_text: "",
+            locked: false,
+        };
+
+        const newList = [...job.sentences];
+        newList.splice(index, 1, s1, s2);
+
+        // Re-index
+        newList.forEach((seg, i) => (seg.index = i));
+
+        setJob({ ...job, sentences: newList });
+    };
+
+    // ---------------- MERGE SEGMENTS ----------------
+    const toggleMergeSelect = (index: number) => {
+        setMergeSelection((prev) => {
+            if (prev.includes(index)) return prev.filter((i) => i !== index);
+            return prev.length < 2 ? [...prev, index] : prev;
+        });
+    };
+
+    const mergeSegments = () => {
+        if (!job) return;
+        if (mergeSelection.length !== 2) return;
+
+        const [i1, i2] = mergeSelection.sort((a, b) => a - b);
+
+        const s1 = job.sentences[i1];
+        const s2 = job.sentences[i2];
+
+        if (s1.locked || s2.locked) {
+            alert("Cannot merge: one or both segments are locked.");
+            return;
+        }
+
+        const merged: Sentence & { locked?: boolean } = {
+            ...s1,
+            end_time: s2.end_time,
+            text: s1.text + " " + s2.text,
+            translated_text: (s1.translated_text || "") + " " + (s2.translated_text || ""),
+            locked: false,
+        };
+
+        const newList = [...job.sentences];
+        newList.splice(i1, 2, merged);
+
+        // Re-index
+        newList.forEach((seg, i) => (seg.index = i));
+
+        setMergeSelection([]);
+        setJob({ ...job, sentences: newList });
+    };
+
+    // ---------------- LOCK / UNLOCK ----------------
+    const toggleLock = (index: number) => {
+        setJob((prev) => {
+            if (!prev) return prev;
+
+            const updated = { ...prev, sentences: [...prev.sentences] };
+            updated.sentences[index] = {
+                ...updated.sentences[index],
+                locked: !updated.sentences[index].locked,
+            };
+            return updated;
+        });
+    };
+
+    // ---------------- SAVE ALIGNMENT ----------------
     const saveAlignment = async () => {
         if (!job || !jobId) return;
 
         try {
-            const updates = job.sentences.map((s, index) => ({
-                index,
+            const updates = job.sentences.map((s) => ({
+                index: s.index,
                 start_time: s.start_time,
                 end_time: s.end_time,
             }));
 
-            console.log(updates);
-
             await api.updateAllTimings(Number(jobId), { updates });
 
-            alert("Alignment saved successfully!");
-        } catch (e) {
-            console.error(e);
+            alert("Alignment saved!");
+        } catch {
             alert("Failed to save alignment.");
         }
     };
 
-    // Build regions from current sentences
+    // ---------------- REGIONS ----------------
     const regions = useMemo(
         () =>
-            job?.sentences.map((s, idx) => ({
-                id: String(idx),
+            job?.sentences.map((s: UISentence) => ({
+                id: String(s.index),
                 start: s.start_time,
                 end: s.end_time,
-                color: "rgba(14,165,233,0.22)",
+                color: s.locked
+                    ? "rgba(71,85,105,0.35)"
+                    : "rgba(14,165,233,0.22)",
             })) ?? [],
         [job],
     );
 
     // ---------------- SKELETON ----------------
-    const ReviewSkeleton = () => (
-        <div className="space-y-6 animate-pulse">
-            <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                    <div className="h-3 w-10 bg-slate-200 rounded" />
-                    <div className="h-6 w-64 bg-slate-200 rounded" />
-                </div>
-                <div className="h-9 w-40 bg-slate-200 rounded-xl" />
-            </div>
+    const ReviewSkeleton = () => <div>Loading...</div>;
 
-            <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-4">
-                <div className="space-y-2">
-                    <div className="h-4 w-32 bg-slate-200 rounded" />
-                    <div className="w-full h-10 bg-slate-200 rounded-xl" />
-                </div>
-                <div className="h-3 w-52 bg-slate-200 rounded" />
-
-                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                            key={i}
-                            className="border rounded-2xl p-3 bg-slate-50 space-y-3 border-slate-200"
-                        >
-                            <div className="flex justify-between">
-                                <div className="h-3 w-24 bg-slate-200 rounded" />
-                                <div className="h-3 w-32 bg-slate-200 rounded" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="h-16 bg-slate-200 rounded-xl" />
-                                <div className="h-16 bg-slate-200 rounded-xl" />
-                            </div>
-                            <div className="h-7 w-28 bg-slate-200 rounded-xl" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-
-    // ---------------- RENDER ----------------
     if (loading) return <ReviewSkeleton />;
-    if (!job) return <div className="text-sm text-rose-500">Job not found.</div>;
+    if (!job) return <div>Job not found.</div>;
 
     return (
         <div className="space-y-6">
             {/* HEADER */}
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <button
-                        className="text-xs text-slate-500 mb-1 flex items-center gap-1"
-                        onClick={() => navigate(-1)}
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                    </button>
-
-                    <h1 className="text-2xl font-semibold text-slate-800">
-                        Review & Align · Job #{job.job_id}
-                    </h1>
-                </div>
+            <div className="flex items-center justify-between">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="text-xs text-slate-500 flex items-center gap-1"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Back
+                </button>
 
                 <button
-                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm
-                     flex items-center gap-2 hover:bg-emerald-600 disabled:opacity-60"
                     disabled={approving}
                     onClick={handleApprove}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white flex items-center gap-2"
                 >
                     <CheckCircle2 className="w-4 h-4" />
                     Approve & Finalize
                 </button>
             </div>
 
-            {/* MAIN BOX */}
-            <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-4">
-                {/* AUDIO + WAVEFORM */}
-                <div>
-                    <h2 className="font-semibold text-slate-800 text-sm mb-2">
-                        Original Audio
-                    </h2>
-                    <div className="flex items-center gap-3 mb-3">
-                        <button
-                            onClick={addNewSegment}
-                            className="px-3 py-2 rounded-lg bg-purple-500 text-white text-xs hover:bg-purple-600"
+            {/* CONTROLS */}
+            <div className="flex gap-3">
+                <button
+                    onClick={addNewSegment}
+                    className="px-3 py-2 rounded-lg bg-purple-500 text-white text-xs flex items-center gap-1"
+                >
+                    <Plus className="w-4 h-4" /> Add Segment
+                </button>
+
+                <button
+                    onClick={saveAlignment}
+                    className="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs"
+                >
+                    Save Alignment
+                </button>
+
+                <button
+                    disabled={mergeSelection.length !== 2}
+                    onClick={mergeSegments}
+                    className="px-3 py-2 rounded-lg bg-indigo-500 text-white text-xs disabled:opacity-40 flex items-center gap-1"
+                >
+                    <Combine className="w-4 h-4" /> Merge Selected
+                </button>
+            </div>
+
+            {/* WAVEFORM */}
+            <WaveformRegionsPlayer
+                audioUrl={job.audio_url}
+                regions={regions}
+                onRegionUpdate={handleRegionUpdate}
+                onReady={(ws) => (wsRef.current = ws)}
+            />
+
+            {/* SENTENCE LIST */}
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                {job.sentences.map((s: UISentence, idx) => {
+                    const duration = s.end_time - s.start_time;
+
+                    return (
+                        <div
+                            key={idx}
+                            className="border rounded-xl p-3 bg-slate-50 space-y-2"
                         >
-                            + Add Segment
-                        </button>
-
-                        <button
-                            onClick={saveAlignment}
-                            className="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs hover:bg-blue-600"
-                        >
-                            Save Alignment
-                        </button>
-                    </div>
-
-                    <WaveformRegionsPlayer
-                        audioUrl={job.audio_url}
-                        regions={regions}
-                        onRegionUpdate={handleRegionUpdate}
-                        onReady={(ws) => {
-                            wsRef.current = ws;
-                        }}
-                    />
-
-                    <audio controls className="w-full mt-2" src={job.audio_url} />
-                </div>
-
-                <p className="text-xs text-slate-500">
-                    Drag or resize the highlighted regions to adjust sentence boundaries.
-                    Text and translations can still be edited below.
-                </p>
-
-                {/* SENTENCES LIST */}
-                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-                    {job.sentences.map((s, idx) => {
-                        const duration = s.end_time - s.start_time;
-                        let borderColor = "border-slate-200";
-
-                        const accuracy = s.accuracy;
-                        if (typeof accuracy === "number") {
-                            if (accuracy >= 0.9) borderColor = "border-emerald-300";
-                            else if (accuracy >= 0.7) borderColor = "border-amber-300";
-                            else borderColor = "border-rose-300";
-                        }
-
-                        return (
-                            <div
-                                key={idx}
-                                className={`border ${borderColor} rounded-2xl p-3 bg-slate-50`}
-                            >
-                                {/* Header row */}
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-slate-600">
-                                    Sentence {idx + 1}
-                                  </span>
-                                                    <span className="text-[11px] text-slate-500">
-                                    {s.start_time.toFixed(2)}s – {s.end_time.toFixed(2)}s •{" "}
-                                                        {duration.toFixed(2)}s
-                                                        {typeof s.accuracy === "number" &&
-                                                            ` · Accuracy ${(s.accuracy * 100).toFixed(0)}%`}
-                                  </span>
-                                </div>
-
-                                {/* Textareas */}
-                                <div className="grid md:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-[11px] text-slate-500 mb-1">
-                                            Sentence Text
-                                        </label>
-                                        <textarea
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                            rows={2}
-                                            defaultValue={s.text}
-                                            onBlur={(e) =>
-                                                updateSentence(idx, "text", e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[11px] text-slate-500 mb-1">
-                                            Translated Text (optional)
-                                        </label>
-                                        <textarea
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                            rows={2}
-                                            defaultValue={s.translated_text || ""}
-                                            onBlur={(e) =>
-                                                updateSentence(idx, "translated_text", e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Play segment */}
-                                <div className="flex justify-between items-center mt-2">
-                                    <button
-                                        className="px-3 py-1.5 rounded-xl border text-xs hover:bg-slate-100 flex items-center gap-1"
-                                        onClick={() => playSegment(s.start_time, s.end_time)}
-                                    >
-                                        <Play className="w-4 h-4" />
-                                        Play Segment
-                                    </button>
-                                </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium">Sentence {idx + 1}</span>
+                                <span className="text-slate-500">
+                                    {s.start_time.toFixed(2)}s → {s.end_time.toFixed(2)}s •{" "}
+                                    {duration.toFixed(2)}s
+                                </span>
                             </div>
-                        );
-                    })}
-                </div>
+
+                            {/* Action Row */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => playSegment(s.start_time, s.end_time)}
+                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                >
+                                    <Play className="w-4 h-4" /> Play
+                                </button>
+
+                                <button
+                                    onClick={() => splitSegment(idx)}
+                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                >
+                                    <Scissors className="w-4 h-4" /> Split
+                                </button>
+
+                                <button
+                                    onClick={() => toggleMergeSelect(idx)}
+                                    className={`px-3 py-1 border rounded-lg text-xs ${
+                                        mergeSelection.includes(idx)
+                                            ? "bg-indigo-100 border-indigo-300"
+                                            : ""
+                                    }`}
+                                >
+                                    Select
+                                </button>
+
+                                <button
+                                    onClick={() => toggleLock(idx)}
+                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                >
+                                    {s.locked ? (
+                                        <>
+                                            <Lock className="w-4 h-4" /> Locked
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Unlock className="w-4 h-4" /> Lock
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* TEXT FIELDS */}
+                            <div className="grid md:grid-cols-2 gap-3">
+                                <textarea
+                                    defaultValue={s.text}
+                                    rows={2}
+                                    className="border rounded-xl p-2 text-sm"
+                                    onBlur={(e) =>
+                                        updateSentence(idx, "text", e.target.value)
+                                    }
+                                />
+
+                                <textarea
+                                    defaultValue={s.translated_text || ""}
+                                    rows={2}
+                                    className="border rounded-xl p-2 text-sm"
+                                    onBlur={(e) =>
+                                        updateSentence(idx, "translated_text", e.target.value)
+                                    }
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
