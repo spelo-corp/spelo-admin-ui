@@ -235,4 +235,31 @@ export const api = {
         );
     },
 
+    async syncLesson(lessonId: number) {
+        return handle<{ success: boolean; message?: string }>(
+            await fetch(`${BASE_URL}/api/admin/sync/lesson/${lessonId}`, {
+                method: "POST",
+            })
+        );
+    },
+
+    async updateLesson(
+        lessonId: number,
+        payload: {
+            name: string;
+            level: string;
+            category_id: number;
+            description?: string | null;
+            image?: string | null;
+        }
+    ) {
+        return handle<{ success: boolean; lesson: LessonDetail }>(
+            await fetch(`${BASE_URL}/api/admin/lessons/${lessonId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            })
+        );
+    },
+
 };
