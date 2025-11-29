@@ -349,42 +349,62 @@ const AudioReviewPage: React.FC = () => {
 
                             {/* Action Row */}
                             <div className="flex gap-2">
+                                {/* Play */}
                                 <button
                                     onClick={() => playSegment(s.start_time, s.end_time)}
-                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                    className="
+                                        px-3 py-1 border rounded-lg text-xs flex items-center gap-1 cursor-pointer
+                                        transition-all duration-150
+                                        hover:bg-slate-100 hover:border-slate-300
+                                        active:scale-[0.97]
+                                    "
                                 >
                                     <Play className="w-4 h-4" /> Play
                                 </button>
 
+                                {/* Split */}
                                 <button
                                     onClick={() => splitSegment(idx)}
-                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                    className="
+                                        px-3 py-1 border rounded-lg text-xs flex items-center gap-1 cursor-pointer
+                                        transition-all duration-150
+                                        hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600
+                                        active:scale-[0.97]
+                                    "
                                 >
                                     <Scissors className="w-4 h-4" /> Split
                                 </button>
 
+                                {/* Select for merge */}
                                 <button
                                     onClick={() => toggleMergeSelect(idx)}
-                                    className={`px-3 py-1 border rounded-lg text-xs ${
-                                        mergeSelection.includes(idx)
-                                            ? "bg-indigo-100 border-indigo-300"
-                                            : ""
-                                    }`}
+                                    className={`
+                                        px-3 py-1 border rounded-lg text-xs cursor-pointer
+                                        transition-all duration-150 active:scale-[0.97]
+                                        ${mergeSelection.includes(idx)
+                                        ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                                        : "hover:bg-indigo-50 hover:border-indigo-200"}
+                                        `}
                                 >
                                     Select
                                 </button>
 
+                                {/* Lock */}
                                 <button
                                     onClick={() => toggleLock(idx)}
-                                    className="px-3 py-1 border rounded-lg text-xs flex items-center gap-1"
+                                    className="
+                                        px-3 py-1 border rounded-lg text-xs flex items-center gap-1 cursor-pointer
+                                        transition-all duration-150 active:scale-[0.97]
+                                        hover:bg-slate-100 hover:border-slate-300
+                                    "
                                 >
                                     {s.locked ? (
                                         <>
-                                            <Lock className="w-4 h-4" /> Locked
+                                            <Lock className="w-4 h-4 text-slate-700" /> Locked
                                         </>
                                     ) : (
                                         <>
-                                            <Unlock className="w-4 h-4" /> Lock
+                                            <Unlock className="w-4 h-4 text-slate-500" /> Lock
                                         </>
                                     )}
                                 </button>
