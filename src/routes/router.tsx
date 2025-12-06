@@ -15,6 +15,7 @@ import LessonInfoPage from "../pages/lesson/LessonInfoPage";
 import LessonAudioPage from "../pages/lesson/LessonAudioPage";
 import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
+import DictionaryPage from "../pages/DictionaryPage.tsx";
 
 export const AppRoutes = () => {
     return (
@@ -30,6 +31,7 @@ export const AppRoutes = () => {
                 <Route path="lessons" element={<LessonListPage />} />
                 <Route path="audio-files" element={<AudioFilesPage />} />
                 <Route path="users" element={<UsersPage />} />
+                <Route path="dictionary" element={<DictionaryPage />} />
 
                 <Route path="lessons/:lessonId" element={<LessonViewPage />}>
                     <Route index element={<LessonInfoPage />} />

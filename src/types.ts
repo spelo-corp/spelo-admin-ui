@@ -78,3 +78,30 @@ export interface LessonDetail extends Lesson {
     audio_files: AudioFile[];
     listening: ListeningLesson | null;
 }
+
+export interface VocabPronunciation {
+    dialect: string;
+    audio: string | null;
+    ipa: string;
+}
+
+export interface VocabMeaning {
+    definition: string;
+    example: string;
+    translation: string;
+}
+
+export interface VocabWordDefinition {
+    pronunciations: VocabPronunciation[];
+    meaning: VocabMeaning;
+}
+
+export interface VocabWord {
+    id: number;
+    word: string;
+
+    word_definition: VocabWordDefinition;
+
+    createdAt?: string;
+    updatedAt?: string;
+}

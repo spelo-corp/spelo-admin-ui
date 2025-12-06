@@ -82,6 +82,11 @@ const Sidebar: React.FC = () => {
                     <Users className="w-5 h-5" />
                     <span>Users</span>
                 </NavLink>
+
+                <NavLink to="/admin/dictionary" className = {linkClass}>
+                    <Users className="w-5 h-5" />
+                    <span>Dictionary</span>
+                </NavLink>
             </div>
 
             {/* GENERAL HEADER */}

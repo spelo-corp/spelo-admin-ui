@@ -3,10 +3,20 @@ import type {
     Lesson,
     ProcessingJob,
     ProcessingJobDetail,
-    AudioFile, LessonDetail,
+    AudioFile, LessonDetail, VocabWord,
 } from "../types";
 
 const BASE_URL = "http://localhost:8081";
+const BASE_URL_V2 = "https://209848bcdc01.ngrok-free.app";
+
+function getAuthHeaders() {
+    const token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXVsYWFuaDE1QGdtYWlsLmNvbSIsImlhdCI6MTc2NDE0NDQ0NywiZXhwIjoyNjI4MTQ0NDQ3LCJzY3AiOiIiLCJpZCI6MX0.aU4NpOFI5HVNd925-MUeNu8X6s7s6TPt583gjsB_zsLI_hhzzIhsWlSnHpJy-PtCED9HGL6tmK0RLe0NwQdPxA"; // or sessionStorage
+
+    return {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+    };
+}
 
 async function handle<T>(res: Response): Promise<T> {
     if (!res.ok) {
@@ -261,5 +271,73 @@ export const api = {
             })
         );
     },
+
+    // 📘 VOCABULARY API
+    async getVocab(params?: { q?: string; page?: number; size?: number }) {
+        const query = new URLSearchParams();
+
+        if (params?.q) query.set("q", params.q);
+        if (params?.page) query.set("page", String(params.page));
+        if (params?.size) query.set("size", String(params.size));
+
+        return handle<{
+            success: boolean;
+            data: VocabWord[];
+            total: number;
+            message?: string;
+            code?: number;
+        }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab?${query.toString()}`, {
+                method: "GET",
+                headers: getAuthHeaders(),
+            })
+        );
+    },
+
+    async getVocabById(id: number) {
+        return handle<{ success: boolean; data: VocabWord }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab/${id}`, {
+                method: "GET",
+                headers: getAuthHeaders(),
+            })
+        );
+    },
+
+    async getVocabByIds(ids: number[]) {
+        const query = new URLSearchParams();
+        ids.forEach(id => query.append("ids", String(id)));
+
+        await fetch(`${BASE_URL_V2}/api/v1/vocab/ids?${query.toString()}`, {
+            method: "GET",
+            headers: getAuthHeaders(),
+        })
+    },
+
+    async createVocab(payload: {
+        word: string;
+        phonetic?: string;
+        meaningVi?: string;
+        meaningEn?: string;
+        level?: string;
+    }) {
+        return handle<{ success: boolean; data: VocabWord }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload),
+            })
+        );
+    },
+
+    async updateVocab(id: number, payload: any) {
+        return handle<{ success: boolean; data: any }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab/${id}`, {
+                method: "PUT",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload),
+            })
+        );
+    },
+
 
 };
