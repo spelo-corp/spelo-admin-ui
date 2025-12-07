@@ -5,6 +5,7 @@ import type {
     ProcessingJobDetail,
     AudioFile, LessonDetail, VocabWord,
 } from "../types";
+import type {AutoCreateVocabRequest, VocabJob} from "../types/vocabJob.ts";
 
 const BASE_URL = "http://localhost:8081";
 const BASE_URL_V2 = "https://209848bcdc01.ngrok-free.app";
@@ -339,5 +340,21 @@ export const api = {
         );
     },
 
+    async autoCreateVocab(payload: AutoCreateVocabRequest) {
+        return handle<{ success: boolean; data: number }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab/auto-create`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload),
+            })
+        );
+    },
 
+    async getVocabJob(id: number) {
+        return handle<{ success: boolean; data: VocabJob }>(
+            await fetch(`${BASE_URL_V2}/api/v1/vocab/jobs/${id}`, {
+                headers: getAuthHeaders(),
+            })
+        );
+    }
 };
