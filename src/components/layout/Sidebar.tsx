@@ -63,7 +63,7 @@ const Sidebar: React.FC = () => {
                     <span>Dashboard</span>
                 </NavLink>
 
-                <NavLink to="/admin/processing-jobs" className={linkClass}>
+                <NavLink to="/admin/audio-processing" className={linkClass}>
                     <Workflow className="w-5 h-5" />
                     <span>Audio Processing</span>
                 </NavLink>

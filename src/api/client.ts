@@ -5,18 +5,27 @@ import type {
     ProcessingJobDetail,
     AudioFile, LessonDetail, VocabWord,
 } from "../types";
-import type {AutoCreateVocabRequest, VocabJob} from "../types/vocabJob.ts";
+import type { AutoCreateVocabRequest, VocabJob } from "../types/vocabJob.ts";
+import type { AudioJob, AudioSentence } from "../types/audioProcessing";
 
 const BASE_URL = "http://localhost:8081";
 const BASE_URL_V2 = "https://209848bcdc01.ngrok-free.app";
+const JOB_BASE_URL = "http://localhost:8080";
+const AUDIO_BASE_URL = `${BASE_URL_V2}/api/v1/audio-processing`;
 
-function getAuthHeaders() {
+function getAuthHeaders(options?: { contentType?: string | null }) {
     const token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXVsYWFuaDE1QGdtYWlsLmNvbSIsImlhdCI6MTc2NDE0NDQ0NywiZXhwIjoyNjI4MTQ0NDQ3LCJzY3AiOiIiLCJpZCI6MX0.aU4NpOFI5HVNd925-MUeNu8X6s7s6TPt583gjsB_zsLI_hhzzIhsWlSnHpJy-PtCED9HGL6tmK0RLe0NwQdPxA"; // or sessionStorage
 
-    return {
-        "Content-Type": "application/json",
+    const headers: Record<string, string> = {
         Authorization: token ? `Bearer ${token}` : "",
     };
+
+    const contentType = options?.contentType;
+    if (contentType !== null) {
+        headers["Content-Type"] = contentType ?? "application/json";
+    }
+
+    return headers;
 }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -25,6 +34,97 @@ async function handle<T>(res: Response): Promise<T> {
         throw new Error(text || res.statusText);
     }
     return await res.json() as Promise<T>;
+}
+
+type RawJob = {
+    id: number;
+    jobType?: string;
+    job_type?: string;
+    status?: string;
+    totalItems?: number;
+    total_items?: number;
+    completedItems?: number;
+    completed_items?: number;
+    failedItems?: number;
+    failed_items?: number;
+    progressPercent?: number | null;
+    progress_percent?: number | null;
+    currentStep?: string | null;
+    current_step?: string | null;
+    inputPayload?: unknown;
+    input_payload?: unknown;
+    resultPayload?: unknown;
+    result_payload?: unknown;
+    createdAt?: string;
+    created_at?: string;
+    updatedAt?: string;
+    updated_at?: string;
+    completedAt?: string | null;
+    completed_at?: string | null;
+};
+
+function safeParseJson<T = any>(value: unknown): T | null {
+    if (!value) return null;
+    if (typeof value === "object") return value as T;
+    if (typeof value === "string") {
+        try {
+            return JSON.parse(value) as T;
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
+const normalizeAudioStatus = (status?: string): AudioJob["status"] => {
+    if (!status) return "PROCESSING";
+    const upper = status.toUpperCase();
+    if (upper === "RUNNING") return "PROCESSING";
+    if (upper === "PENDING") return "PROCESSING";
+    if (upper === "COMPLETED") return "COMPLETED";
+    if (upper === "FAILED") return "FAILED";
+    if (upper === "FINALIZED") return "FINALIZED";
+    if (upper === "PARTIAL") return "PARTIAL";
+    if (upper === "REPROCESSING") return "REPROCESSING";
+    if (upper === "PROCESSING") return "PROCESSING";
+    return "PROCESSING";
+};
+
+function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
+    const input = safeParseJson(raw.inputPayload ?? raw.input_payload);
+    const resultWrapper = safeParseJson<{ data?: any }>(raw.resultPayload ?? raw.result_payload);
+    const resultData = resultWrapper?.data ?? resultWrapper ?? null;
+
+    const merged = {
+        ...(input as Record<string, any> | null ?? {}),
+        ...(resultData as Record<string, any> | null ?? {}),
+    };
+
+    const createdAt = raw.createdAt ?? raw.created_at ?? "";
+    const updatedAt = raw.updatedAt ?? raw.updated_at ?? createdAt;
+    const completedAt = raw.completedAt ?? raw.completed_at ?? undefined;
+
+    const lessonId = merged.lessonId ?? merged.lesson_id ?? 0;
+
+    return {
+        id: Number(raw.id),
+        status: normalizeAudioStatus(raw.status),
+        lessonId,
+        lessonName: merged.lessonName ?? merged.lesson_name ?? undefined,
+        transcript: merged.transcript ?? "",
+        translatedScript: merged.translatedScript ?? merged.translated_script ?? undefined,
+        type: merged.lessonType ?? merged.lesson_type ?? undefined,
+        audioUrl: merged.audioUrl ?? merged.audio_url ?? undefined,
+        sentences: merged.sentences ?? [],
+        progressPercent: raw.progressPercent ?? raw.progress_percent ?? null,
+        currentStep: raw.currentStep ?? raw.current_step ?? null,
+        totalItems: raw.totalItems ?? raw.total_items ?? null,
+        completedItems: raw.completedItems ?? raw.completed_items ?? null,
+        failedItems: raw.failedItems ?? raw.failed_items ?? null,
+        createdAt: createdAt || new Date().toISOString(),
+        updatedAt: updatedAt || createdAt || new Date().toISOString(),
+        finalizedAt: completedAt ?? undefined,
+    };
 }
 
 export const api = {
@@ -273,7 +373,92 @@ export const api = {
         );
     },
 
-    // 📘 VOCABULARY API
+    // 🎧 AUDIO PROCESSING V2 (Lesson Audio)
+    async submitAudioProcessingJob(payload: {
+        file: File;
+        transcript: string;
+        lessonId: number;
+        translatedScript?: string;
+        type?: number;
+    }) {
+        const form = new FormData();
+        form.append("file", payload.file);
+        form.append("transcript", payload.transcript);
+        form.append("lesson_id", String(payload.lessonId));
+        if (payload.translatedScript) form.append("translated_script", payload.translatedScript);
+        if (payload.type !== undefined) form.append("type", String(payload.type));
+
+        return handle<{ success: boolean; data: { jobId: number; status: string; createdAt: string } }>(
+            await fetch(`${AUDIO_BASE_URL}`, {
+                method: "POST",
+                headers: getAuthHeaders({ contentType: null }),
+                body: form,
+            })
+        );
+    },
+
+    async getAudioProcessingJobs(params?: { status?: string; search?: string }) {
+        const query = new URLSearchParams();
+        query.set("job_type", "AUDIO_PROCESSING");
+        if (params?.status) query.set("status", params.status);
+        if (params?.search) query.set("search", params.search);
+
+        const response = await handle<any>(
+            await fetch(`${JOB_BASE_URL}/api/v1/jobs?${query.toString()}`, {
+                headers: getAuthHeaders(),
+            })
+        );
+
+        const payload =
+            (response as { data?: RawJob[] }).data ??
+            (response as { jobs?: RawJob[] }).jobs ??
+            (Array.isArray(response) ? response : []);
+
+        return (payload as RawJob[])
+            .map(mapRawJobToAudioJob)
+            .filter(Boolean) as AudioJob[];
+    },
+
+    async getAudioProcessingJob(jobId: number) {
+        return handle<{ success: boolean; data: AudioJob }>(
+            await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}`, {
+                headers: getAuthHeaders(),
+            })
+        );
+    },
+
+    async updateAudioProcessingSentences(jobId: number, sentences: AudioSentence[]) {
+        return handle<{ success: boolean }>(
+            await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/sentences`, {
+                method: "PUT",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ sentences }),
+            })
+        );
+    },
+
+    async replaceAudioForJob(jobId: number, file: File) {
+        const form = new FormData();
+        form.append("file", file);
+
+        return handle<{ success: boolean }>(
+            await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/audio`, {
+                method: "PUT",
+                headers: getAuthHeaders({ contentType: null }),
+                body: form,
+            })
+        );
+    },
+
+    async finalizeAudioProcessingJob(jobId: number) {
+        return handle<{ success: boolean; data: { id: number; status: string; finalizedAt: string } }>(
+            await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/finalize`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+            })
+        );
+    },
+
     async getVocab(params?: { q?: string; page?: number; size?: number }) {
         const query = new URLSearchParams();
 

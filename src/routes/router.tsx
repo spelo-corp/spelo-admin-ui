@@ -6,6 +6,9 @@ import AdminLayout from "../components/layout/AdminLayout";
 import DashboardPage from "../pages/DashboardPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
 import AudioReviewPage from "../pages/AudioReviewPage";
+import AudioProcessingDashboardPage from "../pages/audioProcessing/AudioProcessingDashboardPage";
+import AudioProcessingUploadPage from "../pages/audioProcessing/AudioProcessingUploadPage";
+import AudioProcessingJobPage from "../pages/audioProcessing/AudioProcessingJobPage";
 import LessonListPage from "../pages/LessonListPage";
 import AudioFilesPage from "../pages/AudioFilesPage";
 import UsersPage from "../pages/UsersPage";
@@ -27,6 +30,10 @@ export const AppRoutes = () => {
 
                 <Route path="processing-jobs" element={<ProcessingJobsPage />} />
                 <Route path="processing-jobs/:jobId/review" element={<AudioReviewPage />} />
+                <Route path="audio-processing" element={<AudioProcessingDashboardPage />} />
+                <Route path="audio-processing/upload" element={<AudioProcessingUploadPage />} />
+                <Route path="audio-processing/jobs/:jobId" element={<AudioProcessingJobPage />} />
+                <Route path="audio-processing/jobs/:jobId/review" element={<AudioProcessingJobPage />} />
 
                 <Route path="lessons" element={<LessonListPage />} />
                 <Route path="audio-files" element={<AudioFilesPage />} />
