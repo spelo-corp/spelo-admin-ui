@@ -110,23 +110,6 @@ const Sidebar: React.FC = () => {
                     <span>Logout</span>
                 </button>
             </div>
-
-            {/* FOOTER CARD */}
-            <div className="mt-auto px-3">
-                <div
-                    className="
-            bg-gradient-to-br from-brand to-brand-dark
-            text-white rounded-card p-4 shadow-card flex flex-col gap-1
-          "
-                >
-                    <div className="text-sm font-semibold">
-                        Download our Mobile App
-                    </div>
-                    <button className="mt-1 text-xs bg-white text-brand px-3 py-1 rounded-full font-medium">
-                        Download
-                    </button>
-                </div>
-            </div>
         </aside>
     );
 };
