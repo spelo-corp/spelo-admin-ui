@@ -92,6 +92,31 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
     };
 }
 
+function mapSingleJob(job: any): AudioJob {
+    const data = job?.data ?? {};
+    const lessonId = data.lessonId ?? data.lesson_id ?? job.lessonId ?? job.lesson_id ?? 0;
+
+    return {
+        id: Number(job.id ?? data.id ?? 0),
+        status: normalizeAudioStatus(job.status),
+        lessonId,
+        lessonName: data.lessonName ?? data.lesson_name,
+        transcript: data.transcript ?? job.transcript ?? "",
+        translatedScript: data.translatedScript ?? data.translated_script ?? job.translatedScript,
+        type: data.lessonType ?? data.lesson_type ?? job.type,
+        audioUrl: data.audioUrl ?? data.audio_url ?? job.audioUrl ?? job.audio_url,
+        sentences: data.sentences ?? job.sentences ?? [],
+        progressPercent: job.progressPercent ?? data.progressPercent ?? null,
+        currentStep: job.currentStep ?? data.currentStep ?? null,
+        totalItems: job.totalItems ?? data.totalItems ?? null,
+        completedItems: job.completedItems ?? data.completedItems ?? null,
+        failedItems: job.failedItems ?? data.failedItems ?? null,
+        createdAt: job.createdAt ?? data.createdAt ?? new Date().toISOString(),
+        updatedAt: job.updatedAt ?? data.updatedAt ?? job.createdAt ?? new Date().toISOString(),
+        finalizedAt: job.completedAt ?? data.completedAt ?? undefined,
+    };
+}
+
 async function uploadAudioProcessingAudio(payload: {
     file: File;
     lessonId: number;
@@ -180,11 +205,14 @@ async function getAudioProcessingJobs(params?: { status?: string; search?: strin
 }
 
 async function getAudioProcessingJob(jobId: number) {
-    return handle<{ success: boolean; data: AudioJob }>(
+    const res = await handle<{ success?: boolean; data?: any } | any>(
         await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}`, {
             headers: getAuthHeaders(),
         })
     );
+
+    const payload = (res as { data?: any }).data ?? res;
+    return mapSingleJob(payload);
 }
 
 async function updateAudioProcessingSentences(jobId: number, sentences: AudioSentence[]) {

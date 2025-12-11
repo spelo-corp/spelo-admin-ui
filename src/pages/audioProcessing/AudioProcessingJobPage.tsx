@@ -33,6 +33,8 @@ const AudioProcessingJobPage: React.FC = () => {
     const [replaceStart, setReplaceStart] = useState(0);
     const [replaceEnd, setReplaceEnd] = useState(0);
     const [replacing, setReplacing] = useState(false);
+    const [previewing, setPreviewing] = useState(false);
+    const [replaceProgress, setReplaceProgress] = useState(0);
 
     const [job, setJob] = useState<AudioJob | null>(null);
     const [sentences, setSentences] = useState<AudioSentence[]>([]);
@@ -56,7 +58,7 @@ const AudioProcessingJobPage: React.FC = () => {
             const data =
                 (res as { data?: AudioJob }).data ??
                 (res as { job?: AudioJob }).job ??
-                null;
+                (res as AudioJob | null);
 
             setJob(data);
             setSentences(data?.sentences ?? []);
@@ -128,6 +130,47 @@ const AudioProcessingJobPage: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const setReplaceStartFromCurrent = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        setReplaceStart(Number(audio.currentTime.toFixed(3)));
+    };
+
+    const setReplaceEndFromCurrent = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        setReplaceEnd(Number(audio.currentTime.toFixed(3)));
+    };
+
+    const handlePreviewReplaceSegment = () => {
+        const audio = audioRef.current;
+        if (!audio) {
+            setError("No audio available to preview.");
+            return;
+        }
+        const start = Math.max(0, replaceStart);
+        const end = replaceEnd > 0 ? replaceEnd : audio.duration;
+        if (end <= start) {
+            setError("End time must be greater than start time to preview.");
+            return;
+        }
+
+        audio.currentTime = start;
+        const stopAt = end;
+
+        const stopIfNeeded = () => {
+            if (audio.currentTime >= stopAt) {
+                audio.pause();
+                audio.removeEventListener("timeupdate", stopIfNeeded);
+                setPreviewing(false);
+            }
+        };
+
+        setPreviewing(true);
+        audio.addEventListener("timeupdate", stopIfNeeded);
+        void audio.play();
     };
 
     const handleFinalize = async () => {
@@ -235,17 +278,25 @@ const AudioProcessingJobPage: React.FC = () => {
             return;
         }
         setReplacing(true);
+        setReplaceProgress(10);
+        const timer = window.setInterval(() => {
+            setReplaceProgress((p) => Math.min(p + 8, 90));
+        }, 300);
         setError(null);
         try {
             const trimmed = await trimAudioFile(replaceFile, replaceStart, replaceEnd);
+            console.log("trimmed" + trimmed)
             await api.replaceAudioForJob(job.id, trimmed);
             await loadJob();
             setReplaceFile(null);
             setReplaceStart(0);
             setReplaceEnd(0);
+            setReplaceProgress(100);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to replace audio.");
+            setReplaceProgress(0);
         } finally {
+            window.clearInterval(timer);
             setReplacing(false);
         }
     };
@@ -281,7 +332,7 @@ const AudioProcessingJobPage: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
@@ -336,10 +387,10 @@ const AudioProcessingJobPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">
+            <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4 lg:gap-6 items-start">
                 {/* Audio + meta */}
-                <div className="space-y-4">
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
+                <div className="space-y-3 lg:space-y-4">
+                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 lg:p-5 space-y-3">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900">Audio</h2>
@@ -373,7 +424,7 @@ const AudioProcessingJobPage: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 grid sm:grid-cols-2 gap-3">
+                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 lg:p-5 grid sm:grid-cols-2 gap-3">
                         {jobMeta.map((item) => (
                             <div key={item.label} className="space-y-1">
                                 <div className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -387,12 +438,12 @@ const AudioProcessingJobPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    {/* Replace audio */}
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
+                <div className="space-y-3 lg:space-y-4">
+                    {/* Update audio */}
+                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 lg:p-5 space-y-3">
                         <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                             <FileAudio className="w-4 h-4" />
-                            Replace / Trim Audio
+                            Update / Trim Audio
                         </h3>
 
                         <div className="space-y-2">
@@ -424,6 +475,13 @@ const AudioProcessingJobPage: React.FC = () => {
                                     value={replaceStart}
                                     onChange={(e) => setReplaceStart(Number(e.target.value))}
                                 />
+                                <button
+                                    className="text-[11px] text-brand hover:underline mt-1"
+                                    type="button"
+                                    onClick={setReplaceStartFromCurrent}
+                                >
+                                    Use current playhead
+                                </button>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-600">
@@ -436,12 +494,65 @@ const AudioProcessingJobPage: React.FC = () => {
                                     value={replaceEnd}
                                     onChange={(e) => setReplaceEnd(Number(e.target.value))}
                                 />
+                                <button
+                                    className="text-[11px] text-brand hover:underline mt-1"
+                                    type="button"
+                                    onClick={setReplaceEndFromCurrent}
+                                >
+                                    Use current playhead
+                                </button>
                             </div>
                         </div>
 
                         <p className="text-[11px] text-slate-500">
                             If start/end are set, that portion is trimmed locally before upload.
                         </p>
+
+                        <div className="flex flex-wrap gap-2">
+                            <Btn.Secondary
+                                type="button"
+                                onClick={handlePreviewReplaceSegment}
+                                disabled={previewing}
+                                className="flex-1 justify-center"
+                            >
+                                {previewing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Previewing…
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="w-4 h-4" />
+                                        Preview selection
+                                    </>
+                                )}
+                            </Btn.Secondary>
+                            <Btn.Secondary
+                                type="button"
+                                onClick={() => {
+                                    setReplaceStart(0);
+                                    setReplaceEnd(0);
+                                }}
+                                className="flex-1 justify-center"
+                            >
+                                Clear times
+                            </Btn.Secondary>
+                        </div>
+
+                        {replacing && (
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                    <span>Uploading new audio</span>
+                                    <span>{replaceProgress}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-brand transition-all"
+                                        style={{ width: `${replaceProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <Btn.Primary
                             disabled={replacing || !replaceFile}
@@ -451,164 +562,165 @@ const AudioProcessingJobPage: React.FC = () => {
                             {replacing ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    Uploading…
+                                    Saving audio…
                                 </>
                             ) : (
                                 <>
                                     <UploadCloud className="w-4 h-4" />
-                                    Replace Audio
+                                    Save audio
+                                </>
+                            )}
+                        </Btn.Primary>
+                    </div>
+                </div>
+            </div>
+
+            {/* Status + Sentences */}
+            <div className="space-y-4">
+                <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 lg:p-5 space-y-3">
+                    <h3 className="text-lg font-semibold text-slate-900">Status</h3>
+                    <div className="text-sm text-slate-600 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span>Current state</span>
+                            <StatusBadge status={job.status} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span>Sentences</span>
+                            <span className="font-semibold text-slate-900">{sentences.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span>Transcript length</span>
+                            <span className="font-semibold text-slate-900">
+                                {job.transcript?.length ?? 0} chars
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="h-px bg-slate-100" />
+
+                    <div className="space-y-2 text-sm text-slate-600">
+                        <p>
+                            Update sentences below, then save changes. Finalizing will lock the job for editing.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Sentences ({sentences.length})
+                        </h3>
+                        <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Saving…
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    Save Changes
                                 </>
                             )}
                         </Btn.Primary>
                     </div>
 
-                    {/* Status card */}
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-900">Status</h3>
-                        <div className="text-sm text-slate-600 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span>Current state</span>
-                                <StatusBadge status={job.status} />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span>Sentences</span>
-                                <span className="font-semibold text-slate-900">{sentences.length}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span>Transcript length</span>
-                                <span className="font-semibold text-slate-900">
-                                    {job.transcript?.length ?? 0} chars
-                                </span>
-                            </div>
-                        </div>
+                    <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                        {sentences.map((sentence, index) => {
+                            const duration = sentence.end - sentence.start;
+                            const isActive = activeSentence === index;
 
-                        <div className="h-px bg-slate-100" />
+                            return (
+                                <div
+                                    key={`${sentence.start}-${index}`}
+                                    className={`
+                                            border rounded-xl p-3 space-y-2
+                                            ${isActive ? "border-brand bg-brand-soft/60" : "border-slate-200 bg-slate-50"}
+                                        `}
+                                >
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-semibold text-slate-900">
+                                            Sentence {index + 1}
+                                        </span>
+                                        <span className="text-slate-500">
+                                            {formatSeconds(sentence.start)} → {formatSeconds(sentence.end)} •{" "}
+                                            {duration.toFixed(2)}s
+                                        </span>
+                                    </div>
 
-                        <div className="space-y-2 text-sm text-slate-600">
-                            <p>
-                                Update sentences below, then save changes. Finalizing will lock the job for editing.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <button
+                                            onClick={() => handlePlaySentence(sentence, index)}
+                                            className="px-3 py-1 rounded-full border border-slate-300 text-slate-700 flex items-center gap-1 hover:bg-slate-100"
+                                            type="button"
+                                        >
+                                            <Play className="w-3 h-3" /> Play
+                                        </button>
 
-            {/* Sentences */}
-            <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                        Sentences ({sentences.length})
-                    </h3>
-                    <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
-                        {saving ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Saving…
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-4 h-4" />
-                                Save Changes
-                            </>
+                                        <label className="flex items-center gap-1 text-slate-500">
+                                            Start
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={sentence.start}
+                                                onChange={(e) => {
+                                                    const value = Number(e.target.value);
+                                                    setSentences((prev) => {
+                                                        const next = [...prev];
+                                                        next[index] = { ...next[index], start: value };
+                                                        return next;
+                                                    });
+                                                }}
+                                                disabled={readOnly}
+                                                className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm"
+                                            />
+                                        </label>
+
+                                        <label className="flex items-center gap-1 text-slate-500">
+                                            End
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={sentence.end}
+                                                onChange={(e) => {
+                                                    const value = Number(e.target.value);
+                                                    setSentences((prev) => {
+                                                        const next = [...prev];
+                                                        next[index] = { ...next[index], end: value };
+                                                        return next;
+                                                    });
+                                                }}
+                                                disabled={readOnly}
+                                                className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    <textarea
+                                        value={sentence.text}
+                                        onChange={(e) =>
+                                            setSentences((prev) => {
+                                                const next = [...prev];
+                                                next[index] = { ...next[index], text: e.target.value };
+                                                return next;
+                                            })
+                                        }
+                                        rows={2}
+                                        disabled={readOnly}
+                                        className="w-full border border-slate-200 rounded-xl p-2 text-sm"
+                                    />
+                                </div>
+                            );
+                        })}
+
+                        {sentences.length === 0 && (
+                            <div className="text-center text-slate-500 py-10">
+                                No sentences available yet. If the job is still processing, try refreshing.
+                            </div>
                         )}
-                    </Btn.Primary>
-                </div>
-
-                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-                    {sentences.map((sentence, index) => {
-                        const duration = sentence.end - sentence.start;
-                        const isActive = activeSentence === index;
-
-                        return (
-                            <div
-                                key={`${sentence.start}-${index}`}
-                                className={`
-                                    border rounded-xl p-3 space-y-2
-                                    ${isActive ? "border-brand bg-brand-soft/60" : "border-slate-200 bg-slate-50"}
-                                `}
-                            >
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="font-semibold text-slate-900">
-                                        Sentence {index + 1}
-                                    </span>
-                                    <span className="text-slate-500">
-                                        {formatSeconds(sentence.start)} → {formatSeconds(sentence.end)} •{" "}
-                                        {duration.toFixed(2)}s
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2 text-xs">
-                                    <button
-                                        onClick={() => handlePlaySentence(sentence, index)}
-                                        className="px-3 py-1 rounded-full border border-slate-300 text-slate-700 flex items-center gap-1 hover:bg-slate-100"
-                                        type="button"
-                                    >
-                                        <Play className="w-3 h-3" /> Play
-                                    </button>
-
-                                    <label className="flex items-center gap-1 text-slate-500">
-                                        Start
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={sentence.start}
-                                            onChange={(e) => {
-                                                const value = Number(e.target.value);
-                                                setSentences((prev) => {
-                                                    const next = [...prev];
-                                                    next[index] = { ...next[index], start: value };
-                                                    return next;
-                                                });
-                                            }}
-                                            disabled={readOnly}
-                                            className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm"
-                                        />
-                                    </label>
-
-                                    <label className="flex items-center gap-1 text-slate-500">
-                                        End
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={sentence.end}
-                                            onChange={(e) => {
-                                                const value = Number(e.target.value);
-                                                setSentences((prev) => {
-                                                    const next = [...prev];
-                                                    next[index] = { ...next[index], end: value };
-                                                    return next;
-                                                });
-                                            }}
-                                            disabled={readOnly}
-                                            className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm"
-                                        />
-                                    </label>
-                                </div>
-
-                                <textarea
-                                    value={sentence.text}
-                                    onChange={(e) =>
-                                        setSentences((prev) => {
-                                            const next = [...prev];
-                                            next[index] = { ...next[index], text: e.target.value };
-                                            return next;
-                                        })
-                                    }
-                                    rows={2}
-                                    disabled={readOnly}
-                                    className="w-full border border-slate-200 rounded-xl p-2 text-sm"
-                                />
-                            </div>
-                        );
-                    })}
-
-                    {sentences.length === 0 && (
-                        <div className="text-center text-slate-500 py-10">
-                            No sentences available yet. If the job is still processing, try refreshing.
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>
