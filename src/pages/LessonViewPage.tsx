@@ -1,18 +1,19 @@
 // src/pages/LessonViewPage.tsx
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
-import type { LessonDetail } from "../types";
-import { CloudUpload, CheckCircle2, AlertCircle } from "lucide-react";
+import type { Lesson, LessonDetail } from "../types";
+import { AlertCircle, CheckCircle2, RefreshCcw } from "lucide-react";
 
 export interface LessonOutletContext {
-    lesson: LessonDetail | null;
+    lessonDetail: LessonDetail | null;
+    lessonMeta: Lesson | null;
     loading: boolean;
-    setLesson: React.Dispatch<React.SetStateAction<LessonDetail | null>>;
+    setLessonDetail: React.Dispatch<React.SetStateAction<LessonDetail | null>>;
+    setLessonMeta: React.Dispatch<React.SetStateAction<Lesson | null>>;
 }
 
-// confirm modal as before...
-interface ConfirmSyncModalProps {
+interface ConfirmResetModalProps {
     open: boolean;
     title: string;
     description: string;
@@ -21,14 +22,14 @@ interface ConfirmSyncModalProps {
     onCancel: () => void;
 }
 
-const ConfirmSyncModal: React.FC<ConfirmSyncModalProps> = ({
-                                                               open,
-                                                               title,
-                                                               description,
-                                                               loading,
-                                                               onConfirm,
-                                                               onCancel,
-                                                           }) => {
+const ConfirmResetModal: React.FC<ConfirmResetModalProps> = ({
+                                                                 open,
+                                                                 title,
+                                                                 description,
+                                                                 loading,
+                                                                 onConfirm,
+                                                                 onCancel,
+                                                             }) => {
     if (!open) return null;
 
     return (
@@ -52,7 +53,7 @@ const ConfirmSyncModal: React.FC<ConfirmSyncModalProps> = ({
                         disabled={loading}
                         className="px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
                     >
-                        {loading ? "Syncing..." : "Confirm Sync"}
+                        {loading ? "Resetting..." : "Confirm Reset"}
                     </button>
                 </div>
             </div>
@@ -60,15 +61,22 @@ const ConfirmSyncModal: React.FC<ConfirmSyncModalProps> = ({
     );
 };
 
+const CATEGORY_IDS = [1, 2, 3, 4, 5, 6];
+
 const LessonViewPage: React.FC = () => {
     const { lessonId } = useParams();
+    const location = useLocation();
 
-    const [lesson, setLesson] = useState<LessonDetail | null>(null);
+    const lessonFromState =
+        (location.state as { lesson?: Lesson } | undefined)?.lesson ?? null;
+
+    const [lessonDetail, setLessonDetail] = useState<LessonDetail | null>(null);
+    const [lessonMeta, setLessonMeta] = useState<Lesson | null>(lessonFromState);
     const [loading, setLoading] = useState(true);
 
-    const [showConfirmSync, setShowConfirmSync] = useState(false);
-    const [syncing, setSyncing] = useState(false);
-    const [syncStatus, setSyncStatus] = useState<{
+    const [showConfirmReset, setShowConfirmReset] = useState(false);
+    const [resetting, setResetting] = useState(false);
+    const [status, setStatus] = useState<{
         type: "success" | "error" | null;
         message: string;
     }>({ type: null, message: "" });
@@ -80,56 +88,91 @@ const LessonViewPage: React.FC = () => {
         { label: "Vocabulary", path: "vocab" },
     ];
 
-    const loadLesson = useCallback(async () => {
+    const loadLessonDetail = useCallback(async () => {
         if (!lessonId) return;
         setLoading(true);
         try {
             const res = await api.getLessonDetail(Number(lessonId));
-            if (res.success) setLesson(res.lesson);
+            if (res.success) {
+                setLessonDetail(res.lesson);
+                if (!lessonMeta && res.lesson) {
+                    setLessonMeta((prev) =>
+                        prev ?? {
+                            id: res.lesson.lesson_id,
+                            name: res.lesson.lesson_name,
+                            level: res.lesson.level ?? "A1",
+                            category_id: res.lesson.category_id ?? 0,
+                            description: res.lesson.description,
+                            status: res.lesson.status,
+                            image: res.lesson.image,
+                            gems: res.lesson.gems,
+                        }
+                    );
+                }
+            }
         } finally {
             setLoading(false);
         }
-    }, [lessonId]);
+    }, [lessonId, lessonMeta]);
+
+    const fetchLessonMeta = useCallback(async () => {
+        if (lessonMeta || !lessonId) return;
+
+        for (const categoryId of CATEGORY_IDS) {
+            try {
+                const res = await api.getLessons({ categoryId });
+                if (res.success) {
+                    const found = res.lessons.find(
+                        (item) => item.id === Number(lessonId)
+                    );
+                    if (found) {
+                        setLessonMeta(found);
+                        break;
+                    }
+                }
+            } catch {
+                // continue to next category
+            }
+        }
+    }, [lessonId, lessonMeta]);
 
     useEffect(() => {
-        loadLesson();
-    }, [loadLesson]);
+        void loadLessonDetail();
+        void fetchLessonMeta();
+    }, [loadLessonDetail, fetchLessonMeta]);
 
-    const handleSync = async () => {
+    const handleResetProgress = async () => {
         if (!lessonId) return;
 
-        setSyncing(true);
-        setSyncStatus({ type: null, message: "" });
+        setResetting(true);
+        setStatus({ type: null, message: "" });
 
         try {
-            const res = await api.syncLesson(Number(lessonId));
+            const res = await api.resetUserLessonProgress(Number(lessonId));
 
-            if (res?.success !== false) {
-                setSyncStatus({
-                    type: "success",
-                    message: res?.message || "Lesson synced successfully.",
-                });
-            } else {
-                setSyncStatus({
-                    type: "error",
-                    message: res?.message || "Sync failed.",
-                });
-            }
+            setStatus({
+                type: res.success ? "success" : "error",
+                message: res.message || (res.success ? "Progress reset." : "Reset failed."),
+            });
         } catch (e) {
             console.error(e);
-            setSyncStatus({
+            setStatus({
                 type: "error",
-                message: "Unexpected error while syncing.",
+                message: "Unexpected error while resetting progress.",
             });
         } finally {
-            setSyncing(false);
-            setShowConfirmSync(false);
+            setResetting(false);
+            setShowConfirmReset(false);
         }
     };
 
-    const headerTitle = lesson?.name || `Lesson #${lessonId}`;
-    const levelLabel = lesson?.level || "—";
-    const categoryLabel = lesson?.category_id ? `Category ${lesson.category_id}` : "Uncategorized";
+    const headerTitle =
+        lessonMeta?.name ?? lessonDetail?.lesson_name ?? `Lesson #${lessonId}`;
+    const levelLabel = lessonMeta?.level || "—";
+    const categoryLabel = lessonMeta?.category_id
+        ? `Category ${lessonMeta.category_id}`
+        : "Uncategorized";
+    const statusValue = lessonMeta?.status;
 
     return (
         <div className="flex flex-col h-full gap-4">
@@ -157,33 +200,33 @@ const LessonViewPage: React.FC = () => {
                             <span className="px-3 py-1 rounded-full bg-white/12 border border-white/15">
                                 {categoryLabel}
                             </span>
-                            {lesson?.status !== undefined && (
+                            {statusValue !== undefined && (
                                 <span className="px-3 py-1 rounded-full bg-white/12 border border-white/15">
-                                    {lesson.status === 1 ? "Active" : "Inactive"}
+                                    {statusValue === 1 ? "Active" : "Inactive"}
                                 </span>
                             )}
                         </div>
 
-                        {syncStatus.type && (
+                        {status.type && (
                             <div
                                 className={`flex items-center gap-2 text-xs ${
-                                    syncStatus.type === "success" ? "text-emerald-200" : "text-rose-200"
+                                    status.type === "success" ? "text-emerald-200" : "text-rose-200"
                                 }`}
                             >
-                                {syncStatus.type === "success" ? (
+                                {status.type === "success" ? (
                                     <CheckCircle2 className="w-4 h-4" />
                                 ) : (
                                     <AlertCircle className="w-4 h-4" />
                                 )}
-                                <span>{syncStatus.message}</span>
+                                <span>{status.message}</span>
                             </div>
                         )}
                     </div>
 
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setShowConfirmSync(true)}
-                            disabled={syncing || loading}
+                            onClick={() => setShowConfirmReset(true)}
+                            disabled={resetting || loading}
                             className="
                                 inline-flex items-center gap-1.5
                                 px-4 py-2 rounded-full text-sm font-semibold
@@ -193,8 +236,8 @@ const LessonViewPage: React.FC = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                             "
                         >
-                            <CloudUpload className="w-4 h-4" />
-                            {syncing ? "Syncing..." : "Sync to Legacy"}
+                            <RefreshCcw className={`w-4 h-4 ${resetting ? "animate-spin" : ""}`} />
+                            {resetting ? "Resetting..." : "Reset Progress"}
                         </button>
                     </div>
                 </div>
@@ -233,9 +276,11 @@ const LessonViewPage: React.FC = () => {
                     <Outlet
                         context={
                             {
-                                lesson,
+                                lessonDetail,
+                                lessonMeta,
                                 loading,
-                                setLesson,
+                                setLessonDetail,
+                                setLessonMeta,
                             } satisfies LessonOutletContext
                         }
                     />
@@ -243,13 +288,13 @@ const LessonViewPage: React.FC = () => {
             </div>
 
             {/* CONFIRM MODAL */}
-            <ConfirmSyncModal
-                open={showConfirmSync}
-                loading={syncing}
-                title="Sync lesson to legacy database?"
-                description="This will push the current lesson data to the legacy system. If a lesson with the same ID already exists there, its content may be overwritten."
-                onConfirm={handleSync}
-                onCancel={() => setShowConfirmSync(false)}
+            <ConfirmResetModal
+                open={showConfirmReset}
+                loading={resetting}
+                title="Reset user progress?"
+                description="This will reset the current user's progress for this lesson."
+                onConfirm={handleResetProgress}
+                onCancel={() => setShowConfirmReset(false)}
             />
         </div>
     );

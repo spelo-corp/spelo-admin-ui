@@ -24,6 +24,8 @@ const formatBytes = (bytes: number) => {
 const AudioProcessingUploadPage: React.FC = () => {
     const navigate = useNavigate();
 
+    const CATEGORY_IDS = [1, 2, 3, 4, 5, 6];
+
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loadingLessons, setLoadingLessons] = useState(true);
 
@@ -44,8 +46,16 @@ const AudioProcessingUploadPage: React.FC = () => {
     useEffect(() => {
         (async () => {
             try {
-                const res = await api.getLessons();
-                if (res.success) setLessons(res.lessons);
+                const lessonResponses = await Promise.all(
+                    CATEGORY_IDS.map((categoryId) =>
+                        api.getLessons({ categoryId }).catch(() => null)
+                    )
+                );
+                const merged = lessonResponses
+                    .filter((res): res is { success: boolean; lessons: Lesson[] } => Boolean(res?.success))
+                    .flatMap((res) => res.lessons);
+
+                setLessons(merged);
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Failed to load lessons.");
             } finally {
@@ -113,10 +123,7 @@ const AudioProcessingUploadPage: React.FC = () => {
                 type: type ? Number(type) : undefined,
             });
 
-            const jobId =
-                (res as { data?: { jobId?: number } }).data?.jobId ??
-                (res as { jobId?: number }).jobId ??
-                null;
+            const jobId = (res as { jobId?: number }).jobId ?? null;
 
             setUploadProgress(100);
             setSuccessJobId(jobId);

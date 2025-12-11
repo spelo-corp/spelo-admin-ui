@@ -18,6 +18,8 @@ import {
 
 import { CreateJobModal } from "../components/jobs/CreateJobModal";
 
+const CATEGORY_IDS = [1, 2, 3, 4, 5, 6];
+
 const ProcessingJobsPage: React.FC = () => {
     const [jobs, setJobs] = useState<ProcessingJob[]>([]);
     const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -30,13 +32,23 @@ const ProcessingJobsPage: React.FC = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [jobsRes, lessonsRes] = await Promise.all([
+            const lessonsPromise = Promise.all(
+                CATEGORY_IDS.map((categoryId) =>
+                    api.getLessons({ categoryId }).catch(() => null)
+                )
+            ).then((lessonResponses) =>
+                lessonResponses
+                    .filter((res): res is { success: boolean; lessons: Lesson[] } => Boolean(res?.success))
+                    .flatMap((res) => res.lessons)
+            );
+
+            const [jobsRes, mergedLessons] = await Promise.all([
                 api.getProcessingJobs({ per_page: 50 }),
-                api.getLessons(),
+                lessonsPromise,
             ]);
 
             if (jobsRes.success) setJobs(jobsRes.jobs);
-            if (lessonsRes.success) setLessons(lessonsRes.lessons);
+            setLessons(mergedLessons);
         } finally {
             setLoading(false);
         }

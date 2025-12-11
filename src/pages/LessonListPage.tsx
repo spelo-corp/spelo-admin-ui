@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { Lesson } from "../types";
+import type { Lesson, LessonLevel } from "../types";
 import LessonCard from "../components/lessons/LessonCard";
+import { CreateJobModal } from "../components/jobs/CreateJobModal";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input.tsx";
 import { Skeleton } from "../components/ui/Skeleton.tsx";
@@ -15,7 +17,18 @@ import {
     X,
 } from "lucide-react";
 
+const CATEGORY_OPTIONS = [
+    { id: 1, label: "Beginner" },
+    { id: 2, label: "Intermediate" },
+    { id: 3, label: "Advanced" },
+    { id: 4, label: "Business English" },
+    { id: 5, label: "Travel" },
+    { id: 6, label: "Daily Life" },
+];
+
 const LessonListPage: React.FC = () => {
+    const navigate = useNavigate();
+
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
@@ -23,19 +36,28 @@ const LessonListPage: React.FC = () => {
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
     const [modalError, setModalError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
-    const [levelFilter, setLevelFilter] = useState<string>("ALL");
+    const [levelFilter, setLevelFilter] = useState<LessonLevel | "ALL">("ALL");
+    const [categoryFilter, setCategoryFilter] = useState<number>(CATEGORY_OPTIONS[0].id);
 
     // form fields
     const [name, setName] = useState("");
-    const [level, setLevel] = useState("B1");
-    const [categoryId, setCategoryId] = useState(1);
+    const [level, setLevel] = useState<LessonLevel>("A1");
+    const [categoryId, setCategoryId] = useState(CATEGORY_OPTIONS[0].id);
+    const [gems, setGems] = useState<number>(0);
     const [description, setDescription] = useState("");
     const [image, setImage] = useState("");
+
+    // add audio modal
+    const [jobModalOpen, setJobModalOpen] = useState(false);
+    const [jobModalLessonId, setJobModalLessonId] = useState<number | null>(null);
 
     const loadLessons = async () => {
         setLoading(true);
         try {
-            const res = await api.getLessons();
+            const res = await api.getLessons({
+                categoryId: categoryFilter,
+                level: levelFilter === "ALL" ? undefined : levelFilter,
+            });
             if (res.success) setLessons(res.lessons);
         } finally {
             setLoading(false);
@@ -43,13 +65,14 @@ const LessonListPage: React.FC = () => {
     };
 
     useEffect(() => {
-        loadLessons();
-    }, []);
+        void loadLessons();
+    }, [categoryFilter, levelFilter]);
 
     const resetForm = () => {
         setName("");
-        setLevel("B1");
-        setCategoryId(1);
+        setLevel("A1");
+        setCategoryId(categoryFilter);
+        setGems(0);
         setDescription("");
         setImage("");
         setEditingLesson(null);
@@ -66,6 +89,7 @@ const LessonListPage: React.FC = () => {
         setName(lesson.name);
         setLevel(lesson.level);
         setCategoryId(lesson.category_id);
+        setGems(lesson.gems ?? 0);
         setDescription(lesson.description ?? "");
         setImage(lesson.image ?? "");
         setModalError(null);
@@ -81,12 +105,15 @@ const LessonListPage: React.FC = () => {
         setSaving(true);
         setModalError(null);
 
+        const trimmedName = name.trim();
         const payload = {
-            name,
+            name: trimmedName,
             level,
             category_id: categoryId,
+            gems,
             description: description || undefined,
             image: image || undefined,
+            status: editingLesson?.status ?? undefined,
         };
 
         try {
@@ -107,7 +134,7 @@ const LessonListPage: React.FC = () => {
         }
     };
 
-    const levels = useMemo(() => {
+    const levels: Array<LessonLevel | "ALL"> = useMemo(() => {
         const unique = new Set(lessons.map((l) => l.level));
         return ["ALL", ...Array.from(unique)];
     }, [lessons]);
@@ -198,6 +225,17 @@ const LessonListPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                        <select
+                            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium bg-white"
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(Number(e.target.value))}
+                        >
+                            {CATEGORY_OPTIONS.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                         {levels.map((lvl) => (
                             <button
                                 key={lvl}
@@ -280,9 +318,14 @@ const LessonListPage: React.FC = () => {
                                 <LessonCard
                                     key={lesson.id}
                                     lesson={lesson}
-                                    onView={() => (window.location.href = `/admin/lessons/${lesson.id}`)}
+                                    onView={() =>
+                                        navigate(`/admin/lessons/${lesson.id}`, { state: { lesson } })
+                                    }
                                     onAddAudio={() =>
-                                        (window.location.href = `/admin/processing-jobs?lesson=${lesson.id}`)
+                                        {
+                                            setJobModalLessonId(lesson.id);
+                                            setJobModalOpen(true);
+                                        }
                                     }
                                     onEdit={() => openEditModal(lesson)}
                                 />
@@ -348,7 +391,7 @@ const LessonListPage: React.FC = () => {
                                     <select
                                         className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
                                         value={level}
-                                        onChange={(e) => setLevel(e.target.value)}
+                                        onChange={(e) => setLevel(e.target.value as LessonLevel)}
                                     >
                                         <option value="A1">A1 (Beginner)</option>
                                         <option value="A2">A2 (Elementary)</option>
@@ -368,14 +411,26 @@ const LessonListPage: React.FC = () => {
                                         value={categoryId}
                                         onChange={(e) => setCategoryId(Number(e.target.value))}
                                     >
-                                        <option value={1}>Beginner</option>
-                                        <option value={2}>Intermediate</option>
-                                        <option value={3}>Advanced</option>
-                                        <option value={4}>Business English</option>
-                                        <option value={5}>Travel</option>
-                                        <option value={6}>Daily Life</option>
+                                        {CATEGORY_OPTIONS.map((option) => (
+                                            <option key={option.id} value={option.id}>
+                                                {option.label}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
+                            </div>
+
+                            {/* DESCRIPTION */}
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1">
+                                    Gems
+                                </label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={gems}
+                                    onChange={(e) => setGems(Number(e.target.value) || 0)}
+                                />
                             </div>
 
                             {/* DESCRIPTION */}
@@ -419,6 +474,20 @@ const LessonListPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <CreateJobModal
+                open={jobModalOpen}
+                onClose={() => {
+                    setJobModalOpen(false);
+                    setJobModalLessonId(null);
+                }}
+                onCreated={() => {
+                    setJobModalOpen(false);
+                    setJobModalLessonId(null);
+                }}
+                lessons={lessons}
+                defaultLessonId={jobModalLessonId}
+            />
         </div>
     );
 };

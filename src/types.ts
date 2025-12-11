@@ -28,14 +28,17 @@ export interface ProcessingJob {
     upload_task_id?: string;
 }
 
+export type LessonLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+
 export interface Lesson {
     id: number;
     name: string;
-    level: string;
+    level: LessonLevel;
     category_id: number;
     description?: string;
     status?: number;
     image?: string;
+    gems?: number;
 }
 
 export interface Sentence {
@@ -55,45 +58,101 @@ export interface ProcessingJobDetail {
 
 export interface AudioFile {
     id: number;
-    file_name: string;
-    url: string;
-    // add more fields here if your API returns them (e.g. duration, size, lesson_id, etc.)
-}
-
-export interface ListeningLesson {
-    listening_lesson_id: number;
-    sentences: Sentence[];
-}
-
-export interface AudioFile {
-    id: number;
     url: string;
     file_name: string;
     lesson_id?: number;
     duration?: number;
-    created_at: string;
+    created_at?: string;
 }
 
-export interface LessonDetail extends Lesson {
-    audio_files: AudioFile[];
-    listening: ListeningLesson | null;
+export interface ListeningLessonData {
+    audio?: string;
+    start?: number;
+    end?: number;
 }
 
-export interface VocabPronunciation {
-    dialect: string;
-    audio: string | null;
-    ipa: string;
+export interface ListeningLessonScript {
+    id?: number;
+    w?: string;
 }
 
-export interface VocabMeaning {
-    definition: string;
-    example: string;
-    translation: string;
+export interface WordPronunciation {
+    dialect?: string;
+    audio?: string | null;
+    ipa?: string;
+}
+
+export interface WordMeaning {
+    definition?: string;
+    example?: string;
+    translation?: string;
+}
+
+export interface WordData {
+    pronunciations?: WordPronunciation[];
+    meaning?: WordMeaning;
+}
+
+export interface WordResponseDTO {
+    id: number;
+    word: string;
+    word_definition: WordData;
+}
+
+export interface ListeningLessonDTO {
+    id: number;
+    type: number;
+    data: ListeningLessonData;
+    status: number;
+    script: ListeningLessonScript[];
+    str_script: string;
+    translated_script: string;
+    new_words: WordResponseDTO[];
+}
+
+export type TokenDiffType = "MATCH" | "MATCH_FUZZY" | "SUBSTITUTE" | "MISSING" | "EXTRA";
+
+export interface TokenDiff {
+    expected: string | null;
+    actual: string | null;
+    type: TokenDiffType;
+    score: number;
+    reason: string;
+}
+
+export interface ListeningAnswerDTO {
+    total_tokens: number;
+    correct_exact: number;
+    correct_fuzzy: number;
+    accuracy_exact: number;
+    accuracy_weighted: number;
+    expected_normalized: string;
+    user_normalized: string;
+    diffs: TokenDiff[];
+    missing_words: string[];
+    extra_words: string[];
+    feedback: string[];
+}
+
+export interface LessonDetail {
+    lesson_id: number;
+    lesson_name: string;
+    lesson_details: ListeningLessonDTO[];
+    total_elements: number;
+    total_pages: number;
+
+    // Optional metadata if fetched separately
+    level?: LessonLevel;
+    category_id?: number;
+    description?: string;
+    status?: number;
+    image?: string;
+    gems?: number;
 }
 
 export interface VocabWordDefinition {
-    pronunciations: VocabPronunciation[];
-    meaning: VocabMeaning;
+    pronunciations: WordPronunciation[];
+    meaning: WordMeaning;
 }
 
 export interface VocabWord {

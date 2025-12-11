@@ -9,7 +9,7 @@ import {
     Workflow,
     HelpCircle,
     LogOut,
-    Headphones,
+    Headphones, BookA,
 } from "lucide-react";
 
 const Sidebar: React.FC = () => {
@@ -63,14 +63,19 @@ const Sidebar: React.FC = () => {
                     <span>Dashboard</span>
                 </NavLink>
 
-                <NavLink to="/admin/audio-processing" className={linkClass}>
-                    <Workflow className="w-5 h-5" />
-                    <span>Audio Processing</span>
-                </NavLink>
-
                 <NavLink to="/admin/lessons" className={linkClass}>
                     <BookOpen className="w-5 h-5" />
                     <span>Lessons</span>
+                </NavLink>
+
+                <NavLink to="/admin/dictionary" className = {linkClass}>
+                    <BookA className="w-5 h-5" />
+                    <span>Dictionary</span>
+                </NavLink>
+
+                <NavLink to="/admin/audio-processing" className={linkClass}>
+                    <Workflow className="w-5 h-5" />
+                    <span>Audio Processing</span>
                 </NavLink>
 
                 <NavLink to="/admin/audio-files" className={linkClass}>
@@ -83,10 +88,6 @@ const Sidebar: React.FC = () => {
                     <span>Users</span>
                 </NavLink>
 
-                <NavLink to="/admin/dictionary" className = {linkClass}>
-                    <BookOpen className="w-5 h-5" />
-                    <span>Dictionary</span>
-                </NavLink>
             </div>
 
             {/* GENERAL HEADER */}

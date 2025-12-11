@@ -10,10 +10,17 @@ interface Props {
     onClose: () => void;
     onCreated: () => void;
     lessons: Lesson[];
+    defaultLessonId?: number | null;
 }
 
-export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons,}) => {
-    const [lessonId, setLessonId] = useState<number | null>(null);
+export const CreateJobModal: React.FC<Props> = ({
+    open,
+    onClose,
+    onCreated,
+    lessons,
+    defaultLessonId = null,
+}) => {
+    const [lessonId, setLessonId] = useState<number | null>(defaultLessonId);
     const [type, setType] = useState(2);
 
     const [audioUrl, setAudioUrl] = useState("");
@@ -24,57 +31,118 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
     const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
     const [transcriptText, setTranscriptText] = useState("");
     const [transcriptUrl, setTranscriptUrl] = useState("");
+    const [translatedScript, setTranslatedScript] = useState("");
 
     const [startTime, setStartTime] = useState(0);
     const [endTime, setEndTime] = useState(0);
 
-    const [, setUploadedAudioPath] = useState("");
-    const [uploadedTranscriptPath, setUploadedTranscriptPath] = useState("");
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const uploadAudioIfNeeded = async () => {
-        if (audioFile && lessonId) {
-            const res = await api.uploadLocalAudio(audioFile, lessonId);
-            setUploadedAudioPath(res.file_path);
-            return res.file_path;
-        }
-        return audioUrl;
-    };
+    // Keep the lesson in sync when we open for a specific one
+    React.useEffect(() => {
+        if (defaultLessonId) setLessonId(defaultLessonId);
+    }, [defaultLessonId]);
 
-    const uploadTranscriptIfNeeded = async () => {
-        if (transcriptMode === "file" && transcriptFile && lessonId) {
-            const res = await api.uploadLocalTranscript(transcriptFile, lessonId);
-            setUploadedTranscriptPath(res.file_path);
-            return res.file_path;
+    const readTranscriptFile = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result ?? ""));
+            reader.onerror = () => reject(new Error("Failed to read transcript file."));
+            reader.readAsText(file);
+        });
+
+    const resolveTranscript = async (): Promise<string> => {
+        if (transcriptMode === "text") return transcriptText.trim();
+
+        if (transcriptMode === "file") {
+            if (!transcriptFile) return "";
+            return (await readTranscriptFile(transcriptFile)).trim();
         }
-        if (transcriptMode === "text") return transcriptText;
-        if (transcriptMode === "url") return transcriptUrl;
+
+        if (transcriptMode === "url") {
+            if (!transcriptUrl.trim()) return "";
+            const res = await fetch(transcriptUrl.trim());
+            if (!res.ok) throw new Error("Could not fetch transcript from URL.");
+            return (await res.text()).trim();
+        }
+
         return "";
     };
 
+    const resolveAudioFile = async (): Promise<File | null> => {
+        if (audioFile) return audioFile;
+
+        if (audioUrl.trim()) {
+            const res = await fetch(audioUrl.trim());
+            if (!res.ok) throw new Error("Could not fetch audio from URL.");
+
+            const blob = await res.blob();
+            const fileName = audioUrl.split("/").pop() || "audio-file";
+            return new File([blob], fileName, { type: blob.type || "audio/mpeg" });
+        }
+
+        return null;
+    };
+
+    const resetForm = () => {
+        setLessonId(defaultLessonId ?? null);
+        setType(2);
+        setAudioUrl("");
+        setAudioFile(null);
+        setTranscriptMode("text");
+        setTranscriptFile(null);
+        setTranscriptText("");
+        setTranscriptUrl("");
+        setTranslatedScript("");
+        setStartTime(0);
+        setEndTime(0);
+        setError(null);
+    };
 
     const handleCreate = async () => {
-        if (!lessonId) return alert("Please select a lesson.");
-
-        const finalAudioPath = await uploadAudioIfNeeded();
-        if (!finalAudioPath) {
-            alert("Audio file or URL is required.");
+        if (!lessonId) {
+            setError("Please select a lesson.");
             return;
         }
 
-        const transcriptValue = await uploadTranscriptIfNeeded();
+        setError(null);
+        setCreating(true);
 
-        await api.createProcessingJob({
-            lesson_id: lessonId,
-            audio_url: finalAudioPath,
-            transcript_text: transcriptMode === "text" ? transcriptValue : undefined,
-            transcript_url: transcriptMode === "url" ? transcriptValue : undefined,
-            transcript_file_name: uploadedTranscriptPath || undefined,
-            start_time: startTime,
-            end_time: endTime,
-            type,
-        });
+        try {
+            const audioToUpload = await resolveAudioFile();
+            if (!audioToUpload) {
+                throw new Error("Audio file is required.");
+            }
 
-        onCreated();
+            const transcriptValue = await resolveTranscript();
+            if (!transcriptValue) {
+                throw new Error("Transcript is required.");
+            }
+            const hasTiming = startTime > 0 || endTime > 0;
+
+            await api.submitAudioProcessingJob({
+                file: audioToUpload,
+                transcript: transcriptValue,
+                lessonId,
+                translatedScript: translatedScript.trim() || undefined,
+                type,
+                startTime: hasTiming ? startTime : undefined,
+                endTime: hasTiming ? endTime : undefined,
+            });
+
+            resetForm();
+            onCreated();
+            onClose();
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to create job.");
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const handleClose = () => {
+        resetForm();
         onClose();
     };
 
@@ -93,7 +161,7 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
                     <h2 className="text-lg font-semibold text-slate-900">
                         Create Processing Job
                     </h2>
-                    <button onClick={onClose}>✕</button>
+                    <button onClick={handleClose}>✕</button>
                 </div>
 
                 <div className="space-y-6 text-sm">
@@ -107,6 +175,7 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
                             <select
                                 className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
                                 value={lessonId ?? ""}
+                                disabled={!!defaultLessonId}
                                 onChange={(e) =>
                                     setLessonId(
                                         e.target.value ? Number(e.target.value) : null
@@ -165,6 +234,9 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
                             <Link2 className="w-4 h-4" /> Paste Audio URL
                         </button>
                     </div>
+                    <p className="text-[11px] text-slate-500">
+                        Audio file is required for processing. If you provide a URL, we will try to download it first.
+                    </p>
 
                     {/* AUDIO UPLOAD */}
                     {!audioUrl && (
@@ -330,6 +402,19 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
                         </div>
                     )}
 
+                    {/* TRANSLATED SCRIPT */}
+                    <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Translated Transcript (optional)
+                        </label>
+                        <textarea
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 h-24"
+                            value={translatedScript}
+                            onChange={(e) => setTranslatedScript(e.target.value)}
+                            placeholder="Paste translated transcript here..."
+                        />
+                    </div>
+
                     {/* START / END */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -361,10 +446,16 @@ export const CreateJobModal: React.FC<Props> = ({open, onClose,onCreated,lessons
 
                 </div>
 
+                {error && (
+                    <div className="text-sm text-rose-600 mt-4">{error}</div>
+                )}
+
                 {/* FOOTER */}
                 <div className="flex justify-end gap-2 mt-6">
-                    <Btn.Secondary onClick={onClose}>Cancel</Btn.Secondary>
-                    <Btn.Primary onClick={handleCreate}>Create Job</Btn.Primary>
+                    <Btn.Secondary onClick={handleClose}>Cancel</Btn.Secondary>
+                    <Btn.Primary onClick={handleCreate} disabled={creating}>
+                        {creating ? "Creating..." : "Create Job"}
+                    </Btn.Primary>
                 </div>
             </div>
         </div>
