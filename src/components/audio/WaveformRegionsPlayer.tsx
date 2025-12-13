@@ -3,6 +3,31 @@ import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
 import { ZoomIn, ZoomOut, RefreshCw, AlertTriangle } from "lucide-react";
 
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return String(error);
+};
+
+const isAbortError = (error: unknown): boolean => {
+    if (!error) return false;
+
+    if (error instanceof DOMException) {
+        return error.name === "AbortError";
+    }
+
+    if (error instanceof Error) {
+        return error.name === "AbortError" || /aborted/i.test(error.message);
+    }
+
+    if (typeof error === "object" && error !== null && "name" in error) {
+        return (error as { name?: unknown }).name === "AbortError";
+    }
+
+    return false;
+};
+
 interface RegionItem {
     id: string;
     start: number;
@@ -16,6 +41,7 @@ interface Props {
     onRegionUpdate?: (id: string, start: number, end: number) => void;
     onReady?: (ws: WaveSurfer) => void;
     height?: number;
+    editable?: boolean;
 }
 
 export const WaveformRegionsPlayer: React.FC<Props> = ({
@@ -24,6 +50,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                                                            onRegionUpdate,
                                                            onReady,
                                                            height = 80,
+                                                           editable = true,
                                                        }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const wsRef = useRef<WaveSurfer | null>(null);
@@ -32,17 +59,15 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
     // Track regions internally to avoid unnecessary recreations
     const internalRegionsRef = useRef<Map<string, any>>(new Map());
     const isUpdatingRegionRef = useRef(false);
+    const editableRef = useRef(editable);
 
     const [zoom, setZoom] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const getErrorMessage = (error: unknown): string => {
-        if (error instanceof Error) {
-            return error.message;
-        }
-        return String(error);
-    };
+    useEffect(() => {
+        editableRef.current = editable;
+    }, [editable]);
 
     // Initialize WaveSurfer
     useEffect(() => {
@@ -75,16 +100,21 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
 
             // Event handlers
             const handleError = (error: unknown) => {
+                if (wsRef.current !== ws) return;
+                if (isAbortError(error)) return;
+
                 console.error("WaveSurfer error:", error);
                 setError(`Audio error: ${getErrorMessage(error)}`);
                 setIsLoading(false);
             };
 
             const handleLoad = () => {
+                if (wsRef.current !== ws) return;
                 setIsLoading(true);
             };
 
             const handleReady = () => {
+                if (wsRef.current !== ws) return;
                 setIsLoading(false);
 
                 // Add initial regions
@@ -94,8 +124,8 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                         start: regionConfig.start,
                         end: regionConfig.end,
                         color: regionConfig.color || "rgba(14,165,233,0.3)",
-                        drag: true,
-                        resize: true,
+                        drag: editable,
+                        resize: editable,
                         minLength: 0.1,
                     });
 
@@ -104,6 +134,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
 
                     // Only update parent when user is done interacting
                     region.on("update-end", () => {
+                        if (!editableRef.current) return;
                         if (!isUpdatingRegionRef.current) {
                             isUpdatingRegionRef.current = true;
                             onRegionUpdate?.(region.id, region.start, region.end);
@@ -123,15 +154,20 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
             ws.on("load", handleLoad);
             ws.on("ready", handleReady);
 
-            // Load audio
-            ws.load(audioUrl);
-
             // Cleanup function
             return () => {
                 ws.un("error", handleError);
                 ws.un("load", handleLoad);
                 ws.un("ready", handleReady);
-                ws.destroy();
+                wsRef.current = null;
+                try {
+                    const result = ws.destroy() as unknown;
+                    if (result && typeof (result as { catch?: unknown }).catch === "function") {
+                        (result as Promise<unknown>).catch(() => undefined);
+                    }
+                } catch {
+                    // ignore cleanup errors
+                }
                 internalRegionsRef.current.clear();
             };
 
@@ -144,17 +180,30 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
 
     // Handle audio URL changes
     useEffect(() => {
-        if (!wsRef.current) return;
+        const ws = wsRef.current;
+        if (!ws) return;
 
         // Only reload if we have a valid WaveSurfer instance
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
+        setError(null);
         try {
-            wsRef.current.load(audioUrl);
+            const result = ws.load(audioUrl) as unknown;
+            if (result && typeof (result as { catch?: unknown }).catch === "function") {
+                (result as Promise<unknown>).catch((err: unknown) => {
+                    if (wsRef.current !== ws) return;
+                    if (isAbortError(err)) return;
+                    console.error("Failed to load audio:", err);
+                    setError(`Failed to load audio: ${getErrorMessage(err)}`);
+                    setIsLoading(false);
+                });
+            }
         } catch (err: unknown) {
-            console.error("Failed to load audio:", err);
-            setError(`Failed to load audio: ${getErrorMessage(err)}`);
-            setIsLoading(false);
+            if (!isAbortError(err)) {
+                console.error("Failed to load audio:", err);
+                setError(`Failed to load audio: ${getErrorMessage(err)}`);
+                setIsLoading(false);
+            }
         }
     }, [audioUrl]);
 
@@ -181,15 +230,13 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                 const existingRegion = currentRegions.get(regionConfig.id);
 
                 if (existingRegion) {
-                    // Update existing region if values changed
-                    if (Math.abs(existingRegion.start - regionConfig.start) > 0.01 ||
-                        Math.abs(existingRegion.end - regionConfig.end) > 0.01) {
-                        existingRegion.setOptions({
-                            start: regionConfig.start,
-                            end: regionConfig.end,
-                            color: regionConfig.color || "rgba(14,165,233,0.3)",
-                        });
-                    }
+                    existingRegion.setOptions({
+                        start: regionConfig.start,
+                        end: regionConfig.end,
+                        color: regionConfig.color || "rgba(14,165,233,0.3)",
+                        drag: editable,
+                        resize: editable,
+                    });
                 } else {
                     // Add new region
                     const region = regionsPluginRef.current!.addRegion({
@@ -197,14 +244,15 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                         start: regionConfig.start,
                         end: regionConfig.end,
                         color: regionConfig.color || "rgba(14,165,233,0.3)",
-                        drag: true,
-                        resize: true,
+                        drag: editable,
+                        resize: editable,
                         minLength: 0.1,
                     });
 
                     currentRegions.set(regionConfig.id, region);
 
                     region.on("update-end", () => {
+                        if (!editableRef.current) return;
                         if (!isUpdatingRegionRef.current) {
                             isUpdatingRegionRef.current = true;
                             onRegionUpdate?.(region.id, region.start, region.end);
@@ -218,7 +266,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
         } catch (err: unknown) {
             console.error("Failed to update regions:", err);
         }
-    }, [regions, isLoading, onRegionUpdate]);
+    }, [regions, isLoading, editable, onRegionUpdate]);
 
     // Apply zoom
     const applyZoom = useCallback(() => {
@@ -255,7 +303,14 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
         internalRegionsRef.current.clear();
 
         if (wsRef.current) {
-            wsRef.current.destroy();
+            try {
+                const result = wsRef.current.destroy() as unknown;
+                if (result && typeof (result as { catch?: unknown }).catch === "function") {
+                    (result as Promise<unknown>).catch(() => undefined);
+                }
+            } catch {
+                // ignore cleanup errors
+            }
             wsRef.current = null;
         }
         regionsPluginRef.current = null;
@@ -285,16 +340,34 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                 wsRef.current = ws;
 
                 ws.on("ready", () => {
+                    if (wsRef.current !== ws) return;
                     setIsLoading(false);
                     onReady?.(ws);
                 });
 
                 ws.on("error", (error: unknown) => {
+                    if (wsRef.current !== ws) return;
+                    if (isAbortError(error)) return;
                     setError(`Audio error: ${getErrorMessage(error)}`);
                     setIsLoading(false);
                 });
 
-                ws.load(audioUrl);
+                try {
+                    const result = ws.load(audioUrl) as unknown;
+                    if (result && typeof (result as { catch?: unknown }).catch === "function") {
+                        (result as Promise<unknown>).catch((err: unknown) => {
+                            if (wsRef.current !== ws) return;
+                            if (isAbortError(err)) return;
+                            setError(`Audio error: ${getErrorMessage(err)}`);
+                            setIsLoading(false);
+                        });
+                    }
+                } catch (err: unknown) {
+                    if (!isAbortError(err)) {
+                        setError(`Audio error: ${getErrorMessage(err)}`);
+                        setIsLoading(false);
+                    }
+                }
             } catch (err: unknown) {
                 setError(`Initialization failed: ${getErrorMessage(err)}`);
                 setIsLoading(false);

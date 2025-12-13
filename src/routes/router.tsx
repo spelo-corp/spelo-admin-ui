@@ -9,6 +9,10 @@ import AudioReviewPage from "../pages/AudioReviewPage";
 import AudioProcessingDashboardPage from "../pages/audioProcessing/AudioProcessingDashboardPage";
 import AudioProcessingUploadPage from "../pages/audioProcessing/AudioProcessingUploadPage";
 import AudioProcessingJobPage from "../pages/audioProcessing/AudioProcessingJobPage";
+import AudioProcessingJobOverviewPage from "../pages/audioProcessing/AudioProcessingJobOverviewPage";
+import AudioProcessingJobTranscriptPage from "../pages/audioProcessing/AudioProcessingJobTranscriptPage";
+import AudioProcessingJobSentencesPage from "../pages/audioProcessing/AudioProcessingJobSentencesPage";
+import AudioProcessingJobAudioEditPage from "../pages/audioProcessing/AudioProcessingJobAudioEditPage";
 import LessonListPage from "../pages/LessonListPage";
 import AudioFilesPage from "../pages/AudioFilesPage";
 import UsersPage from "../pages/UsersPage";
@@ -32,8 +36,20 @@ export const AppRoutes = () => {
                 <Route path="processing-jobs/:jobId/review" element={<AudioReviewPage />} />
                 <Route path="audio-processing" element={<AudioProcessingDashboardPage />} />
                 <Route path="audio-processing/upload" element={<AudioProcessingUploadPage />} />
-                <Route path="audio-processing/jobs/:jobId" element={<AudioProcessingJobPage />} />
-                <Route path="audio-processing/jobs/:jobId/review" element={<AudioProcessingJobPage />} />
+                <Route path="audio-processing/jobs/:jobId" element={<AudioProcessingJobPage />}>
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<AudioProcessingJobOverviewPage />} />
+                    <Route path="transcript" element={<AudioProcessingJobTranscriptPage />} />
+                    <Route path="sentences" element={<AudioProcessingJobSentencesPage />} />
+                    <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
+                </Route>
+                <Route path="audio-processing/jobs/:jobId/review" element={<AudioProcessingJobPage mode="review" />}>
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<AudioProcessingJobOverviewPage />} />
+                    <Route path="transcript" element={<AudioProcessingJobTranscriptPage />} />
+                    <Route path="sentences" element={<AudioProcessingJobSentencesPage />} />
+                    <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
+                </Route>
 
                 <Route path="lessons" element={<LessonListPage />} />
                 <Route path="audio-files" element={<AudioFilesPage />} />

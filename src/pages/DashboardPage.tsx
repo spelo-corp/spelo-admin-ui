@@ -4,7 +4,8 @@ import type { DashboardStats, ProcessingJob } from "../types";
 import StatsCard from "../components/common/StatsCard";
 import { Link } from "react-router-dom";
 import { Btn } from "../components/ui/Btn";
-import {BookOpen, FileAudio2, Settings, Users} from "lucide-react";
+import { BookOpen, FileAudio2, Settings, Users, RefreshCcw } from "lucide-react";
+import PageHeader from "../components/common/PageHeader";
 
 const DashboardPage: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -42,16 +43,17 @@ const DashboardPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-10">
-
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
-
-                <Btn.Secondary onClick={() => window.location.reload()}>
-                    ⟳ Refresh
-                </Btn.Secondary>
-            </div>
+        <div className="space-y-8">
+            <PageHeader
+                title="Dashboard"
+                description="Overview of lessons, jobs, and system activity."
+                actions={
+                    <Btn.HeroSecondary onClick={() => window.location.reload()}>
+                        <RefreshCcw className="w-4 h-4" />
+                        Refresh
+                    </Btn.HeroSecondary>
+                }
+            />
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">

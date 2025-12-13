@@ -1,5 +1,12 @@
 import type { VocabWord } from "../types";
-import type { AutoCreateVocabRequest, VocabJob } from "../types/vocabJob.ts";
+import type {
+    AutoCreateVocabRequest,
+    ExtractVocabFromLessonRequest,
+    ExtractVocabFromLessonResponse,
+    MapVocabScriptRequest,
+    MapVocabScriptResponse,
+    VocabJob,
+} from "../types/vocabJob.ts";
 import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
 
 async function getVocab(params?: { q?: string; page?: number; size?: number }) {
@@ -86,6 +93,34 @@ async function getVocabJob(id: number) {
     );
 }
 
+async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFromLessonRequest) {
+    const body = {
+        include_stop_words: payload?.include_stop_words ?? false,
+        min_word_length: payload?.min_word_length ?? 2,
+    };
+
+    return handle<{ success: boolean; data: ExtractVocabFromLessonResponse; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/vocab/extract-from-lesson/${lessonId}`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
+        })
+    );
+}
+
+async function mapVocabScriptForLesson(lessonId: number, payload?: MapVocabScriptRequest) {
+    const ids = payload?.listening_lesson_ids?.filter((id) => Number.isFinite(id)) ?? [];
+    const body = ids.length > 0 ? { listening_lesson_ids: ids } : {};
+
+    return handle<{ success: boolean; data: MapVocabScriptResponse; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/vocab/map-script/${lessonId}`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
+        })
+    );
+}
+
 export const vocabApi = {
     getVocab,
     getVocabById,
@@ -94,4 +129,6 @@ export const vocabApi = {
     updateVocab,
     autoCreateVocab,
     getVocabJob,
+    extractVocabFromLesson,
+    mapVocabScriptForLesson,
 };

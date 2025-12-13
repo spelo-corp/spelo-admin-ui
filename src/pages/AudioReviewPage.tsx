@@ -17,6 +17,8 @@ import {
 
 import type WaveSurfer from "wavesurfer.js";
 import { WaveformRegionsPlayer } from "../components/audio/WaveformRegionsPlayer";
+import PageHeader from "../components/common/PageHeader";
+import { Btn } from "../components/ui/Btn";
 
 interface UISentence extends Sentence {
     locked?: boolean;
@@ -276,25 +278,26 @@ const AudioReviewPage: React.FC = () => {
     if (!job) return <div>Job not found.</div>;
 
     return (
-        <div className="space-y-6">
-            {/* HEADER */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="text-xs text-slate-500 flex items-center gap-1"
-                >
-                    <ArrowLeft className="w-4 h-4" /> Back
-                </button>
-
-                <button
-                    disabled={approving}
-                    onClick={handleApproveAudio}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white flex items-center gap-2"
-                >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Approve Audio
-                </button>
-            </div>
+        <div className="space-y-8">
+            <PageHeader
+                badge={
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 border border-white/15 hover:bg-white/15"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
+                    </button>
+                }
+                title={`Review Job #${jobId ?? ""}`}
+                description="Adjust segment timing and transcripts before approving the final audio."
+                actions={
+                    <Btn.HeroPrimary disabled={approving} onClick={handleApproveAudio}>
+                        <CheckCircle2 className="w-4 h-4" />
+                        {approving ? "Approving…" : "Approve Audio"}
+                    </Btn.HeroPrimary>
+                }
+            />
 
             {/* CONTROLS */}
             <div className="flex gap-3">

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
 import type { Lesson, LessonDetail } from "../types";
 import { AlertCircle, CheckCircle2, RefreshCcw } from "lucide-react";
+import PageHeader from "../components/common/PageHeader";
 
 export interface LessonOutletContext {
     lessonDetail: LessonDetail | null;
@@ -96,16 +97,17 @@ const LessonViewPage: React.FC = () => {
             if (res.success) {
                 setLessonDetail(res.lesson);
                 if (!lessonMeta && res.lesson) {
+                    const lesson = res.lesson;
                     setLessonMeta((prev) =>
                         prev ?? {
-                            id: res.lesson.lesson_id,
-                            name: res.lesson.lesson_name,
-                            level: res.lesson.level ?? "A1",
-                            category_id: res.lesson.category_id ?? 0,
-                            description: res.lesson.description,
-                            status: res.lesson.status,
-                            image: res.lesson.image,
-                            gems: res.lesson.gems,
+                            id: lesson.lesson_id,
+                            name: lesson.lesson_name,
+                            level: lesson.level ?? "A1",
+                            category_id: lesson.category_id ?? 0,
+                            description: lesson.description,
+                            status: lesson.status,
+                            image: lesson.image,
+                            gems: lesson.gems,
                         }
                     );
                 }
@@ -175,73 +177,69 @@ const LessonViewPage: React.FC = () => {
     const statusValue = lessonMeta?.status;
 
     return (
-        <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-col h-full gap-8">
             {/* HERO */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-800 to-sky-600 text-white p-6 shadow-card">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
-                    <div className="absolute -left-10 bottom-0 w-64 h-64 rounded-full bg-cyan-500/10 blur-3xl" />
-                </div>
-
-                <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-2">
-                        <p className="text-xs uppercase tracking-[0.18em] text-white/70">Lesson Detail</p>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <h1 className="text-3xl font-semibold">{headerTitle}</h1>
-                            <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-white/15 border border-white/25">
-                                ID #{lessonId}
+            <PageHeader
+                badge={
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
+                        Lesson Detail
+                    </div>
+                }
+                title={headerTitle}
+                titleAddon={
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-white/10 border border-white/20">
+                        ID #{lessonId}
+                    </span>
+                }
+                actions={
+                    <button
+                        onClick={() => setShowConfirmReset(true)}
+                        disabled={resetting || loading}
+                        className="
+                            inline-flex items-center gap-1.5
+                            px-4 py-2 rounded-full text-sm font-semibold
+                            bg-white text-slate-900
+                            shadow-md shadow-black/10
+                            hover:bg-slate-50
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                        "
+                    >
+                        <RefreshCcw className={`w-4 h-4 ${resetting ? "animate-spin" : ""}`} />
+                        {resetting ? "Resetting..." : "Reset Progress"}
+                    </button>
+                }
+            >
+                <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
+                        <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                            Level: {levelLabel}
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                            {categoryLabel}
+                        </span>
+                        {statusValue !== undefined && (
+                            <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                                {statusValue === 1 ? "Active" : "Inactive"}
                             </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
-                            <span className="px-3 py-1 rounded-full bg-white/15 border border-white/15">
-                                Level: {levelLabel}
-                            </span>
-                            <span className="px-3 py-1 rounded-full bg-white/12 border border-white/15">
-                                {categoryLabel}
-                            </span>
-                            {statusValue !== undefined && (
-                                <span className="px-3 py-1 rounded-full bg-white/12 border border-white/15">
-                                    {statusValue === 1 ? "Active" : "Inactive"}
-                                </span>
-                            )}
-                        </div>
-
-                        {status.type && (
-                            <div
-                                className={`flex items-center gap-2 text-xs ${
-                                    status.type === "success" ? "text-emerald-200" : "text-rose-200"
-                                }`}
-                            >
-                                {status.type === "success" ? (
-                                    <CheckCircle2 className="w-4 h-4" />
-                                ) : (
-                                    <AlertCircle className="w-4 h-4" />
-                                )}
-                                <span>{status.message}</span>
-                            </div>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowConfirmReset(true)}
-                            disabled={resetting || loading}
-                            className="
-                                inline-flex items-center gap-1.5
-                                px-4 py-2 rounded-full text-sm font-semibold
-                                bg-white text-slate-900
-                                shadow-md shadow-black/10
-                                hover:bg-slate-50
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                            "
+                    {status.type && (
+                        <div
+                            className={`flex items-center gap-2 text-xs ${
+                                status.type === "success" ? "text-emerald-200" : "text-rose-200"
+                            }`}
                         >
-                            <RefreshCcw className={`w-4 h-4 ${resetting ? "animate-spin" : ""}`} />
-                            {resetting ? "Resetting..." : "Reset Progress"}
-                        </button>
-                    </div>
+                            {status.type === "success" ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                                <AlertCircle className="w-4 h-4" />
+                            )}
+                            <span>{status.message}</span>
+                        </div>
+                    )}
                 </div>
-            </div>
+            </PageHeader>
 
             {/* BODY */}
             <div className="bg-white rounded-2xl shadow-card border border-slate-100 overflow-hidden flex-1 flex flex-col">

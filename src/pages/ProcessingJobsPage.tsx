@@ -4,6 +4,7 @@ import type { Lesson, ProcessingJob } from "../types";
 import JobCard from "../components/jobs/JobCard";
 import { Btn } from "../components/ui/Btn";
 import { Skeleton } from "../components/ui/Skeleton";
+import PageHeader from "../components/common/PageHeader";
 
 import {
     PlusCircle,
@@ -59,16 +60,16 @@ const ProcessingJobsPage: React.FC = () => {
     }, []);
 
     return (
-        <div className="space-y-10">
-
-            {/* HEADER */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-semibold text-slate-900">Audio Processing</h1>
-
-                <Btn.Primary onClick={() => setModalOpen(true)}>
-                    <PlusCircle className="w-4 h-4" /> New Job
-                </Btn.Primary>
-            </div>
+        <div className="space-y-8">
+            <PageHeader
+                title="Audio Processing"
+                description="Create and monitor processing jobs through each pipeline stage."
+                actions={
+                    <Btn.HeroPrimary onClick={() => setModalOpen(true)}>
+                        <PlusCircle className="w-4 h-4" /> New Job
+                    </Btn.HeroPrimary>
+                }
+            />
 
             {/* PIPELINE */}
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-6">

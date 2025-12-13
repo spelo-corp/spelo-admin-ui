@@ -6,6 +6,7 @@ import type { AudioJob, AudioJobStatus } from "../../types/audioProcessing";
 import { Input } from "../../components/ui/Input";
 import { Btn } from "../../components/ui/Btn";
 import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
+import PageHeader from "../../components/common/PageHeader";
 
 type StatusFilter = "ALL" | AudioJobStatus;
 
@@ -83,42 +84,32 @@ const AudioProcessingDashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-8 relative">
-            {/* Header */}
-            <div className="relative overflow-hidden rounded-2xl border border-brand/20 bg-gradient-to-br from-brand via-brand to-brand/80 text-white shadow-lg">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_35%)]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.14),transparent_32%)]" />
-                <div className="relative px-5 sm:px-6 lg:px-8 py-6 sm:py-7 space-y-5">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="space-y-2 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
-                                <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                                Lesson Audio Processing
-                            </div>
-                            <h1 className="text-3xl font-semibold">Audio Processing Dashboard</h1>
-                            <p className="text-sm text-white/80">
-                                Track uploads, processing status, and jump into sentence edits without losing momentum.
-                            </p>
+                {/* Header */}
+                <PageHeader
+                    badge={
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
+                            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                            Lesson Audio Processing
                         </div>
-
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                            <Btn.Secondary
-                                onClick={handleRefresh}
-                                disabled={refreshing}
-                                className="!bg-white/10 !text-white !border-white/30 hover:!bg-white/20"
-                            >
+                    }
+                    title="Audio Processing Dashboard"
+                    description="Track uploads, processing status, and jump into sentence edits without losing momentum."
+                    actions={
+                        <>
+                            <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
                                 <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
                                 Refresh
-                            </Btn.Secondary>
+                            </Btn.HeroSecondary>
 
                             <Link to="/admin/audio-processing/upload" className="w-full sm:w-auto">
-                                <Btn.Primary className="w-full sm:w-auto shadow-lg shadow-black/15">
+                                <Btn.HeroPrimary className="w-full sm:w-auto">
                                     <PlusCircle className="w-4 h-4" />
                                     New Upload
-                                </Btn.Primary>
+                                </Btn.HeroPrimary>
                             </Link>
-                        </div>
-                    </div>
-
+                        </>
+                    }
+                >
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {summaryStats.map((stat) => (
                             <div
@@ -130,8 +121,7 @@ const AudioProcessingDashboardPage: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                </div>
-            </div>
+                </PageHeader>
 
             {/* Filters */}
             <div className="bg-gradient-to-br from-white via-white to-brand/5 rounded-card shadow-card border border-slate-100 p-5 flex flex-col gap-4">

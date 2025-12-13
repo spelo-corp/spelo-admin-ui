@@ -257,6 +257,15 @@ async function submitExistingAudioProcessingJob(jobId: number) {
     );
 }
 
+async function finalizeAudioProcessingJob(jobId: number) {
+    return handle<{ success?: boolean; data?: any; message?: string }>(
+        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/finalize`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+        })
+    );
+}
+
 export const audioApi = {
     uploadAudioProcessingAudio,
     uploadAudioProcessingTranscript,
@@ -267,4 +276,5 @@ export const audioApi = {
     replaceAudioForJob,
     editAudioJob,
     submitExistingAudioProcessingJob,
+    finalizeAudioProcessingJob,
 };

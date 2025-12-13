@@ -10,6 +10,7 @@ import type {
     ListeningLessonDTO,
     ListeningLessonData,
     ListeningLessonScript,
+    VocabWord,
 } from "../types";
 
 async function getLessons(params?: { categoryId?: number; level?: Lesson["level"] }) {
@@ -184,20 +185,41 @@ async function getNotCompletedListeningLessons(lessonId: number) {
 }
 
 async function getWordDefinition(listeningLessonIds: number[]) {
-    const query = new URLSearchParams();
-    if (listeningLessonIds.length > 0) {
-        query.set("listening_lesson_ids", listeningLessonIds.join(","));
-    }
-
-    const response = await handle<{ status?: string; data?: ListeningLessonDTO["new_words"] }>(
-        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/word_definition?${query.toString()}`, {
-            headers: getAuthHeaders(),
-        })
+    const ids = Array.from(
+        new Set(
+            (listeningLessonIds ?? [])
+                .map((id) => Number(id))
+                .filter((id) => Number.isFinite(id) && id > 0)
+        )
     );
 
+    if (ids.length === 0) {
+        return { success: true, data: {} as Record<string, VocabWord[]> };
+    }
+
+    const merged: Record<string, VocabWord[]> = {};
+    const chunkSize = 10;
+
+    for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize);
+        const query = new URLSearchParams();
+        chunk.forEach((id) => query.append("listening_lesson_ids", String(id)));
+
+        const response = await handle<{ status?: string; success?: boolean; data?: Record<string, VocabWord[]> }>(
+            await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/word_definition?${query.toString()}`, {
+                headers: getAuthHeaders(),
+            })
+        );
+
+        const payload = response.data ?? {};
+        Object.entries(payload).forEach(([key, words]) => {
+            merged[key] = words ?? [];
+        });
+    }
+
     return {
-        success: response.status ? response.status === "success" : true,
-        data: response.data ?? [],
+        success: true,
+        data: merged,
     };
 }
 

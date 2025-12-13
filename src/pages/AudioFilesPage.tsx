@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {Input} from "../components/ui/Input.tsx";
 import { Btn } from "../components/ui/Btn.tsx";
+import PageHeader from "../components/common/PageHeader";
 
 const AudioFilesPage: React.FC = () => {
     const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
@@ -63,18 +64,16 @@ const AudioFilesPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-10">
-
-            {/* HEADER */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-semibold text-slate-900">
-                    Audio Files
-                </h1>
-
-                <Btn.Primary onClick={() => setModalOpen(true)}>
-                    <Plus className="w-4 h-4" /> Upload Audio
-                </Btn.Primary>
-            </div>
+        <div className="space-y-8">
+            <PageHeader
+                title="Audio Files"
+                description="Upload, preview, and manage audio files used across lessons."
+                actions={
+                    <Btn.HeroPrimary onClick={() => setModalOpen(true)}>
+                        <Plus className="w-4 h-4" /> Upload Audio
+                    </Btn.HeroPrimary>
+                }
+            />
 
             {/* SEARCH BAR */}
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 flex items-center gap-3">

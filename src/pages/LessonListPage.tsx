@@ -5,6 +5,7 @@ import type { Lesson, LessonLevel } from "../types";
 import LessonCard from "../components/lessons/LessonCard";
 import { CreateJobModal } from "../components/jobs/CreateJobModal";
 import { Btn } from "../components/ui/Btn";
+import PageHeader from "../components/common/PageHeader";
 import { Input } from "../components/ui/Input.tsx";
 import { Skeleton } from "../components/ui/Skeleton.tsx";
 import {
@@ -161,53 +162,39 @@ const LessonListPage: React.FC = () => {
         <div className="space-y-8">
 
             {/* HERO */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand via-brand-dark to-emerald-700 text-white p-6 shadow-shell">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute -top-20 -right-10 w-64 h-64 bg-white/10 blur-3xl rounded-full" />
-                    <div className="absolute -bottom-16 left-12 w-44 h-44 bg-emerald-400/10 blur-3xl rounded-full" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent_45%)]" />
-                </div>
-
-                <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-3">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs uppercase tracking-[0.14em] text-white/80 backdrop-blur-sm">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Lesson Library
-                        </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <h1 className="text-3xl font-semibold drop-shadow-sm">Lessons Management</h1>
-                            <span className="text-xs px-3 py-1.5 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm">
-                                {lessons.length} total
-                            </span>
-                        </div>
-                        <p className="text-sm text-white/85 max-w-2xl">
-                            Create, edit, and organize lessons. Use filters to quickly find the lessons you need.
-                        </p>
-                        <div className="flex gap-3 text-xs text-white/80">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-                                <BookOpen className="w-4 h-4" /> Active: {activeCount}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-                                <Layers className="w-4 h-4" /> Inactive: {inactiveCount}
-                            </span>
-                        </div>
+            <PageHeader
+                badge={
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide backdrop-blur-sm">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Lesson Library
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={openCreateModal}
-                            className="group relative inline-flex items-center gap-2 rounded-full bg-white text-slate-900 px-4 py-2 text-sm font-semibold shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-slate-50"
-                        >
-                            <span className="absolute inset-0 rounded-full border border-white/60 opacity-70 group-hover:opacity-100 transition" />
-                            <Plus className="w-4 h-4" />
-                            New Lesson
-                            <span className="text-[11px] font-medium text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5 border border-emerald-200">
-                                Fast Create
-                            </span>
-                        </button>
-                    </div>
+                }
+                title="Lessons Management"
+                titleAddon={
+                    <span className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+                        {lessons.length} total
+                    </span>
+                }
+                description="Create, edit, and organize lessons. Use filters to quickly find the lessons you need."
+                actions={
+                    <Btn.HeroPrimary onClick={openCreateModal}>
+                        <Plus className="w-4 h-4" />
+                        New Lesson
+                        <span className="text-[11px] font-medium text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5 border border-emerald-200">
+                            Fast Create
+                        </span>
+                    </Btn.HeroPrimary>
+                }
+            >
+                <div className="flex gap-3 text-xs text-white/80">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
+                        <BookOpen className="w-4 h-4" /> Active: {activeCount}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
+                        <Layers className="w-4 h-4" /> Inactive: {inactiveCount}
+                    </span>
                 </div>
-            </div>
+            </PageHeader>
 
             {/* FILTERS */}
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 flex flex-col gap-3">

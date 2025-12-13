@@ -1,12 +1,14 @@
 import React from "react";
+import PageHeader from "../components/common/PageHeader";
 
 const UsersPage: React.FC = () => {
     return (
-        <div>
-            <h1 className="text-2xl font-semibold text-slate-800 mb-2">Users</h1>
-            <p className="text-sm text-slate-500">
-                TODO: implement user management.
-            </p>
+        <div className="space-y-8">
+            <PageHeader
+                title="Users"
+                description="Manage user accounts and access (coming soon)."
+            />
+            <p className="text-sm text-slate-500">TODO: implement user management.</p>
         </div>
     );
 };

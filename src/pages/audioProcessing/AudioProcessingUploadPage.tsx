@@ -12,6 +12,7 @@ import { api } from "../../api/client";
 import type { Lesson } from "../../types";
 import { Input } from "../../components/ui/Input";
 import { Btn } from "../../components/ui/Btn";
+import PageHeader from "../../components/common/PageHeader";
 
 const formatBytes = (bytes: number) => {
     if (!bytes) return "0 B";
@@ -141,22 +142,19 @@ const AudioProcessingUploadPage: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
+            <PageHeader
+                badge={
                     <Link
                         to="/admin/audio-processing"
-                        className="text-xs text-slate-500 flex items-center gap-1 hover:text-slate-700"
+                        className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 border border-white/15 hover:bg-white/15"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Back to dashboard
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to dashboard
                     </Link>
-                    <h1 className="text-3xl font-semibold text-slate-900 mt-2">
-                        Upload Lesson Audio
-                    </h1>
-                    <p className="text-sm text-slate-500">
-                        Attach audio, provide the transcript, and start processing.
-                    </p>
-                </div>
-            </div>
+                }
+                title="Upload Lesson Audio"
+                description="Attach audio, provide the transcript, and start processing."
+            />
 
             <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
