@@ -160,6 +160,7 @@ export interface VocabWord {
     word: string;
 
     word_definition: VocabWordDefinition;
+    wordDefinition?: VocabWordDefinition; // allow camelCase payloads from API
 
     createdAt?: string;
     updatedAt?: string;

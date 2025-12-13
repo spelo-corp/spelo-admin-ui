@@ -45,7 +45,7 @@ const normalizeAudioStatus = (status?: string): AudioJob["status"] => {
     if (!status) return "PROCESSING";
     const upper = status.toUpperCase();
     if (upper === "RUNNING") return "PROCESSING";
-    if (upper === "PENDING") return "PROCESSING";
+    if (upper === "PENDING") return "PENDING";
     if (upper === "COMPLETED") return "COMPLETED";
     if (upper === "FAILED") return "FAILED";
     if (upper === "FINALIZED") return "FINALIZED";
@@ -238,9 +238,19 @@ async function replaceAudioForJob(jobId: number, file: File) {
     );
 }
 
-async function finalizeAudioProcessingJob(jobId: number) {
-    return handle<{ success: boolean; data: { id: number; status: string; finalizedAt: string } }>(
-        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/finalize`, {
+async function editAudioJob(jobId: number, segments: { start: number; end: number }[]) {
+    return handle<{ success: boolean; data?: any }>(
+        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/edit`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ segments }),
+        })
+    );
+}
+
+async function submitExistingAudioProcessingJob(jobId: number) {
+    return handle<{ success?: boolean; data?: any }>(
+        await fetch(`${AUDIO_BASE_URL}/${jobId}/submit`, {
             method: "POST",
             headers: getAuthHeaders(),
         })
@@ -255,5 +265,6 @@ export const audioApi = {
     getAudioProcessingJob,
     updateAudioProcessingSentences,
     replaceAudioForJob,
-    finalizeAudioProcessingJob,
+    editAudioJob,
+    submitExistingAudioProcessingJob,
 };

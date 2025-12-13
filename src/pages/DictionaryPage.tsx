@@ -46,6 +46,7 @@ const DictionaryPage: React.FC = () => {
     const [showAutoCreate, setShowAutoCreate] = useState(false);
     const [editWord, setEditWord] = useState<VocabWord | null>(null);
     const [searching, setSearching] = useState(false);
+    const [selectedLetter, setSelectedLetter] = useState("A");
 
     const loadWords = useCallback(async () => {
         setLoading(true);
@@ -53,6 +54,7 @@ const DictionaryPage: React.FC = () => {
         try {
             const res = await api.getVocab({ q: search, page, size });
             if (res.success) {
+                console.log(res.data)
                 setWords(res.data);
                 setTotal(res.total);
             }
@@ -89,10 +91,12 @@ const DictionaryPage: React.FC = () => {
         return groups;
     }, [words]);
 
-    const visibleLetters = useMemo(
-        () => alphabet.filter((l) => (groupedWords[l] ?? []).length > 0),
+    const activeLettersCount = useMemo(
+        () => alphabet.filter((l) => (groupedWords[l] ?? []).length > 0).length,
         [groupedWords]
     );
+
+    const visibleLetters = useMemo(() => [selectedLetter], [selectedLetter]);
 
     const playAudio = (url: string | null) => {
         if (url) new Audio(url).play();
@@ -111,67 +115,57 @@ const DictionaryPage: React.FC = () => {
         void loadWords();
     };
 
-    const toModalData = (w: VocabWord): VocabFormData => ({
-        word: w.word,
-        ipa: w.word_definition?.pronunciations?.[0]?.ipa || "",
-        definition: w.word_definition?.meaning?.definition || "",
-        translation: w.word_definition?.meaning?.translation || "",
-        example: w.word_definition?.meaning?.example || "",
-    });
+    const getWordDefinition = (w: VocabWord) =>
+        // Support both snake_case and camelCase payloads
+        (w.word_definition as VocabWord["word_definition"] | undefined) ||
+        (w as unknown as { wordDefinition?: VocabWord["word_definition"] }).wordDefinition ||
+        undefined;
+
+    const toModalData = (w: VocabWord): VocabFormData => {
+        const def = getWordDefinition(w);
+        const meaning = def?.meaning ?? {};
+        const pronunciations = def?.pronunciations ?? [];
+
+        return {
+            word: w.word,
+            ipa: pronunciations[0]?.ipa || "",
+            definition: meaning.definition || "",
+            translation: meaning.translation || "",
+            example: meaning.example || "",
+        };
+    };
 
     return (
         <div className="relative min-h-screen overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/5 via-white to-slate-50" />
 
-            <div className="relative z-10 px-4 pb-12 pt-6 md:px-8">
-                <div className="grid gap-6 lg:grid-cols-[260px,1fr]">
+            <div className="relative z-10 px-4 pb-8 pt-4 md:px-8">
+                <div className="grid gap-4 md:grid-cols-[220px,1fr] lg:grid-cols-[260px,1fr] md:gap-6">
                     {/* LEFT — Actions + Alphabet rail */}
-                    <aside className="hidden h-[calc(100vh-80px)] flex-col gap-4 lg:flex sticky top-6">
-                        <div className="rounded-card border border-slate-100 bg-white/80 p-4 shadow-card backdrop-blur">
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 mb-2">
-                                Quick actions
-                            </p>
-                            <div className="flex flex-col gap-2">
-                                <button
-                                    onClick={openCreateModal}
-                                    className="flex items-center justify-center gap-2 rounded-xl bg-brand px-3 py-2.5 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-brand-dark"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    New word
-                                </button>
-                                <button
-                                    onClick={openAutoCreateSection}
-                                    className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-black"
-                                >
-                                    <Wand2 className="h-4 w-4" />
-                                    AI auto-create
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-hidden rounded-card border border-slate-100 bg-white/80 p-4 shadow-card backdrop-blur">
-                            <div className="mb-3 flex items-center justify-between">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                    <aside className="hidden flex-col gap-3 lg:flex sticky top-6">
+                        <div className="overflow-hidden rounded-card border border-slate-100 bg-white/80 p-3 shadow-card backdrop-blur">
+                            <div className="mb-2 flex items-center justify-between">
+                                <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
                                     Alphabet
                                 </p>
-                                <span className="text-[11px] text-slate-400">
-                                    {visibleLetters.length} active
+                                <span className="text-[10px] text-slate-400">
+                                    {activeLettersCount} active
                                 </span>
                             </div>
-                            <div className="grid grid-cols-4 gap-2 text-sm">
+                            <div className="grid grid-cols-13 gap-1 text-[11px]">
                                 {alphabet.map((l) => {
                                     const hasWords = (groupedWords[l] ?? []).length > 0;
+                                    const isSelected = l === selectedLetter;
                                     return (
                                         <button
                                             key={l}
-                                            onClick={() => {
-                                                const sec = document.getElementById(`section-${l}`);
-                                                sec?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                            }}
+                                            onClick={() => setSelectedLetter(l)}
                                             disabled={!hasWords}
-                                            className={`rounded-lg px-3 py-2 transition ${
+                                            className={`rounded-md px-2 py-1 transition ${
                                                 hasWords
-                                                    ? "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
+                                                    ? isSelected
+                                                        ? "bg-brand/20 text-brand border border-brand/30"
+                                                        : "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
                                                     : "bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
                                             }`}
                                         >
@@ -184,7 +178,7 @@ const DictionaryPage: React.FC = () => {
                     </aside>
 
                     {/* MAIN CONTENT */}
-                    <main className="space-y-6">
+                    <main className="space-y-5 md:space-y-6">
                         <div className="relative overflow-hidden rounded-shell border border-slate-100 bg-white/90 p-6 shadow-shell backdrop-blur md:p-8">
                             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-slate-100" />
                             <div className="relative flex flex-col gap-6">
@@ -276,20 +270,20 @@ const DictionaryPage: React.FC = () => {
                                         </span>
                                     </div>
 
-                                    <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
                                         {alphabet.map((l) => {
                                             const hasWords = (groupedWords[l] ?? []).length > 0;
+                                            const isSelected = l === selectedLetter;
                                             return (
                                                 <button
                                                     key={l}
-                                                    onClick={() => {
-                                                        const sec = document.getElementById(`section-${l}`);
-                                                        sec?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                                    }}
+                                                    onClick={() => setSelectedLetter(l)}
                                                     disabled={!hasWords}
-                                                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
                                                         hasWords
-                                                            ? "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
+                                                            ? isSelected
+                                                                ? "bg-brand/20 text-brand"
+                                                                : "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
                                                             : "bg-slate-100 text-slate-400"
                                                     }`}
                                                 >
@@ -309,7 +303,7 @@ const DictionaryPage: React.FC = () => {
                                         <SkeletonCard key={i} />
                                     ))}
                                 </div>
-                            ) : visibleLetters.length === 0 ? (
+                            ) : activeLettersCount === 0 ? (
                                 <div className="rounded-card border border-dashed border-slate-200 bg-white/80 p-10 text-center shadow-card">
                                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                         <Search className="h-5 w-5" />
@@ -357,8 +351,13 @@ const DictionaryPage: React.FC = () => {
 
                                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 {list.map((w) => {
-                                                    const m = w.word_definition.meaning;
-                                                    const pronunciations = w.word_definition.pronunciations ?? [];
+                                                    const def = getWordDefinition(w);
+                                                    const meaning = def?.meaning ?? {
+                                                        definition: "",
+                                                        translation: "",
+                                                        example: "",
+                                                    };
+                                                    const pronunciations = def?.pronunciations ?? [];
 
                                                     return (
                                                         <article
@@ -401,13 +400,13 @@ const DictionaryPage: React.FC = () => {
                                                             </div>
 
                                                             <p className="mt-3 text-base leading-relaxed text-slate-800">
-                                                                {m.definition}
+                                                                {meaning.definition || "N/A"}
                                                             </p>
                                                             <p className="mt-2 font-semibold text-brand">
-                                                                → {m.translation}
+                                                                → {meaning.translation || "N/A"}
                                                             </p>
                                                             <p className="mt-1 text-sm italic text-slate-500">
-                                                                “{m.example}”
+                                                                {meaning.example ? `“${meaning.example}”` : "N/A"}
                                                             </p>
 
                                                             <div className="mt-4 flex flex-wrap gap-2">

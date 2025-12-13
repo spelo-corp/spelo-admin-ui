@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     ArrowLeft,
@@ -6,6 +6,7 @@ import {
     Save,
     CheckCircle2,
     Play,
+    Square,
     Clock,
     Loader2,
     AlertTriangle,
@@ -29,12 +30,12 @@ const AudioProcessingJobPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [replaceFile, setReplaceFile] = useState<File | null>(null);
+    const previewStopHandlerRef = useRef<(() => void) | null>(null);
     const [replaceStart, setReplaceStart] = useState(0);
     const [replaceEnd, setReplaceEnd] = useState(0);
     const [replacing, setReplacing] = useState(false);
     const [previewing, setPreviewing] = useState(false);
-    const [replaceProgress, setReplaceProgress] = useState(0);
+    const [defaultEnd, setDefaultEnd] = useState<number | null>(null);
 
     const [job, setJob] = useState<AudioJob | null>(null);
     const [sentences, setSentences] = useState<AudioSentence[]>([]);
@@ -43,16 +44,16 @@ const AudioProcessingJobPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [finalizing, setFinalizing] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const isReviewMode = location.pathname.endsWith("/review");
     const readOnly = isReviewMode || job?.status === "FINALIZED";
 
-    const loadJob = async () => {
+    const loadJob = useCallback(async (options?: { silent?: boolean; preserveError?: boolean }) => {
         if (!jobId) return;
-        setError(null);
-        setLoading(true);
+        if (!options?.preserveError) setError(null);
+        if (!options?.silent) setLoading(true);
         try {
             const res = await api.getAudioProcessingJob(Number(jobId));
             const data =
@@ -65,13 +66,13 @@ const AudioProcessingJobPage: React.FC = () => {
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load job.");
         } finally {
-            setLoading(false);
+            if (!options?.silent) setLoading(false);
         }
-    };
+    }, [jobId]);
 
     useEffect(() => {
         void loadJob();
-    }, [jobId]);
+    }, [jobId, loadJob]);
 
     // Track playhead to highlight the current sentence
     useEffect(() => {
@@ -87,6 +88,86 @@ const AudioProcessingJobPage: React.FC = () => {
         audio.addEventListener("timeupdate", handleTimeUpdate);
         return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
     }, [sentences]);
+
+    // Set default trim end to full audio duration when metadata is ready (with fallback to sentences)
+    useEffect(() => {
+        let cancelled = false;
+        const fallbackEnd = sentences.reduce(
+            (max, s) => Math.max(max, s.end || 0),
+            0
+        );
+
+        async function loadDuration() {
+            if (!job?.audioUrl) {
+                if (fallbackEnd > 0) {
+                    setDefaultEnd(fallbackEnd);
+                    setReplaceEnd((prev) => (prev <= 0 ? fallbackEnd : prev));
+                }
+                return;
+            }
+
+            try {
+                const tmpAudio = new Audio();
+                tmpAudio.preload = "metadata";
+                tmpAudio.src = job.audioUrl;
+
+                const duration = await new Promise<number>((resolve, reject) => {
+                    tmpAudio.onloadedmetadata = () => resolve(tmpAudio.duration);
+                    tmpAudio.onerror = () => reject(new Error("Failed to load audio metadata"));
+                });
+
+                if (cancelled) return;
+                if (Number.isFinite(duration) && duration > 0) {
+                    const rounded = Number(duration.toFixed(3));
+                    setDefaultEnd(rounded);
+                    setReplaceEnd((prev) => (prev <= 0 ? rounded : prev));
+                    return;
+                }
+            } catch {
+                // ignore, try fallback
+            }
+
+            if (!cancelled && fallbackEnd > 0) {
+                setDefaultEnd(fallbackEnd);
+                setReplaceEnd((prev) => (prev <= 0 ? fallbackEnd : prev));
+            }
+        }
+
+        void loadDuration();
+        return () => {
+            cancelled = true;
+        };
+    }, [job?.audioUrl, sentences]);
+
+    useEffect(() => {
+        if (!jobId || !job) return;
+        const pollStatuses: AudioJob["status"][] = ["PROCESSING", "PENDING", "REPROCESSING", "RUNNING"];
+        if (!pollStatuses.includes(job.status)) return;
+
+        const interval = window.setInterval(() => {
+            void loadJob({ silent: true, preserveError: true });
+        }, 4000);
+
+        return () => window.clearInterval(interval);
+    }, [jobId, job?.status, loadJob]);
+
+    const stopPreviewPlayback = useCallback(() => {
+        const audio = audioRef.current;
+        const stopHandler = previewStopHandlerRef.current;
+        previewStopHandlerRef.current = null;
+
+        if (!audio) {
+            setPreviewing(false);
+            return;
+        }
+
+        if (stopHandler) {
+            audio.removeEventListener("timeupdate", stopHandler);
+        }
+
+        audio.pause();
+        setPreviewing(false);
+    }, []);
 
     const handlePlaySentence = (sentence: AudioSentence, index: number) => {
         const audio = audioRef.current;
@@ -109,7 +190,7 @@ const AudioProcessingJobPage: React.FC = () => {
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadJob();
+        await loadJob({ silent: true });
         setRefreshing(false);
     };
 
@@ -141,7 +222,18 @@ const AudioProcessingJobPage: React.FC = () => {
     const setReplaceEndFromCurrent = () => {
         const audio = audioRef.current;
         if (!audio) return;
-        setReplaceEnd(Number(audio.currentTime.toFixed(3)));
+        const time = Number(audio.currentTime.toFixed(3));
+        if (time > 0) {
+            setReplaceEnd(time);
+            return;
+        }
+
+        // fallback to known duration/default if currentTime is not usable
+        if (defaultEnd && defaultEnd > 0) {
+            setReplaceEnd(defaultEnd);
+        } else if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            setReplaceEnd(Number(audio.duration.toFixed(3)));
+        }
     };
 
     const handlePreviewReplaceSegment = () => {
@@ -157,146 +249,68 @@ const AudioProcessingJobPage: React.FC = () => {
             return;
         }
 
-        audio.currentTime = start;
         const stopAt = end;
 
         const stopIfNeeded = () => {
             if (audio.currentTime >= stopAt) {
-                audio.pause();
-                audio.removeEventListener("timeupdate", stopIfNeeded);
-                setPreviewing(false);
+                stopPreviewPlayback();
             }
         };
 
+        stopPreviewPlayback();
+
+        audio.currentTime = start;
         setPreviewing(true);
+        previewStopHandlerRef.current = stopIfNeeded;
         audio.addEventListener("timeupdate", stopIfNeeded);
         void audio.play();
     };
 
-    const handleFinalize = async () => {
+    useEffect(() => () => stopPreviewPlayback(), [stopPreviewPlayback]);
+
+    const handleSubmitJob = async () => {
         if (!job) return;
-        setFinalizing(true);
+        setSubmitting(true);
         setError(null);
         try {
-            await api.finalizeAudioProcessingJob(job.id);
-            await loadJob();
+            await api.submitExistingAudioProcessingJob(job.id);
+            await loadJob({ silent: true });
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to finalize job.");
+            setError(err instanceof Error ? err.message : "Failed to submit job.");
         } finally {
-            setFinalizing(false);
+            setSubmitting(false);
         }
-    };
-
-    const encodeWav = (audioBuffer: AudioBuffer): ArrayBuffer => {
-        const numChannels = audioBuffer.numberOfChannels;
-        const sampleRate = audioBuffer.sampleRate;
-        const samples = audioBuffer.length;
-        const dataLength = samples * numChannels * 2;
-        const buffer = new ArrayBuffer(44 + dataLength);
-        const view = new DataView(buffer);
-
-        const writeString = (offset: number, str: string) => {
-            for (let i = 0; i < str.length; i++) {
-                view.setUint8(offset + i, str.charCodeAt(i));
-            }
-        };
-
-        writeString(0, "RIFF");
-        view.setUint32(4, 36 + dataLength, true);
-        writeString(8, "WAVE");
-        writeString(12, "fmt ");
-        view.setUint32(16, 16, true); // PCM chunk size
-        view.setUint16(20, 1, true); // PCM
-        view.setUint16(22, numChannels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * numChannels * 2, true); // byte rate
-        view.setUint16(32, numChannels * 2, true); // block align
-        view.setUint16(34, 16, true); // bits per sample
-        writeString(36, "data");
-        view.setUint32(40, dataLength, true);
-
-        // Interleave channels
-        let offset = 44;
-        const channelData: Float32Array[] = [];
-        for (let ch = 0; ch < numChannels; ch++) {
-            channelData.push(audioBuffer.getChannelData(ch));
-        }
-
-        for (let i = 0; i < samples; i++) {
-            for (let ch = 0; ch < numChannels; ch++) {
-                let sample = channelData[ch][i];
-                sample = Math.max(-1, Math.min(1, sample));
-                const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-                view.setInt16(offset, intSample, true);
-                offset += 2;
-            }
-        }
-
-        return buffer;
-    };
-
-    const trimAudioFile = async (file: File, start: number, end: number): Promise<File> => {
-        if (start <= 0 && (!end || end <= 0)) return file;
-
-        const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new AudioContext();
-        const decoded = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
-
-        const safeStart = Math.max(0, start);
-        const safeEnd =
-            end && end > 0 ? Math.min(end, decoded.duration) : decoded.duration;
-        if (safeEnd <= safeStart) {
-            throw new Error("End time must be greater than start time.");
-        }
-
-        const sampleRate = decoded.sampleRate;
-        const frameStart = Math.floor(safeStart * sampleRate);
-        const frameEnd = Math.floor(safeEnd * sampleRate);
-        const frameLength = frameEnd - frameStart;
-
-        const trimmed = audioCtx.createBuffer(
-            decoded.numberOfChannels,
-            frameLength,
-            sampleRate
-        );
-
-        for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
-            const channelData = decoded.getChannelData(ch);
-            trimmed.copyToChannel(channelData.slice(frameStart, frameEnd), ch, 0);
-        }
-
-        const wavBuffer = encodeWav(trimmed);
-        const trimmedBlob = new Blob([wavBuffer], { type: "audio/wav" });
-        const name = file.name.replace(/\.[^/.]+$/, "") + "_trimmed.wav";
-        return new File([trimmedBlob], name, { type: "audio/wav" });
     };
 
     const handleReplaceAudio = async () => {
-        if (!job) return;
-        if (!replaceFile) {
-            setError("Please choose a new audio file to upload.");
+        if (readOnly) return;
+        if (!job?.audioUrl) {
+            setError("Audio is not available yet to update.");
             return;
         }
         setReplacing(true);
-        setReplaceProgress(10);
-        const timer = window.setInterval(() => {
-            setReplaceProgress((p) => Math.min(p + 8, 90));
-        }, 300);
         setError(null);
         try {
-            const trimmed = await trimAudioFile(replaceFile, replaceStart, replaceEnd);
-            console.log("trimmed" + trimmed)
-            await api.replaceAudioForJob(job.id, trimmed);
-            await loadJob();
-            setReplaceFile(null);
+            const resolvedEnd =
+                replaceEnd > 0
+                    ? replaceEnd
+                    : defaultEnd ?? audioRef.current?.duration ?? 0;
+            const resolvedStart = Math.max(0, replaceStart);
+            if (!resolvedEnd || resolvedEnd <= resolvedStart) {
+                throw new Error("End time must be greater than start time.");
+            }
+
+            const segments = [{ start: resolvedStart, end: resolvedEnd }];
+            await api.editAudioJob(job.id, segments);
+
+            await loadJob({ silent: true });
+
             setReplaceStart(0);
             setReplaceEnd(0);
-            setReplaceProgress(100);
+            // Backend resets status to PENDING and reprocesses; polling effect will refresh.
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to replace audio.");
-            setReplaceProgress(0);
+            setError(err instanceof Error ? err.message : "Failed to update audio.");
         } finally {
-            window.clearInterval(timer);
             setReplacing(false);
         }
     };
@@ -352,7 +366,7 @@ const AudioProcessingJobPage: React.FC = () => {
                         )}
                     </div>
                     <p className="text-sm text-slate-500">
-                        Manage transcript alignment and finalize when ready.
+                        Manage transcript alignment and submit for processing when ready.
                     </p>
                     {error && (
                         <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
@@ -368,19 +382,21 @@ const AudioProcessingJobPage: React.FC = () => {
                         Refresh
                     </Btn.Secondary>
                     <Btn.Primary
-                        onClick={handleFinalize}
-                        disabled={readOnly || finalizing}
-                        className={readOnly ? "opacity-60 cursor-not-allowed" : ""}
+                        onClick={handleSubmitJob}
+                        disabled={
+                            submitting ||
+                            ["PROCESSING", "PENDING", "REPROCESSING", "RUNNING"].includes(job.status)
+                        }
                     >
-                        {finalizing ? (
+                        {submitting ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                Finalizing…
+                                Submitting…
                             </>
                         ) : (
                             <>
                                 <CheckCircle2 className="w-4 h-4" />
-                                {readOnly ? "Finalized" : "Finalize Job"}
+                                Submit Job
                             </>
                         )}
                     </Btn.Primary>
@@ -443,25 +459,8 @@ const AudioProcessingJobPage: React.FC = () => {
                     <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 lg:p-5 space-y-3">
                         <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                             <FileAudio className="w-4 h-4" />
-                            Update / Trim Audio
+                            Edit Audio (keep segments)
                         </h3>
-
-                        <div className="space-y-2">
-                            <label className="block text-xs font-medium text-slate-600">
-                                New audio file
-                            </label>
-                            <input
-                                type="file"
-                                accept="audio/*"
-                                onChange={(e) => setReplaceFile(e.target.files?.[0] ?? null)}
-                                className="block w-full text-xs"
-                            />
-                            {replaceFile && (
-                                <div className="text-xs text-slate-600">
-                                    {replaceFile.name} ({(replaceFile.size / 1024 / 1024).toFixed(2)} MB)
-                                </div>
-                            )}
-                        </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
@@ -505,20 +504,20 @@ const AudioProcessingJobPage: React.FC = () => {
                         </div>
 
                         <p className="text-[11px] text-slate-500">
-                            If start/end are set, that portion is trimmed locally before upload.
+                            Send the selected segment to the backend. The job status resets to PENDING and will reprocess with the edited audio.
                         </p>
 
                         <div className="flex flex-wrap gap-2">
                             <Btn.Secondary
                                 type="button"
-                                onClick={handlePreviewReplaceSegment}
-                                disabled={previewing}
+                                onClick={previewing ? stopPreviewPlayback : handlePreviewReplaceSegment}
+                                disabled={!job.audioUrl || readOnly}
                                 className="flex-1 justify-center"
                             >
                                 {previewing ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Previewing…
+                                        <Square className="w-4 h-4" />
+                                        Stop preview
                                     </>
                                 ) : (
                                     <>
@@ -539,25 +538,10 @@ const AudioProcessingJobPage: React.FC = () => {
                             </Btn.Secondary>
                         </div>
 
-                        {replacing && (
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between text-xs text-slate-500">
-                                    <span>Uploading new audio</span>
-                                    <span>{replaceProgress}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-brand transition-all"
-                                        style={{ width: `${replaceProgress}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
                         <Btn.Primary
-                            disabled={replacing || !replaceFile}
                             onClick={handleReplaceAudio}
                             className="w-full justify-center"
+                            disabled={readOnly || replacing || !job.audioUrl}
                         >
                             {replacing ? (
                                 <>
@@ -600,7 +584,7 @@ const AudioProcessingJobPage: React.FC = () => {
 
                     <div className="space-y-2 text-sm text-slate-600">
                         <p>
-                            Update sentences below, then save changes. Finalizing will lock the job for editing.
+                            Update sentences below, save changes, then submit to re-run processing.
                         </p>
                     </div>
                 </div>
