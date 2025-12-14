@@ -57,23 +57,80 @@ async function createLesson(payload: {
 async function updateLesson(
     lessonId: number,
     payload: {
-        name: string;
-        level: Lesson["level"];
-        category_id: number;
-        description?: string | null;
+        name?: string;
+        level?: Lesson["level"];
+        category_id?: number;
+        status?: number;
         image?: string | null;
+        gems?: number;
+        description?: string | null;
     }
 ) {
-    const response = await handle<{ status?: string; data?: Lesson }>(
+    const response = await handle<{
+        success?: boolean;
+        status?: string;
+        code?: number;
+        message?: string;
+        data?: Lesson;
+    }>(
         await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}`, {
-            method: "PUT",
+            method: "PATCH",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         })
     );
 
     return {
-        success: response.status ? response.status === "success" : true,
+        success:
+            (response as { success?: boolean }).success ??
+            (response.status ? response.status === "success" : true),
+        lesson: (response.data as Lesson | undefined) ?? null,
+    };
+}
+
+async function updateLessonImage(lessonId: number, image: string) {
+    const response = await handle<{
+        success?: boolean;
+        status?: string;
+        data?: Lesson;
+    }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}/image`, {
+            method: "PATCH",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ image }),
+        })
+    );
+
+    const success =
+        (response as { success?: boolean }).success ??
+        (response.status ? response.status === "success" : true);
+
+    return {
+        success,
+        lesson: (response.data as Lesson | undefined) ?? null,
+    };
+}
+
+async function uploadLessonImage(lessonId: number, file: File) {
+    const form = new FormData();
+    form.append("file", file);
+
+    const response = await handle<{
+        success?: boolean;
+        code?: number;
+        message?: string;
+        data?: Lesson;
+    }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}/image/upload`, {
+            method: "PATCH",
+            headers: getAuthHeaders({ contentType: null }),
+            body: form,
+        })
+    );
+
+    const success = (response as { success?: boolean }).success ?? true;
+    return {
+        success,
         lesson: (response.data as Lesson | undefined) ?? null,
     };
 }
@@ -227,6 +284,8 @@ export const lessonsApi = {
     getLessons,
     createLesson,
     updateLesson,
+    updateLessonImage,
+    uploadLessonImage,
     resetUserLessonProgress,
     getLessonDetail,
     createListeningLesson,

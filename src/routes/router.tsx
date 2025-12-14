@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import AdminLayout from "../components/layout/AdminLayout";
+import { RequireAdminAuth } from "../auth/RequireAdminAuth";
 
 import DashboardPage from "../pages/DashboardPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
@@ -23,13 +24,23 @@ import LessonAudioPage from "../pages/lesson/LessonAudioPage";
 import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
+import AdminLoginPage from "../pages/AdminLoginPage";
 
 export const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/" element={<Navigate to="/admin" replace />} />
 
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+
+            <Route
+                path="/admin"
+                element={
+                    <RequireAdminAuth>
+                        <AdminLayout />
+                    </RequireAdminAuth>
+                }
+            >
                 <Route index element={<DashboardPage />} />
 
                 <Route path="processing-jobs" element={<ProcessingJobsPage />} />

@@ -1,11 +1,63 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Clock } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
+import { api } from "../../api/client";
 import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
+import type { JobServiceStatus } from "../../types/jobService";
+
+function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null {
+    const upper = status.toUpperCase();
+    if (upper === "PENDING") return "PENDING";
+    if (upper === "RUNNING") return "RUNNING";
+    if (upper === "PROCESSING") return "RUNNING";
+    if (upper === "REPROCESSING") return "RUNNING";
+    if (upper === "COMPLETED") return "COMPLETED";
+    if (upper === "FINALIZED") return "COMPLETED";
+    if (upper === "PARTIAL") return "PARTIAL";
+    if (upper === "FAILED") return "FAILED";
+    return null;
+}
 
 const AudioProcessingJobOverviewPage: React.FC = () => {
-    const { job, sentences } = useOutletContext<AudioProcessingJobOutletContext>();
+    const { job, sentences, readOnly, reloadJob } = useOutletContext<AudioProcessingJobOutletContext>();
+
+    const [overrideStatus, setOverrideStatus] = useState<JobServiceStatus>("RUNNING");
+    const [overrideReason, setOverrideReason] = useState("");
+    const [overrideLoading, setOverrideLoading] = useState(false);
+    const [overrideNotice, setOverrideNotice] = useState<{
+        type: "success" | "error" | null;
+        message: string;
+    }>({ type: null, message: "" });
+
+    useEffect(() => {
+        const mapped = mapAudioStatusToServiceStatus(job.status);
+        if (mapped) setOverrideStatus(mapped);
+        setOverrideNotice({ type: null, message: "" });
+    }, [job.id, job.status]);
+
+    const handleManualStatusUpdate = async () => {
+        if (readOnly) return;
+
+        setOverrideLoading(true);
+        setOverrideNotice({ type: null, message: "" });
+
+        try {
+            await api.updateJobStatus(job.id, {
+                status: overrideStatus,
+                reason: overrideReason.trim() ? overrideReason.trim() : undefined,
+            });
+            setOverrideNotice({ type: "success", message: "Status updated." });
+            await reloadJob({ silent: true, preserveError: true });
+        } catch (err: unknown) {
+            setOverrideNotice({
+                type: "error",
+                message: err instanceof Error ? err.message : "Failed to update status.",
+            });
+        } finally {
+            setOverrideLoading(false);
+        }
+    };
 
     const jobMeta = useMemo(
         () => [
@@ -89,6 +141,56 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                     <div className="space-y-2 text-sm text-slate-600">
                         <p>Update transcript and sentences, then submit to re-run processing.</p>
                     </div>
+
+                    <div className="h-px bg-slate-100" />
+
+                    <div className="space-y-2">
+                        <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                            Operational Override
+                        </div>
+                        <p className="text-xs text-slate-500">
+                            Manually correct stuck jobs. Add a reason for the audit log.
+                        </p>
+                        <div className="grid gap-2">
+                            <select
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm disabled:opacity-60"
+                                value={overrideStatus}
+                                onChange={(e) => setOverrideStatus(e.target.value as JobServiceStatus)}
+                                disabled={readOnly || overrideLoading}
+                            >
+                                <option value="PENDING">PENDING</option>
+                                <option value="RUNNING">RUNNING</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                                <option value="PARTIAL">PARTIAL</option>
+                                <option value="FAILED">FAILED</option>
+                            </select>
+                            <textarea
+                                className="w-full min-h-[72px] px-3 py-2 rounded-xl border border-slate-200 text-sm disabled:opacity-60"
+                                placeholder="Reason (optional, but recommended)"
+                                value={overrideReason}
+                                onChange={(e) => setOverrideReason(e.target.value)}
+                                disabled={readOnly || overrideLoading}
+                            />
+                            <button
+                                onClick={handleManualStatusUpdate}
+                                disabled={readOnly || overrideLoading}
+                                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                            >
+                                {overrideLoading ? "Updating…" : "Update Status"}
+                            </button>
+                            {overrideNotice.type ? (
+                                <div
+                                    className={`text-sm px-3 py-2 rounded-xl border ${
+                                        overrideNotice.type === "success"
+                                            ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+                                            : "text-rose-700 bg-rose-50 border-rose-100"
+                                    }`}
+                                >
+                                    {overrideNotice.message}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -96,4 +198,3 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
 };
 
 export default AudioProcessingJobOverviewPage;
-

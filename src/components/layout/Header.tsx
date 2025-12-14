@@ -1,6 +1,11 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { adminLogout, getAdminUsername } from "../../auth/adminAuth";
 
 const Header: React.FC = () => {
+    const navigate = useNavigate();
+    const username = getAdminUsername() ?? "Admin";
+
     return (
         <header
             className="
@@ -70,10 +75,20 @@ const Header: React.FC = () => {
                     </div>
 
                     <div className="text-sm leading-tight">
-                        <div className="font-semibold text-slate-800">Huu Phuc</div>
+                        <div className="font-semibold text-slate-800">{username}</div>
                         <div className="text-[11px] text-slate-400">Admin • Online ●</div>
                     </div>
                 </div>
+
+                <button
+                    onClick={() => {
+                        adminLogout();
+                        navigate("/admin/login", { replace: true });
+                    }}
+                    className="h-10 px-4 rounded-full bg-white border border-slate-200 text-sm text-slate-700 hover:bg-slate-100 transition"
+                >
+                    Logout
+                </button>
             </div>
         </header>
     );

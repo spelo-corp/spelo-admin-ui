@@ -1,0 +1,6 @@
+cd ~/projects/spelo-admin-ui
+nvm use 22
+npm ci
+npm run build
+sudo rsync -a --delete dist/ /var/www/spelo-admin/
+sudo systemctl reload nginx

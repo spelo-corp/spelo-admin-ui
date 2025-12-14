@@ -1,5 +1,6 @@
 import { AUDIO_BASE_URL, JOB_BASE_URL, getAuthHeaders, handle } from "./base";
 import type { AudioJob, AudioSentence } from "../types/audioProcessing";
+import type { JobListItemDTO, JobServiceStatus } from "../types/jobService";
 
 type RawJob = {
     id: number;
@@ -266,6 +267,24 @@ async function finalizeAudioProcessingJob(jobId: number) {
     );
 }
 
+async function updateJobStatus(
+    jobId: number,
+    payload: { status: JobServiceStatus; reason?: string }
+) {
+    const body: Record<string, unknown> = { status: payload.status };
+    if (payload.reason !== undefined) body.reason = payload.reason;
+
+    const res = await handle<{ data?: JobListItemDTO } | JobListItemDTO>(
+        await fetch(`${JOB_BASE_URL}/api/v1/jobs/${jobId}/status`, {
+            method: "PATCH",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
+        })
+    );
+
+    return (res as { data?: JobListItemDTO }).data ?? (res as JobListItemDTO);
+}
+
 export const audioApi = {
     uploadAudioProcessingAudio,
     uploadAudioProcessingTranscript,
@@ -277,4 +296,5 @@ export const audioApi = {
     editAudioJob,
     submitExistingAudioProcessingJob,
     finalizeAudioProcessingJob,
+    updateJobStatus,
 };

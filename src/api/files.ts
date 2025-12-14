@@ -61,10 +61,24 @@ async function uploadLocalAudio(file: File, lessonId: number) {
     return handle<{ success: boolean; file_path: string }>(res);
 }
 
+async function uploadFile(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+
+    const res = await fetch(`${BASE_URL_V2}/api/v1/file/upload`, {
+        method: "POST",
+        headers: getAuthHeaders({ contentType: null }),
+        body: form,
+    });
+
+    return handle<{ success?: boolean; data?: string; message?: string; code?: number }>(res);
+}
+
 export const filesApi = {
     getAudioFiles,
     uploadAudioFile,
     deleteAudioFile,
     uploadLocalTranscript,
     uploadLocalAudio,
+    uploadFile,
 };
