@@ -1,4 +1,6 @@
 export type AudioJobStatus =
+    | "WAITING_FOR_INPUT"
+    | "READY_TO_PROCESS"
     | "PROCESSING"
     | "COMPLETED"
     | "FAILED"

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import AdminLayout from "../components/layout/AdminLayout";
 import { RequireAdminAuth } from "../auth/RequireAdminAuth";
+import { RouteErrorBoundary } from "../components/common/RouteErrorBoundary";
 
 import DashboardPage from "../pages/DashboardPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
@@ -41,9 +42,23 @@ export const AppRoutes = () => {
                     </RequireAdminAuth>
                 }
             >
-                <Route index element={<DashboardPage />} />
+                <Route
+                    index
+                    element={
+                        <RouteErrorBoundary routeName="Dashboard">
+                            <DashboardPage />
+                        </RouteErrorBoundary>
+                    }
+                />
 
-                <Route path="processing-jobs" element={<ProcessingJobsPage />} />
+                <Route
+                    path="processing-jobs"
+                    element={
+                        <RouteErrorBoundary routeName="Processing Jobs">
+                            <ProcessingJobsPage />
+                        </RouteErrorBoundary>
+                    }
+                />
                 <Route path="processing-jobs/:jobId/review" element={<AudioReviewPage />} />
                 <Route path="audio-processing" element={<AudioProcessingDashboardPage />} />
                 <Route path="audio-processing/upload" element={<AudioProcessingUploadPage />} />
@@ -62,10 +77,24 @@ export const AppRoutes = () => {
                     <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
                 </Route>
 
-                <Route path="lessons" element={<LessonListPage />} />
+                <Route
+                    path="lessons"
+                    element={
+                        <RouteErrorBoundary routeName="Lessons">
+                            <LessonListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
                 <Route path="audio-files" element={<AudioFilesPage />} />
                 <Route path="users" element={<UsersPage />} />
-                <Route path="dictionary" element={<DictionaryPage />} />
+                <Route
+                    path="dictionary"
+                    element={
+                        <RouteErrorBoundary routeName="Dictionary">
+                            <DictionaryPage />
+                        </RouteErrorBoundary>
+                    }
+                />
 
                 <Route path="lessons/:lessonId" element={<LessonViewPage />}>
                     <Route index element={<LessonInfoPage />} />
@@ -78,3 +107,4 @@ export const AppRoutes = () => {
         </Routes>
     );
 };
+

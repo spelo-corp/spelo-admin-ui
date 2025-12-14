@@ -6,6 +6,8 @@ interface Props {
 }
 
 const badgeStyles: Record<AudioJobStatus, string> = {
+    WAITING_FOR_INPUT: "bg-violet-50 text-violet-700 border border-violet-100",
+    READY_TO_PROCESS: "bg-blue-50 text-blue-700 border border-blue-100",
     PROCESSING: "bg-amber-50 text-amber-700 border border-amber-100",
     RUNNING: "bg-amber-50 text-amber-700 border border-amber-100",
     PENDING: "bg-slate-100 text-slate-700 border border-slate-200",
@@ -17,6 +19,8 @@ const badgeStyles: Record<AudioJobStatus, string> = {
 };
 
 const dotStyles: Record<AudioJobStatus, string> = {
+    WAITING_FOR_INPUT: "bg-violet-500",
+    READY_TO_PROCESS: "bg-blue-500",
     PROCESSING: "bg-amber-500 animate-pulse",
     RUNNING: "bg-amber-500 animate-pulse",
     PENDING: "bg-slate-400",

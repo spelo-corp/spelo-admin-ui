@@ -45,6 +45,8 @@ function safeParseJson<T = any>(value: unknown): T | null {
 const normalizeAudioStatus = (status?: string): AudioJob["status"] => {
     if (!status) return "PROCESSING";
     const upper = status.toUpperCase();
+    if (upper === "WAITING_FOR_INPUT") return "WAITING_FOR_INPUT";
+    if (upper === "READY_TO_PROCESS") return "READY_TO_PROCESS";
     if (upper === "RUNNING") return "PROCESSING";
     if (upper === "PENDING") return "PENDING";
     if (upper === "COMPLETED") return "COMPLETED";

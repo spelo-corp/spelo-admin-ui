@@ -209,7 +209,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
     }
 
     const disableSubmit =
-        readOnly || submitting || POLL_STATUSES.includes(job.status);
+        readOnly ||
+        submitting ||
+        job.status === "WAITING_FOR_INPUT" ||
+        POLL_STATUSES.includes(job.status);
 
     const showFinalize = !readOnly && job.status === "COMPLETED";
     const SubmitButton = showFinalize ? Btn.HeroSecondary : Btn.HeroPrimary;
@@ -287,11 +290,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                 ) : null}
                 {finalizeStatus.type ? (
                     <div
-                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
-                            finalizeStatus.type === "success"
+                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${finalizeStatus.type === "success"
                                 ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
                                 : "text-rose-50 bg-rose-500/15 border-rose-300/25"
-                        }`}
+                            }`}
                     >
                         {finalizeStatus.type === "success" ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-100" />
@@ -315,11 +317,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                                         px-4 py-2 text-sm font-medium
                                         rounded-t-xl
                                         transition-all
-                                        ${
-                                            isActive
-                                                ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
-                                                : "text-slate-600 hover:bg-white"
-                                        }
+                                        ${isActive
+                                        ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
+                                        : "text-slate-600 hover:bg-white"
+                                    }
                                     `
                                 }
                             >

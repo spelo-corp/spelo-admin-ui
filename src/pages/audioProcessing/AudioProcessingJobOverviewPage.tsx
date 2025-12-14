@@ -8,6 +8,8 @@ import type { JobServiceStatus } from "../../types/jobService";
 
 function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null {
     const upper = status.toUpperCase();
+    if (upper === "WAITING_FOR_INPUT") return "PENDING";
+    if (upper === "READY_TO_PROCESS") return "PENDING";
     if (upper === "PENDING") return "PENDING";
     if (upper === "RUNNING") return "RUNNING";
     if (upper === "PROCESSING") return "RUNNING";
@@ -180,11 +182,10 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                             </button>
                             {overrideNotice.type ? (
                                 <div
-                                    className={`text-sm px-3 py-2 rounded-xl border ${
-                                        overrideNotice.type === "success"
+                                    className={`text-sm px-3 py-2 rounded-xl border ${overrideNotice.type === "success"
                                             ? "text-emerald-700 bg-emerald-50 border-emerald-100"
                                             : "text-rose-700 bg-rose-50 border-rose-100"
-                                    }`}
+                                        }`}
                                 >
                                     {overrideNotice.message}
                                 </div>

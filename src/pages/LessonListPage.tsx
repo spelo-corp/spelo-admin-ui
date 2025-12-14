@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Lesson, LessonLevel } from "../types";
@@ -10,11 +10,13 @@ import { Input } from "../components/ui/Input.tsx";
 import { Skeleton } from "../components/ui/Skeleton.tsx";
 import {
     BookOpen,
+    CircleAlert,
     Filter,
     Layers,
     Plus,
     Search,
     Sparkles,
+    Trash2,
     X,
 } from "lucide-react";
 
@@ -52,7 +54,13 @@ const LessonListPage: React.FC = () => {
     const [jobModalOpen, setJobModalOpen] = useState(false);
     const [jobModalLessonId, setJobModalLessonId] = useState<number | null>(null);
 
-    const loadLessons = async () => {
+    // delete confirm modal
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Lesson | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const loadLessons = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.getLessons({
@@ -63,11 +71,11 @@ const LessonListPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [categoryFilter, levelFilter]);
 
     useEffect(() => {
         void loadLessons();
-    }, [categoryFilter, levelFilter]);
+    }, [loadLessons]);
 
     const resetForm = () => {
         setName("");
@@ -95,6 +103,39 @@ const LessonListPage: React.FC = () => {
         setImage(lesson.image ?? "");
         setModalError(null);
         setModalOpen(true);
+    };
+
+    const openDeleteModal = (lesson: Lesson) => {
+        setDeleteTarget(lesson);
+        setDeleteError(null);
+        setDeleteOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        if (deleting) return;
+        setDeleteOpen(false);
+        setDeleteTarget(null);
+        setDeleteError(null);
+    };
+
+    const handleDeleteLesson = async () => {
+        if (!deleteTarget) return;
+
+        setDeleting(true);
+        setDeleteError(null);
+        try {
+            const res = await api.deleteLesson(deleteTarget.id);
+            if (!res.success) {
+                throw new Error(res.message || `Lesson not found: ${deleteTarget.id}`);
+            }
+            setDeleteOpen(false);
+            setDeleteTarget(null);
+            await loadLessons();
+        } catch (e) {
+            setDeleteError(e instanceof Error ? e.message : "Failed to delete lesson.");
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const handleSaveLesson = async () => {
@@ -315,6 +356,7 @@ const LessonListPage: React.FC = () => {
                                         }
                                     }
                                     onEdit={() => openEditModal(lesson)}
+                                    onDelete={() => openDeleteModal(lesson)}
                                 />
                             ))}
                         </div>
@@ -475,6 +517,72 @@ const LessonListPage: React.FC = () => {
                 lessons={lessons}
                 defaultLessonId={jobModalLessonId}
             />
+
+            {/* DELETE CONFIRM MODAL */}
+            {deleteOpen && deleteTarget ? (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-3">
+                    <div className="bg-white rounded-card shadow-shell w-full max-w-md border border-slate-100 overflow-hidden">
+                        <div className="relative overflow-hidden bg-gradient-to-r from-rose-600 via-rose-600 to-amber-500 text-white px-6 py-5">
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_45%)]" />
+                            <div className="relative flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-[11px] uppercase tracking-[0.16em] text-white/80">
+                                        Delete lesson
+                                    </p>
+                                    <h2 className="mt-2 text-xl font-semibold truncate">
+                                        {deleteTarget.name}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-white/80">
+                                        This will soft-delete the lesson (set <span className="font-semibold">status = 0</span>).
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={closeDeleteModal}
+                                    disabled={deleting}
+                                    className="rounded-full p-2 text-white/80 transition hover:bg-white/15 disabled:opacity-60"
+                                    aria-label="Close"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                <div className="flex items-start gap-2">
+                                    <CircleAlert className="w-5 h-5 mt-0.5" />
+                                    <div>
+                                        <div className="font-semibold">Are you sure?</div>
+                                        <div className="text-amber-800/80">
+                                            You can still access it as inactive, but it should no longer be counted as active content.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {deleteError ? (
+                                <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                    {deleteError}
+                                </div>
+                            ) : null}
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+                                <Btn.Secondary onClick={closeDeleteModal} disabled={deleting}>
+                                    Cancel
+                                </Btn.Secondary>
+                                <Btn.Primary
+                                    onClick={handleDeleteLesson}
+                                    disabled={deleting}
+                                    className="bg-rose-600 hover:bg-rose-700"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    {deleting ? "Deleting…" : "Delete lesson"}
+                                </Btn.Primary>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 };

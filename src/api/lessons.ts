@@ -88,6 +88,29 @@ async function updateLesson(
     };
 }
 
+async function deleteLesson(lessonId: number) {
+    const response = await handle<{
+        success?: boolean;
+        status?: string;
+        code?: number;
+        message?: string;
+        data?: Lesson;
+    }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success:
+            (response as { success?: boolean }).success ??
+            (response.status ? response.status === "success" : true),
+        lesson: (response.data as Lesson | undefined) ?? null,
+        message: response.message,
+    };
+}
+
 async function updateLessonImage(lessonId: number, image: string) {
     const response = await handle<{
         success?: boolean;
@@ -284,6 +307,7 @@ export const lessonsApi = {
     getLessons,
     createLesson,
     updateLesson,
+    deleteLesson,
     updateLessonImage,
     uploadLessonImage,
     resetUserLessonProgress,

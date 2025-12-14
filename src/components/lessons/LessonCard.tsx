@@ -6,6 +6,7 @@ import {
     Pencil,
     CheckCircle,
     CircleSlash,
+    Trash2,
 } from "lucide-react";
 
 interface LessonCardProps {
@@ -13,6 +14,7 @@ interface LessonCardProps {
     onView: () => void;
     onAddAudio: () => void;
     onEdit: () => void;
+    onDelete: () => void;
 }
 
 const LessonCard: React.FC<LessonCardProps> = ({
@@ -20,6 +22,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
                                                    onView,
                                                    onAddAudio,
                                                    onEdit,
+                                                   onDelete,
                                                }) => {
     const isActive = lesson.status === 1;
 
@@ -76,11 +79,11 @@ const LessonCard: React.FC<LessonCardProps> = ({
             </div>
 
             {/* FOOTER BUTTONS */}
-            <div className="px-4 py-3 border-t border-slate-100 flex gap-2">
+            <div className="px-4 py-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                 <button
                     onClick={onView}
                     className="
-            flex-1 px-2 py-1.5 rounded-full border text-xs font-medium
+            w-full px-2 py-1.5 rounded-full border text-xs font-medium
             text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1
           "
                 >
@@ -91,7 +94,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
                 <button
                     onClick={onAddAudio}
                     className="
-            flex-1 px-2 py-1.5 rounded-full border text-xs font-medium
+            w-full px-2 py-1.5 rounded-full border text-xs font-medium
             border-brand text-brand hover:bg-brand-soft
             flex items-center justify-center gap-1
           "
@@ -103,13 +106,25 @@ const LessonCard: React.FC<LessonCardProps> = ({
                 <button
                     onClick={onEdit}
                     className="
-            flex-1 px-2 py-1.5 rounded-full border text-xs font-medium
+            w-full px-2 py-1.5 rounded-full border text-xs font-medium
             border-amber-500 text-amber-600 hover:bg-amber-50
             flex items-center justify-center gap-1
           "
                 >
                     <Pencil className="w-4 h-4" />
                     Edit
+                </button>
+
+                <button
+                    onClick={onDelete}
+                    className="
+                        w-full px-2 py-1.5 rounded-full border text-xs font-medium
+                        border-rose-500 text-rose-600 hover:bg-rose-50
+                        flex items-center justify-center gap-1
+                    "
+                >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
                 </button>
             </div>
         </div>
