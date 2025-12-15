@@ -24,13 +24,13 @@ interface ConfirmResetModalProps {
 }
 
 const ConfirmResetModal: React.FC<ConfirmResetModalProps> = ({
-                                                                 open,
-                                                                 title,
-                                                                 description,
-                                                                 loading,
-                                                                 onConfirm,
-                                                                 onCancel,
-                                                             }) => {
+    open,
+    title,
+    description,
+    loading,
+    onConfirm,
+    onCancel,
+}) => {
     if (!open) return null;
 
     return (
@@ -177,7 +177,7 @@ const LessonViewPage: React.FC = () => {
     const statusValue = lessonMeta?.status;
 
     return (
-        <div className="flex flex-col h-full gap-8">
+        <div className="flex flex-col h-full gap-8 px-8 py-6">
             {/* HERO */}
             <PageHeader
                 badge={
@@ -226,9 +226,8 @@ const LessonViewPage: React.FC = () => {
 
                     {status.type && (
                         <div
-                            className={`flex items-center gap-2 text-xs ${
-                                status.type === "success" ? "text-emerald-200" : "text-rose-200"
-                            }`}
+                            className={`flex items-center gap-2 text-xs ${status.type === "success" ? "text-emerald-200" : "text-rose-200"
+                                }`}
                         >
                             {status.type === "success" ? (
                                 <CheckCircle2 className="w-4 h-4" />
@@ -255,10 +254,9 @@ const LessonViewPage: React.FC = () => {
                                         px-4 py-2 text-sm font-medium
                                         rounded-t-xl
                                         transition-all
-                                        ${
-                                        isActive
-                                            ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
-                                            : "text-slate-600 hover:bg-white"
+                                        ${isActive
+                                        ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
+                                        : "text-slate-600 hover:bg-white"
                                     }
                                     `
                                 }

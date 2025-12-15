@@ -138,7 +138,7 @@ const DictionaryPage: React.FC = () => {
     };
 
     return (
-        <div className="relative min-h-screen overflow-hidden">
+        <div className="relative min-h-screen overflow-hidden px-8 py-6">
             <div className="relative z-10 space-y-8">
                 <PageHeader
                     badge={
@@ -183,13 +183,12 @@ const DictionaryPage: React.FC = () => {
                                             key={l}
                                             onClick={() => setSelectedLetter(l)}
                                             disabled={!hasWords}
-                                            className={`rounded-md px-2 py-1 transition ${
-                                                hasWords
-                                                    ? isSelected
-                                                        ? "bg-brand/20 text-brand border border-brand/30"
-                                                        : "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
-                                                    : "bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
-                                            }`}
+                                            className={`rounded-md px-2 py-1 transition ${hasWords
+                                                ? isSelected
+                                                    ? "bg-brand/20 text-brand border border-brand/30"
+                                                    : "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
+                                                : "bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
+                                                }`}
                                         >
                                             {l}
                                         </button>
@@ -201,7 +200,7 @@ const DictionaryPage: React.FC = () => {
 
                     {/* MAIN CONTENT */}
                     <main className="space-y-5 md:space-y-6">
-                        <div className="relative overflow-hidden rounded-shell border border-slate-100 bg-white p-6 shadow-shell md:p-8">
+                        <div className="relative rounded-shell border border-slate-100 bg-white p-6 shadow-shell md:p-8">
                             <div className="relative flex flex-col gap-6">
                                 <div className="space-y-3">
                                     <div className="relative">
@@ -262,13 +261,12 @@ const DictionaryPage: React.FC = () => {
                                                     key={l}
                                                     onClick={() => setSelectedLetter(l)}
                                                     disabled={!hasWords}
-                                                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
-                                                        hasWords
-                                                            ? isSelected
-                                                                ? "bg-brand/20 text-brand"
-                                                                : "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
-                                                            : "bg-slate-100 text-slate-400"
-                                                    }`}
+                                                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${hasWords
+                                                        ? isSelected
+                                                            ? "bg-brand/20 text-brand"
+                                                            : "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
+                                                        : "bg-slate-100 text-slate-400"
+                                                        }`}
                                                 >
                                                     {l}
                                                 </button>

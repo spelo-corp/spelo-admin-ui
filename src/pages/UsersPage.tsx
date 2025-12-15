@@ -3,7 +3,7 @@ import PageHeader from "../components/common/PageHeader";
 
 const UsersPage: React.FC = () => {
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
             <PageHeader
                 title="Users"
                 description="Manage user accounts and access (coming soon)."

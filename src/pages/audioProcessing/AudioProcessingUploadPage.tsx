@@ -141,7 +141,7 @@ const AudioProcessingUploadPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
             <PageHeader
                 badge={
                     <Link

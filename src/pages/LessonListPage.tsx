@@ -200,7 +200,7 @@ const LessonListPage: React.FC = () => {
     const inactiveCount = lessons.length - activeCount;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
 
             {/* HERO */}
             <PageHeader
@@ -271,8 +271,8 @@ const LessonListPage: React.FC = () => {
                                 className={`
                                     px-3 py-1.5 rounded-full text-xs font-medium border transition
                                     ${levelFilter === lvl
-                                    ? "bg-brand text-white border-brand shadow-sm"
-                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
+                                        ? "bg-brand text-white border-brand shadow-sm"
+                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
                                 `}
                             >
                                 {lvl === "ALL" ? "All levels" : lvl}
@@ -349,11 +349,10 @@ const LessonListPage: React.FC = () => {
                                     onView={() =>
                                         navigate(`/admin/lessons/${lesson.id}`, { state: { lesson } })
                                     }
-                                    onAddAudio={() =>
-                                        {
-                                            setJobModalLessonId(lesson.id);
-                                            setJobModalOpen(true);
-                                        }
+                                    onAddAudio={() => {
+                                        setJobModalLessonId(lesson.id);
+                                        setJobModalOpen(true);
+                                    }
                                     }
                                     onEdit={() => openEditModal(lesson)}
                                     onDelete={() => openDeleteModal(lesson)}
@@ -380,7 +379,7 @@ const LessonListPage: React.FC = () => {
                                         Lesson
                                     </p>
                                     <h2 className="text-lg font-semibold text-slate-900">
-                                {editingLesson ? "Edit Lesson" : "Create New Lesson"}
+                                        {editingLesson ? "Edit Lesson" : "Create New Lesson"}
                                     </h2>
                                 </div>
                             </div>

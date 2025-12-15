@@ -60,7 +60,7 @@ const ProcessingJobsPage: React.FC = () => {
     }, []);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
             <PageHeader
                 title="Audio Processing"
                 description="Create and monitor processing jobs through each pipeline stage."

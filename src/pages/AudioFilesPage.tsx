@@ -11,7 +11,7 @@ import {
     Music,
     Loader2,
 } from "lucide-react";
-import {Input} from "../components/ui/Input.tsx";
+import { Input } from "../components/ui/Input.tsx";
 import { Btn } from "../components/ui/Btn.tsx";
 import PageHeader from "../components/common/PageHeader";
 
@@ -64,7 +64,7 @@ const AudioFilesPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
             <PageHeader
                 title="Audio Files"
                 description="Upload, preview, and manage audio files used across lessons."

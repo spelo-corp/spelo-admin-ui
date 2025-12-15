@@ -59,7 +59,7 @@ const DashboardPage: React.FC = () => {
             ] = await Promise.all([
                 api.getAdminDashboardOverview(range),
                 api.getAdminDashboardAlerts({ stuck_minutes: 30, limit: 10 }),
-                api.getAdminDashboardActivity({ limit: 20 }),
+                api.getAdminDashboardActivity({ limit: 5 }),
                 api.getAdminDashboardRecentLessons({ limit: 5 }),
                 api.getAdminDashboardRecentAudioFiles({ limit: 5 }),
             ]);
@@ -219,7 +219,7 @@ const DashboardPage: React.FC = () => {
     );
 
     return (
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden px-8 py-6">
             <div className="pointer-events-none absolute inset-0 -z-10">
                 <div className="absolute -top-24 -left-28 h-64 w-64 rounded-full bg-brand/15 blur-3xl" />
                 <div className="absolute top-20 right-[-90px] h-80 w-80 rounded-full bg-gradient-to-br from-brand/25 via-brand/10 to-transparent blur-3xl" />

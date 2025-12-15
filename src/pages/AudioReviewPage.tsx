@@ -278,7 +278,7 @@ const AudioReviewPage: React.FC = () => {
     if (!job) return <div>Job not found.</div>;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 px-8 py-6">
             <PageHeader
                 badge={
                     <button
@@ -385,8 +385,8 @@ const AudioReviewPage: React.FC = () => {
                                         px-3 py-1 border rounded-lg text-xs cursor-pointer
                                         transition-all duration-150 active:scale-[0.97]
                                         ${mergeSelection.includes(idx)
-                                        ? "bg-indigo-100 border-indigo-300 text-indigo-700"
-                                        : "hover:bg-indigo-50 hover:border-indigo-200"}
+                                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                                            : "hover:bg-indigo-50 hover:border-indigo-200"}
                                         `}
                                 >
                                     Select
