@@ -22,6 +22,7 @@ import UsersPage from "../pages/UsersPage";
 import LessonViewPage from "../pages/LessonViewPage";
 import LessonInfoPage from "../pages/lesson/LessonInfoPage";
 import LessonAudioPage from "../pages/lesson/LessonAudioPage";
+import LessonJobsPage from "../pages/lesson/LessonJobsPage";
 import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
@@ -100,6 +101,7 @@ export const AppRoutes = () => {
                     <Route index element={<LessonInfoPage />} />
                     <Route path="info" element={<LessonInfoPage />} />
                     <Route path="audio" element={<LessonAudioPage />} />
+                    <Route path="jobs" element={<LessonJobsPage />} />
                     <Route path="exercises" element={<LessonExercisesPage />} />
                     <Route path="vocab" element={<LessonVocabPage />} />
                 </Route>

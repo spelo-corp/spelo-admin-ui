@@ -185,11 +185,20 @@ async function submitAudioProcessingJob(payload: {
     return { jobId };
 }
 
-async function getAudioProcessingJobs(params?: { status?: string; search?: string }) {
+async function getAudioProcessingJobs(params?: {
+    status?: string;
+    search?: string;
+    lessonId?: number;
+    page?: number;
+    size?: number;
+}) {
     const query = new URLSearchParams();
     query.set("job_type", "AUDIO_PROCESSING");
     if (params?.status) query.set("status", params.status);
     if (params?.search) query.set("search", params.search);
+    if (params?.lessonId) query.set("lesson_id", String(params.lessonId));
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.size) query.set("size", String(params.size));
 
     const response = await handle<any>(
         await fetch(`${JOB_BASE_URL}/api/v1/jobs?${query.toString()}`, {
@@ -197,14 +206,39 @@ async function getAudioProcessingJobs(params?: { status?: string; search?: strin
         })
     );
 
-    const payload =
-        (response as { data?: RawJob[] }).data ??
-        (response as { jobs?: RawJob[] }).jobs ??
-        (Array.isArray(response) ? response : []);
+    // Handle paginated response
+    const data = (response as { data?: any }).data ?? response;
 
-    return (payload as RawJob[])
+    // If it's a paginated response with content array
+    if (data && typeof data === "object" && "content" in data && Array.isArray(data.content)) {
+        const jobs = (data.content as RawJob[])
+            .map(mapRawJobToAudioJob)
+            .filter(Boolean) as AudioJob[];
+
+        return {
+            content: jobs,
+            pageNumber: data.pageNumber ?? data.page ?? 1,
+            pageSize: data.pageSize ?? data.size ?? 20,
+            totalElements: data.totalElements ?? data.total ?? jobs.length,
+            totalPages: data.totalPages ?? 1,
+            last: data.last ?? true,
+        };
+    }
+
+    // Fallback for non-paginated responses (backward compatibility)
+    const payload = Array.isArray(data) ? data : (data.jobs ?? []);
+    const jobs = (payload as RawJob[])
         .map(mapRawJobToAudioJob)
         .filter(Boolean) as AudioJob[];
+
+    return {
+        content: jobs,
+        pageNumber: 1,
+        pageSize: jobs.length,
+        totalElements: jobs.length,
+        totalPages: 1,
+        last: true,
+    };
 }
 
 async function getAudioProcessingJob(jobId: number) {

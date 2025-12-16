@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Lesson, LessonLevel } from "../types";
+import type { Category } from "../types/category";
 import LessonCard from "../components/lessons/LessonCard";
 import { CreateJobModal } from "../components/jobs/CreateJobModal";
 import { Btn } from "../components/ui/Btn";
@@ -11,7 +12,6 @@ import { Skeleton } from "../components/ui/Skeleton.tsx";
 import {
     BookOpen,
     CircleAlert,
-    Filter,
     Layers,
     Plus,
     Search,
@@ -20,32 +20,27 @@ import {
     X,
 } from "lucide-react";
 
-const CATEGORY_OPTIONS = [
-    { id: 1, label: "Beginner" },
-    { id: 2, label: "Intermediate" },
-    { id: 3, label: "Advanced" },
-    { id: 4, label: "Business English" },
-    { id: 5, label: "Travel" },
-    { id: 6, label: "Daily Life" },
-];
+
 
 const LessonListPage: React.FC = () => {
     const navigate = useNavigate();
 
+    const [categories, setCategories] = useState<Category[]>([]);
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loading, setLoading] = useState(true);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
     const [modalError, setModalError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [levelFilter, setLevelFilter] = useState<LessonLevel | "ALL">("ALL");
-    const [categoryFilter, setCategoryFilter] = useState<number>(CATEGORY_OPTIONS[0].id);
+    const [categoryFilter, setCategoryFilter] = useState<number>(0);
 
     // form fields
     const [name, setName] = useState("");
     const [level, setLevel] = useState<LessonLevel>("A1");
-    const [categoryId, setCategoryId] = useState(CATEGORY_OPTIONS[0].id);
+    const [categoryId, setCategoryId] = useState(0);
     const [gems, setGems] = useState<number>(0);
     const [description, setDescription] = useState("");
     const [image, setImage] = useState("");
@@ -60,11 +55,42 @@ const LessonListPage: React.FC = () => {
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const loadCategories = useCallback(async () => {
+        setCategoriesLoading(true);
+        try {
+            const res = await api.getCategories();
+            console.log("Categories API response:", res);
+            if (res.success && res.data && res.data.length > 0) {
+                // Convert CategoryListItemDTO to Category for internal use
+                const categories: Category[] = res.data.map((dto) => ({
+                    id: dto.id,
+                    parent_id: dto.parent_id,
+                    name: dto.name,
+                    image: dto.image,
+                    description: dto.description,
+                    lesson_count: dto.lesson_count,
+                    min_level: dto.min_level,
+                    max_level: dto.max_level,
+                }));
+                console.log("Loaded categories:", categories);
+                setCategories(categories);
+                // Don't auto-set category filter, let it stay at 0 (All Categories)
+            } else {
+                console.warn("No categories found in response:", res);
+            }
+        } catch (error) {
+            console.error("Failed to load categories:", error);
+        } finally {
+            setCategoriesLoading(false);
+        }
+    }, []);
+
     const loadLessons = useCallback(async () => {
+        // categoryFilter === 0 means "All Categories", so fetch without filter
         setLoading(true);
         try {
             const res = await api.getLessons({
-                categoryId: categoryFilter,
+                categoryId: categoryFilter === 0 ? undefined : categoryFilter,
                 level: levelFilter === "ALL" ? undefined : levelFilter,
             });
             if (res.success) setLessons(res.lessons);
@@ -72,6 +98,10 @@ const LessonListPage: React.FC = () => {
             setLoading(false);
         }
     }, [categoryFilter, levelFilter]);
+
+    useEffect(() => {
+        void loadCategories();
+    }, [loadCategories]);
 
     useEffect(() => {
         void loadLessons();
@@ -257,12 +287,22 @@ const LessonListPage: React.FC = () => {
                             className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium bg-white"
                             value={categoryFilter}
                             onChange={(e) => setCategoryFilter(Number(e.target.value))}
+                            disabled={categoriesLoading}
                         >
-                            {CATEGORY_OPTIONS.map((option) => (
-                                <option key={option.id} value={option.id}>
-                                    {option.label}
-                                </option>
-                            ))}
+                            {categoriesLoading ? (
+                                <option value={0}>Loading categories...</option>
+                            ) : categories.length === 0 ? (
+                                <option value={0}>No categories available</option>
+                            ) : (
+                                <>
+                                    <option value={0}>All Categories</option>
+                                    {categories.map((category) => (
+                                        <option key={category.id} value={category.id}>
+                                            {category.name}
+                                        </option>
+                                    ))}
+                                </>
+                            )}
                         </select>
                         {levels.map((lvl) => (
                             <button
@@ -293,14 +333,6 @@ const LessonListPage: React.FC = () => {
                             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Lessons</p>
                             <p className="text-sm text-slate-600">{filteredLessons.length} showing</p>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1 border border-slate-200">
-                            <Filter className="w-4 h-4" /> Level: {levelFilter === "ALL" ? "All" : levelFilter}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1 border border-slate-200">
-                            <Search className="w-4 h-4" /> {search ? `“${search}”` : "No search"}
-                        </span>
                     </div>
                 </div>
 
@@ -438,10 +470,11 @@ const LessonListPage: React.FC = () => {
                                         className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
                                         value={categoryId}
                                         onChange={(e) => setCategoryId(Number(e.target.value))}
+                                        disabled={categoriesLoading}
                                     >
-                                        {CATEGORY_OPTIONS.map((option) => (
-                                            <option key={option.id} value={option.id}>
-                                                {option.label}
+                                        {categories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.name}
                                             </option>
                                         ))}
                                     </select>

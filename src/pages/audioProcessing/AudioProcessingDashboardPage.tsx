@@ -35,7 +35,13 @@ const AudioProcessingDashboardPage: React.FC = () => {
         setError(null);
         try {
             const payload = await api.getAudioProcessingJobs();
-            setJobs(payload);
+            // Handle paginated response
+            if (payload && typeof payload === "object" && "content" in payload) {
+                setJobs(payload.content);
+            } else {
+                // Fallback for non-paginated response
+                setJobs(Array.isArray(payload) ? payload : []);
+            }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load jobs.");
         } finally {

@@ -303,6 +303,20 @@ async function getWordDefinition(listeningLessonIds: number[]) {
     };
 }
 
+async function translateLesson(lessonId: number) {
+    const response = await handle<{ success: boolean; data?: any }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}/translate`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success: response.success ?? true,
+        job: response.data ?? null,
+    };
+}
+
 export const lessonsApi = {
     getLessons,
     createLesson,
@@ -317,4 +331,5 @@ export const lessonsApi = {
     checkListeningAnswer,
     getNotCompletedListeningLessons,
     getWordDefinition,
+    translateLesson,
 };

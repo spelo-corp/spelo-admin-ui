@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
 import type { Lesson, LessonDetail } from "../types";
-import { AlertCircle, CheckCircle2, RefreshCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, RefreshCcw, Languages } from "lucide-react";
 import PageHeader from "../components/common/PageHeader";
 
 export interface LessonOutletContext {
@@ -77,6 +77,7 @@ const LessonViewPage: React.FC = () => {
 
     const [showConfirmReset, setShowConfirmReset] = useState(false);
     const [resetting, setResetting] = useState(false);
+    const [translating, setTranslating] = useState(false);
     const [status, setStatus] = useState<{
         type: "success" | "error" | null;
         message: string;
@@ -85,6 +86,7 @@ const LessonViewPage: React.FC = () => {
     const tabs = [
         { label: "Lesson Info", path: "info" },
         { label: "Audio & Sentences", path: "audio" },
+        { label: "Jobs", path: "jobs" },
         { label: "Exercises", path: "exercises" },
         { label: "Vocabulary", path: "vocab" },
     ];
@@ -168,6 +170,37 @@ const LessonViewPage: React.FC = () => {
         }
     };
 
+    const handleTranslateLesson = async () => {
+        if (!lessonId) return;
+
+        setTranslating(true);
+        setStatus({ type: null, message: "" });
+
+        try {
+            const res = await api.translateLesson(Number(lessonId));
+
+            if (res.success) {
+                setStatus({
+                    type: "success",
+                    message: "Translation job created! Check the Jobs tab to track progress.",
+                });
+            } else {
+                setStatus({
+                    type: "error",
+                    message: "Failed to start translation job.",
+                });
+            }
+        } catch (e) {
+            console.error(e);
+            setStatus({
+                type: "error",
+                message: "Unexpected error while starting translation.",
+            });
+        } finally {
+            setTranslating(false);
+        }
+    };
+
     const headerTitle =
         lessonMeta?.name ?? lessonDetail?.lesson_name ?? `Lesson #${lessonId}`;
     const levelLabel = lessonMeta?.level || "—";
@@ -192,21 +225,38 @@ const LessonViewPage: React.FC = () => {
                     </span>
                 }
                 actions={
-                    <button
-                        onClick={() => setShowConfirmReset(true)}
-                        disabled={resetting || loading}
-                        className="
-                            inline-flex items-center gap-1.5
-                            px-4 py-2 rounded-full text-sm font-semibold
-                            bg-white text-slate-900
-                            shadow-md shadow-black/10
-                            hover:bg-slate-50
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                        "
-                    >
-                        <RefreshCcw className={`w-4 h-4 ${resetting ? "animate-spin" : ""}`} />
-                        {resetting ? "Resetting..." : "Reset Progress"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleTranslateLesson}
+                            disabled={translating || loading}
+                            className="
+                                inline-flex items-center gap-1.5
+                                px-4 py-2 rounded-full text-sm font-semibold
+                                bg-white text-slate-900
+                                shadow-md shadow-black/10
+                                hover:bg-slate-50
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                            "
+                        >
+                            <Languages className={`w-4 h-4 ${translating ? "animate-pulse" : ""}`} />
+                            {translating ? "Translating..." : "Translate Lesson"}
+                        </button>
+                        <button
+                            onClick={() => setShowConfirmReset(true)}
+                            disabled={resetting || loading}
+                            className="
+                                inline-flex items-center gap-1.5
+                                px-4 py-2 rounded-full text-sm font-semibold
+                                bg-white text-slate-900
+                                shadow-md shadow-black/10
+                                hover:bg-slate-50
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                            "
+                        >
+                            <RefreshCcw className={`w-4 h-4 ${resetting ? "animate-spin" : ""}`} />
+                            {resetting ? "Resetting..." : "Reset Progress"}
+                        </button>
+                    </div>
                 }
             >
                 <div className="space-y-3">

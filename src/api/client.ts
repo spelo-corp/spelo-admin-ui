@@ -4,6 +4,7 @@ import { lessonsApi } from "./lessons";
 import { filesApi } from "./files";
 import { audioApi } from "./audioProcessing";
 import { vocabApi } from "./vocab";
+import { categoriesApi } from "./categories";
 
 export const api = {
     ...dashboardApi,
@@ -12,6 +13,7 @@ export const api = {
     ...filesApi,
     ...audioApi,
     ...vocabApi,
+    ...categoriesApi,
 };
 
 export {
@@ -21,4 +23,5 @@ export {
     filesApi,
     audioApi,
     vocabApi,
+    categoriesApi,
 };

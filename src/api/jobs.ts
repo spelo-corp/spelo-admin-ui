@@ -1,10 +1,11 @@
 import type { ProcessingJob, ProcessingJobDetail } from "../types";
 import { BASE_URL_V2, handle, getAuthHeaders } from "./base";
 
-async function getProcessingJobs(params?: { page?: number; per_page?: number }) {
+async function getProcessingJobs(params?: { page?: number; per_page?: number; lesson_id?: number }) {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
     if (params?.per_page) query.set("per_page", String(params.per_page));
+    if (params?.lesson_id) query.set("lesson_id", String(params.lesson_id));
     const qs = query.toString();
     return handle<{ success: boolean; jobs: ProcessingJob[] }>(
         await fetch(`${BASE_URL_V2}/api/admin/processing-jobs${qs ? `?${qs}` : ""}`)
