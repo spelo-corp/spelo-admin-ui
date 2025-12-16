@@ -1,87 +1,56 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/client";
-import type { Lesson, LessonLevel } from "../types";
-import { useCategories } from "../hooks/useCategories";
-import LessonCard from "../components/lessons/LessonCard";
-import { CreateJobModal } from "../components/jobs/CreateJobModal";
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "../hooks/useCategories";
+import type { Category } from "../types/category";
 import { Btn } from "../components/ui/Btn";
 import PageHeader from "../components/common/PageHeader";
 import { Input } from "../components/ui/Input.tsx";
 import { Skeleton } from "../components/ui/Skeleton.tsx";
 import {
-    BookOpen,
-    CircleAlert,
     Layers,
+    CircleAlert,
     Plus,
     Search,
     Sparkles,
     Trash2,
     X,
+    Edit,
+    BookOpen,
 } from "lucide-react";
 
-
-
-const LessonListPage: React.FC = () => {
+const CategoryManagementPage: React.FC = () => {
     const navigate = useNavigate();
 
     // Use React Query for categories
-    const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+    const { data: categories = [], isLoading: loading } = useCategories();
+    const createCategoryMutation = useCreateCategory();
+    const updateCategoryMutation = useUpdateCategory();
+    const deleteCategoryMutation = useDeleteCategory();
 
-    const [lessons, setLessons] = useState<Lesson[]>([]);
-    const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [modalError, setModalError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
-    const [levelFilter, setLevelFilter] = useState<LessonLevel | "ALL">("ALL");
-    const [categoryFilter, setCategoryFilter] = useState<number>(0);
 
     // form fields
     const [name, setName] = useState("");
-    const [level, setLevel] = useState<LessonLevel>("A1");
-    const [categoryId, setCategoryId] = useState(0);
-    const [gems, setGems] = useState<number>(0);
     const [description, setDescription] = useState("");
     const [image, setImage] = useState("");
-
-    // add audio modal
-    const [jobModalOpen, setJobModalOpen] = useState(false);
-    const [jobModalLessonId, setJobModalLessonId] = useState<number | null>(null);
+    const [parentId, setParentId] = useState(0);
+    const [status, setStatus] = useState(1);
 
     // delete confirm modal
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<Lesson | null>(null);
-    const [deleting, setDeleting] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-
-    const loadLessons = useCallback(async () => {
-        // Always pass categoryFilter, including 0 for "All Categories"
-        setLoading(true);
-        try {
-            const res = await api.getLessons({
-                categoryId: categoryFilter,
-                level: levelFilter === "ALL" ? undefined : levelFilter,
-            });
-            if (res.success) setLessons(res.lessons);
-        } finally {
-            setLoading(false);
-        }
-    }, [categoryFilter, levelFilter]);
-
-    useEffect(() => {
-        void loadLessons();
-    }, [loadLessons]);
 
     const resetForm = () => {
         setName("");
-        setLevel("A1");
-        setCategoryId(categoryFilter);
-        setGems(0);
         setDescription("");
         setImage("");
-        setEditingLesson(null);
+        setParentId(0);
+        setStatus(1);
+        setEditingCategory(null);
         setModalError(null);
     };
 
@@ -90,111 +59,93 @@ const LessonListPage: React.FC = () => {
         setModalOpen(true);
     };
 
-    const openEditModal = (lesson: Lesson) => {
-        setEditingLesson(lesson);
-        setName(lesson.name);
-        setLevel(lesson.level);
-        setCategoryId(lesson.category_id);
-        setGems(lesson.gems ?? 0);
-        setDescription(lesson.description ?? "");
-        setImage(lesson.image ?? "");
+    const openEditModal = (category: Category) => {
+        setEditingCategory(category);
+        setName(category.name);
+        setDescription(category.description ?? "");
+        setImage(category.image ?? "");
+        setParentId(category.parent_id ?? 0);
+        setStatus(category.status ?? 1);
         setModalError(null);
         setModalOpen(true);
     };
 
-    const openDeleteModal = (lesson: Lesson) => {
-        setDeleteTarget(lesson);
+    const openDeleteModal = (category: Category) => {
+        setDeleteTarget(category);
         setDeleteError(null);
         setDeleteOpen(true);
     };
 
     const closeDeleteModal = () => {
-        if (deleting) return;
+        if (deleteCategoryMutation.isPending) return;
         setDeleteOpen(false);
         setDeleteTarget(null);
         setDeleteError(null);
     };
 
-    const handleDeleteLesson = async () => {
+    const handleDeleteCategory = async () => {
         if (!deleteTarget) return;
 
-        setDeleting(true);
-        setDeleteError(null);
         try {
-            const res = await api.deleteLesson(deleteTarget.id);
-            if (!res.success) {
-                throw new Error(res.message || `Lesson not found: ${deleteTarget.id}`);
-            }
+            await deleteCategoryMutation.mutateAsync(deleteTarget.id);
             setDeleteOpen(false);
             setDeleteTarget(null);
-            await loadLessons();
         } catch (e) {
-            setDeleteError(e instanceof Error ? e.message : "Failed to delete lesson.");
-        } finally {
-            setDeleting(false);
+            setDeleteError(e instanceof Error ? e.message : "Failed to delete category.");
         }
     };
 
-    const handleSaveLesson = async () => {
+    const handleSaveCategory = async () => {
         if (!name.trim()) {
-            setModalError("Lesson name is required.");
+            setModalError("Category name is required.");
             return;
         }
 
-        setSaving(true);
         setModalError(null);
 
         const trimmedName = name.trim();
         const payload = {
             name: trimmedName,
-            level,
-            category_id: categoryId,
-            gems,
             description: description || undefined,
             image: image || undefined,
-            status: editingLesson?.status ?? undefined,
+            parent_id: parentId,
+            status,
         };
 
         try {
-            if (editingLesson) {
-                await api.updateLesson(editingLesson.id, payload);
+            if (editingCategory) {
+                await updateCategoryMutation.mutateAsync({ id: editingCategory.id, data: payload });
             } else {
-                await api.createLesson(payload);
+                await createCategoryMutation.mutateAsync(payload);
             }
 
             setModalOpen(false);
             resetForm();
-            await loadLessons();
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Failed to save lesson.";
+            const message = error instanceof Error ? error.message : "Failed to save category.";
             setModalError(message);
-        } finally {
-            setSaving(false);
         }
     };
 
-    const levels: Array<LessonLevel | "ALL"> = useMemo(() => {
-        const unique = new Set(lessons.map((l) => l.level));
-        return ["ALL", ...Array.from(unique)];
-    }, [lessons]);
-
-    const filteredLessons = useMemo(() => {
+    const filteredCategories = useMemo(() => {
         const term = search.trim().toLowerCase();
-        return lessons.filter((lesson) => {
+        return categories.filter((category) => {
             const matchesSearch =
                 !term ||
-                lesson.name.toLowerCase().includes(term) ||
-                lesson.description?.toLowerCase().includes(term);
-            const matchesLevel = levelFilter === "ALL" || lesson.level === levelFilter;
-            return matchesSearch && matchesLevel;
+                category.name.toLowerCase().includes(term) ||
+                category.description?.toLowerCase().includes(term);
+            return matchesSearch;
         });
-    }, [lessons, search, levelFilter]);
+    }, [categories, search]);
 
     const activeCount = useMemo(
-        () => lessons.filter((l) => l.status === 1).length,
-        [lessons]
+        () => categories.filter((c) => c.status === 1).length,
+        [categories]
     );
-    const inactiveCount = lessons.length - activeCount;
+    const inactiveCount = categories.length - activeCount;
+
+    const saving = createCategoryMutation.isPending || updateCategoryMutation.isPending;
+    const deleting = deleteCategoryMutation.isPending;
 
     return (
         <div className="space-y-8 px-8 py-6">
@@ -204,20 +155,20 @@ const LessonListPage: React.FC = () => {
                 badge={
                     <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide backdrop-blur-sm">
                         <Sparkles className="w-3.5 h-3.5" />
-                        Lesson Library
+                        Category Library
                     </div>
                 }
-                title="Lessons Management"
+                title="Category Management"
                 titleAddon={
                     <span className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
-                        {lessons.length} total
+                        {categories.length} total
                     </span>
                 }
-                description="Create, edit, and organize lessons. Use filters to quickly find the lessons you need."
+                description="Create, edit, and organize categories. Categories help organize lessons by topic."
                 actions={
                     <Btn.HeroPrimary onClick={openCreateModal}>
                         <Plus className="w-4 h-4" />
-                        New Lesson
+                        New Category
                         <span className="text-[11px] font-medium text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5 border border-emerald-200">
                             Fast Create
                         </span>
@@ -226,7 +177,7 @@ const LessonListPage: React.FC = () => {
             >
                 <div className="flex gap-3 text-xs text-white/80">
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-                        <BookOpen className="w-4 h-4" /> Active: {activeCount}
+                        <Layers className="w-4 h-4" /> Active: {activeCount}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
                         <Layers className="w-4 h-4" /> Inactive: {inactiveCount}
@@ -243,62 +194,24 @@ const LessonListPage: React.FC = () => {
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by lesson name or description"
+                                placeholder="Search by category name or description"
                                 className="rounded-xl pl-9"
                             />
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <select
-                            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium bg-white"
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(Number(e.target.value))}
-                            disabled={categoriesLoading}
-                        >
-                            {categoriesLoading ? (
-                                <option value={0}>Loading categories...</option>
-                            ) : categories.length === 0 ? (
-                                <option value={0}>No categories available</option>
-                            ) : (
-                                <>
-                                    <option value={0}>All Categories</option>
-                                    {categories.map((category) => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                                </>
-                            )}
-                        </select>
-                        {levels.map((lvl) => (
-                            <button
-                                key={lvl}
-                                onClick={() => setLevelFilter(lvl)}
-                                className={`
-                                    px-3 py-1.5 rounded-full text-xs font-medium border transition
-                                    ${levelFilter === lvl
-                                        ? "bg-brand text-white border-brand shadow-sm"
-                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
-                                `}
-                            >
-                                {lvl === "ALL" ? "All levels" : lvl}
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
 
-            {/* LESSON LIST */}
+            {/* CATEGORY LIST */}
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-0 overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                         <div className="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
-                            <BookOpen className="w-5 h-5" />
+                            <Layers className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Lessons</p>
-                            <p className="text-sm text-slate-600">{filteredLessons.length} showing</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Categories</p>
+                            <p className="text-sm text-slate-600">{filteredCategories.length} showing</p>
                         </div>
                     </div>
                 </div>
@@ -318,44 +231,90 @@ const LessonListPage: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                    ) : lessons.length === 0 ? (
+                    ) : categories.length === 0 ? (
                         <div className="text-center py-12 space-y-3">
                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-                                <BookOpen className="w-6 h-6" />
+                                <Layers className="w-6 h-6" />
                             </div>
-                            <p className="font-medium text-slate-700">No lessons found yet.</p>
+                            <p className="font-medium text-slate-700">No categories found yet.</p>
                             <p className="text-sm text-slate-500">
-                                Create your first lesson to get started.
+                                Create your first category to get started.
                             </p>
                             <div className="flex justify-center pt-1">
                                 <Btn.Primary onClick={openCreateModal} className="px-5">
                                     <Plus className="w-4 h-4" />
-                                    Create Lesson
+                                    Create Category
                                 </Btn.Primary>
                             </div>
                         </div>
-                    ) : filteredLessons.length === 0 ? (
+                    ) : filteredCategories.length === 0 ? (
                         <div className="text-center py-10 space-y-2 text-sm text-slate-500">
-                            <p className="text-lg text-slate-700 font-semibold">No lessons match your filters.</p>
-                            <p>Try clearing the search or choosing another level.</p>
+                            <p className="text-lg text-slate-700 font-semibold">No categories match your search.</p>
+                            <p>Try a different search term.</p>
                         </div>
                     ) : (
                         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {filteredLessons.map((lesson) => (
-                                <LessonCard
-                                    key={lesson.id}
-                                    lesson={lesson}
-                                    onView={() =>
-                                        navigate(`/admin/lessons/${lesson.id}`, { state: { lesson } })
-                                    }
-                                    onAddAudio={() => {
-                                        setJobModalLessonId(lesson.id);
-                                        setJobModalOpen(true);
-                                    }
-                                    }
-                                    onEdit={() => openEditModal(lesson)}
-                                    onDelete={() => openDeleteModal(lesson)}
-                                />
+                            {filteredCategories.map((category) => (
+                                <div
+                                    key={category.id}
+                                    className="bg-white rounded-card border border-slate-100 p-5 shadow-sm hover:shadow-md transition space-y-4"
+                                >
+                                    {/* Image */}
+                                    {category.image && (
+                                        <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-100">
+                                            <img
+                                                src={category.image}
+                                                alt={category.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Info */}
+                                    <div>
+                                        <h3 className="font-semibold text-slate-800 mb-1">{category.name}</h3>
+                                        {category.description && (
+                                            <p className="text-sm text-slate-500 line-clamp-2">
+                                                {category.description}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="flex items-center gap-3 text-xs text-slate-600">
+                                        <span className="inline-flex items-center gap-1">
+                                            <BookOpen className="w-4 h-4" />
+                                            {category.lesson_count ?? 0} lessons
+                                        </span>
+                                        {category.min_level && category.max_level && (
+                                            <span>
+                                                {category.min_level} - {category.max_level}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2 pt-2">
+                                        <button
+                                            onClick={() => navigate(`/admin/lessons?category=${category.id}`)}
+                                            className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition"
+                                        >
+                                            View Lessons
+                                        </button>
+                                        <button
+                                            onClick={() => openEditModal(category)}
+                                            className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(category)}
+                                            className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -375,10 +334,10 @@ const LessonListPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                                        Lesson
+                                        Category
                                     </p>
                                     <h2 className="text-lg font-semibold text-slate-900">
-                                        {editingLesson ? "Edit Lesson" : "Create New Lesson"}
+                                        {editingCategory ? "Edit Category" : "Create New Category"}
                                     </h2>
                                 </div>
                             </div>
@@ -404,61 +363,9 @@ const LessonListPage: React.FC = () => {
                             {/* NAME */}
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Lesson Name *
+                                    Category Name *
                                 </label>
                                 <Input value={name} onChange={(e) => setName(e.target.value)} />
-                            </div>
-
-                            {/* LEVEL + CATEGORY */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                                        Level *
-                                    </label>
-                                    <select
-                                        className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
-                                        value={level}
-                                        onChange={(e) => setLevel(e.target.value as LessonLevel)}
-                                    >
-                                        <option value="A1">A1 (Beginner)</option>
-                                        <option value="A2">A2 (Elementary)</option>
-                                        <option value="B1">B1 (Intermediate)</option>
-                                        <option value="B2">B2 (Upper Intermediate)</option>
-                                        <option value="C1">C1 (Advanced)</option>
-                                        <option value="C2">C2 (Proficient)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                                        Category *
-                                    </label>
-                                    <select
-                                        className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
-                                        value={categoryId}
-                                        onChange={(e) => setCategoryId(Number(e.target.value))}
-                                        disabled={categoriesLoading}
-                                    >
-                                        {categories.map((category) => (
-                                            <option key={category.id} value={category.id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* DESCRIPTION */}
-                            <div>
-                                <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Gems
-                                </label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={gems}
-                                    onChange={(e) => setGems(Number(e.target.value) || 0)}
-                                />
                             </div>
 
                             {/* DESCRIPTION */}
@@ -481,6 +388,35 @@ const LessonListPage: React.FC = () => {
                                 </label>
                                 <Input value={image} onChange={(e) => setImage(e.target.value)} />
                             </div>
+
+                            {/* PARENT ID & STATUS */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                                        Parent ID
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        value={parentId}
+                                        onChange={(e) => setParentId(Number(e.target.value) || 0)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                                        Status
+                                    </label>
+                                    <select
+                                        className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
+                                        value={status}
+                                        onChange={(e) => setStatus(Number(e.target.value))}
+                                    >
+                                        <option value={1}>Active</option>
+                                        <option value={0}>Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         {/* FOOTER BUTTONS */}
@@ -495,27 +431,13 @@ const LessonListPage: React.FC = () => {
                                 Cancel
                             </Btn.Secondary>
 
-                            <Btn.Primary onClick={handleSaveLesson} disabled={saving}>
-                                {saving ? "Saving..." : editingLesson ? "Save Changes" : "Create"}
+                            <Btn.Primary onClick={handleSaveCategory} disabled={saving}>
+                                {saving ? "Saving..." : editingCategory ? "Save Changes" : "Create"}
                             </Btn.Primary>
                         </div>
                     </div>
                 </div>
             )}
-
-            <CreateJobModal
-                open={jobModalOpen}
-                onClose={() => {
-                    setJobModalOpen(false);
-                    setJobModalLessonId(null);
-                }}
-                onCreated={() => {
-                    setJobModalOpen(false);
-                    setJobModalLessonId(null);
-                }}
-                lessons={lessons}
-                defaultLessonId={jobModalLessonId}
-            />
 
             {/* DELETE CONFIRM MODAL */}
             {deleteOpen && deleteTarget ? (
@@ -526,13 +448,13 @@ const LessonListPage: React.FC = () => {
                             <div className="relative flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <p className="text-[11px] uppercase tracking-[0.16em] text-white/80">
-                                        Delete lesson
+                                        Delete category
                                     </p>
                                     <h2 className="mt-2 text-xl font-semibold truncate">
                                         {deleteTarget.name}
                                     </h2>
                                     <p className="mt-1 text-sm text-white/80">
-                                        This will soft-delete the lesson (set <span className="font-semibold">status = 0</span>).
+                                        This will soft-delete the category (set <span className="font-semibold">status = 0</span>).
                                     </p>
                                 </div>
                                 <button
@@ -553,7 +475,7 @@ const LessonListPage: React.FC = () => {
                                     <div>
                                         <div className="font-semibold">Are you sure?</div>
                                         <div className="text-amber-800/80">
-                                            You can still access it as inactive, but it should no longer be counted as active content.
+                                            This category has {deleteTarget.lesson_count ?? 0} lessons associated with it.
                                         </div>
                                     </div>
                                 </div>
@@ -570,12 +492,12 @@ const LessonListPage: React.FC = () => {
                                     Cancel
                                 </Btn.Secondary>
                                 <Btn.Primary
-                                    onClick={handleDeleteLesson}
+                                    onClick={handleDeleteCategory}
                                     disabled={deleting}
                                     className="bg-rose-600 hover:bg-rose-700"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    {deleting ? "Deleting…" : "Delete lesson"}
+                                    {deleting ? "Deleting…" : "Delete category"}
                                 </Btn.Primary>
                             </div>
                         </div>
@@ -586,4 +508,4 @@ const LessonListPage: React.FC = () => {
     );
 };
 
-export default LessonListPage;
+export default CategoryManagementPage;

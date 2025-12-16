@@ -15,7 +15,10 @@ import type {
 
 async function getLessons(params?: { categoryId?: number; level?: Lesson["level"] }) {
     const query = new URLSearchParams();
-    if (params?.categoryId !== undefined) query.set("category_id", String(params.categoryId));
+    // Always include category_id, even when it's 0 (for "All Categories")
+    if (params?.categoryId !== undefined) {
+        query.set("category_id", String(params.categoryId));
+    }
     if (params?.level) query.set("level", params.level);
     const qs = query.toString();
 

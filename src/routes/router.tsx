@@ -27,6 +27,7 @@ import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
 import AdminLoginPage from "../pages/AdminLoginPage";
+import CategoryManagementPage from "../pages/CategoryManagementPage";
 
 export const AppRoutes = () => {
     return (
@@ -83,6 +84,14 @@ export const AppRoutes = () => {
                     element={
                         <RouteErrorBoundary routeName="Lessons">
                             <LessonListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="categories"
+                    element={
+                        <RouteErrorBoundary routeName="Categories">
+                            <CategoryManagementPage />
                         </RouteErrorBoundary>
                     }
                 />
