@@ -1,7 +1,7 @@
 const STORAGE_KEY = "spelo_admin_auth_v1";
 
-const DEFAULT_USERNAME = (import.meta as any)?.env?.VITE_ADMIN_USER ?? "admin";
-const DEFAULT_PASSWORD = (import.meta as any)?.env?.VITE_ADMIN_PASS ?? "admin";
+const DEFAULT_USERNAME = (import.meta as any)?.env?.VITE_ADMIN_USER ?? "spelo_admin";
+const DEFAULT_PASSWORD = (import.meta as any)?.env?.VITE_ADMIN_PASS ?? "spelo_admin_pass";
 
 type StoredAuth = {
     loggedIn: boolean;
