@@ -64,7 +64,13 @@ const LessonListPage: React.FC = () => {
                 categoryId: categoryFilter,
                 level: levelFilter === "ALL" ? undefined : levelFilter,
             });
-            if (res.success) setLessons(res.lessons);
+            if (res.success) {
+                // Deduplicate lessons by ID to prevent duplicate entries
+                const uniqueLessons = Array.from(
+                    new Map(res.lessons.map(lesson => [lesson.id, lesson])).values()
+                );
+                setLessons(uniqueLessons);
+            }
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
-import { RefreshCcw, Loader2, FolderOpen, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCcw, Loader2, FolderOpen, ExternalLink } from "lucide-react";
 import { api } from "../../api/client";
 import type { ProcessingJob } from "../../types";
 import type { AudioJob } from "../../types/audioProcessing";
@@ -17,6 +17,7 @@ type AllJobs = {
     createdAt: string;
     lessonId: number;
     lessonName?: string;
+    jobType?: string;
 };
 
 const LessonJobsPage: React.FC = () => {
@@ -26,26 +27,40 @@ const LessonJobsPage: React.FC = () => {
     const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
     const [audioJobs, setAudioJobs] = useState<AudioJob[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Pagination state
+    // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [totalElements, setTotalElements] = useState(0);
     const [pageSize] = useState(20);
 
-    const loadJobs = async (page: number = currentPage) => {
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    const loadJobs = useCallback(async (page: number, isRefresh: boolean = false) => {
         if (!lessonId) return;
 
-        setLoading(true);
+        if (page === 1) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
         setError(null);
 
         try {
             const numericLessonId = Number(lessonId);
 
-            const [processingRes, audioRes] = await Promise.all([
-                api.getProcessingJobs({ lesson_id: numericLessonId }).catch(() => ({ success: false, jobs: [] })),
+            // Fetch ALL job types for this lesson (not just audio processing)
+            const [allJobsRes, audioRes] = await Promise.all([
+                api.getJobs({ lesson_id: numericLessonId, page: 1, size: 100 }).catch(() => ({
+                    success: false,
+                    data: [],
+                    total: 0,
+                    page: 1,
+                    size: 100
+                })),
                 api.getAudioProcessingJobs({ lessonId: numericLessonId, page, size: pageSize }).catch(() => ({
                     content: [] as AudioJob[],
                     pageNumber: 1,
@@ -56,43 +71,82 @@ const LessonJobsPage: React.FC = () => {
                 })),
             ]);
 
-            setProcessingJobs(processingRes.success ? processingRes.jobs : []);
+            // Convert jobs from new API format to ProcessingJob format for display
+            if (page === 1 && allJobsRes.success && allJobsRes.data) {
+                const convertedJobs: (ProcessingJob & { job_type?: string })[] = allJobsRes.data.map((job: any) => ({
+                    id: job.id,
+                    lesson_id: numericLessonId,
+                    lesson_name: undefined,
+                    original_audio_url: "",
+                    current_step: job.current_step || job.status,
+                    created_at: job.created_at,
+                    progress_percent: job.progress_percent,
+                    job_type: job.job_type, // Store job type from API
+                }));
+                setProcessingJobs(convertedJobs);
+            }
 
             // Handle paginated audio jobs response
             if (audioRes && typeof audioRes === "object" && "content" in audioRes) {
-                setAudioJobs(audioRes.content);
-                setTotalPages(audioRes.totalPages);
+                if (isRefresh || page === 1) {
+                    // Replace jobs on refresh or first page
+                    setAudioJobs(audioRes.content);
+                } else {
+                    // Append jobs for infinite scroll
+                    setAudioJobs(prev => [...prev, ...audioRes.content]);
+                }
+
                 setTotalElements(audioRes.totalElements);
-                setCurrentPage(audioRes.pageNumber);
+                setCurrentPage(page);
+                setHasMore(!audioRes.last && page < audioRes.totalPages);
             } else {
                 // Fallback for non-paginated response
                 const jobsArray = Array.isArray(audioRes) ? audioRes : [];
                 setAudioJobs(jobsArray);
-                setTotalPages(1);
                 setTotalElements(jobsArray.length);
+                setHasMore(false);
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load jobs.");
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    };
+    }, [lessonId, pageSize]);
 
     useEffect(() => {
         void loadJobs(1);
     }, [lessonId]);
 
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                    void loadJobs(currentPage + 1);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, loading, loadingMore, currentPage, loadJobs]);
+
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadJobs(currentPage);
+        setCurrentPage(1);
+        setHasMore(true);
+        await loadJobs(1, true);
         setRefreshing(false);
-    };
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
-            setCurrentPage(newPage);
-            void loadJobs(newPage);
-        }
     };
 
     const allJobs = useMemo<AllJobs[]>(() => {
@@ -103,6 +157,7 @@ const LessonJobsPage: React.FC = () => {
             createdAt: job.created_at,
             lessonId: job.lesson_id,
             lessonName: job.lesson_name,
+            jobType: (job as any).job_type || "UNKNOWN", // Extract actual job type from API
         }));
 
         const audio: AllJobs[] = audioJobs.map((job) => ({
@@ -112,6 +167,7 @@ const LessonJobsPage: React.FC = () => {
             createdAt: job.createdAt,
             lessonId: job.lessonId,
             lessonName: job.lessonName,
+            jobType: "AUDIO_PROCESSING",
         }));
 
         return [...processing, ...audio].sort(
@@ -176,13 +232,8 @@ const LessonJobsPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <FolderOpen className="w-4 h-4 text-slate-500" />
                         <h3 className="text-sm font-semibold text-slate-900">All Jobs</h3>
-                        <span className="text-xs text-slate-500">({allJobs.length} showing)</span>
+                        <span className="text-xs text-slate-500">({allJobs.length} loaded{hasMore ? ', more available' : ''})</span>
                     </div>
-                    {totalPages > 1 && (
-                        <div className="text-xs text-slate-500">
-                            Page {currentPage} of {totalPages}
-                        </div>
-                    )}
                 </div>
 
                 {loading ? (
@@ -236,14 +287,24 @@ const LessonJobsPage: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-5 py-3">
-                                                    <span
-                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${isProcessing
-                                                            ? "bg-purple-100 text-purple-700"
-                                                            : "bg-blue-100 text-blue-700"
-                                                            }`}
-                                                    >
-                                                        {isProcessing ? "Legacy" : "Audio Processing"}
-                                                    </span>
+                                                    {(() => {
+                                                        const jobType = isProcessing ? (item.jobType || "UNKNOWN") : "AUDIO_PROCESSING";
+                                                        const badgeColors: Record<string, string> = {
+                                                            "VOCAB_ENRICH": "bg-purple-100 text-purple-700",
+                                                            "AUDIO_PROCESSING": "bg-blue-100 text-blue-700",
+                                                            "LESSON_BUILD": "bg-green-100 text-green-700",
+                                                            "AI_SCORING": "bg-amber-100 text-amber-700",
+                                                            "UPLOAD_TO_R2": "bg-cyan-100 text-cyan-700",
+                                                            "UNKNOWN": "bg-slate-100 text-slate-700",
+                                                        };
+                                                        const colorClass = badgeColors[jobType] || badgeColors["UNKNOWN"];
+
+                                                        return (
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}>
+                                                                {jobType.replace(/_/g, " ")}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="px-5 py-3">
                                                     {isProcessing ? (
@@ -275,33 +336,25 @@ const LessonJobsPage: React.FC = () => {
                             </table>
                         </div>
 
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50">
-                                <div className="text-sm text-slate-600">
-                                    Showing page {currentPage} of {totalPages}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => handlePageChange(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <ChevronLeft className="w-4 h-4" />
-                                        Previous
-                                    </button>
-                                    <span className="text-sm text-slate-600">
-                                        Page {currentPage}
-                                    </span>
-                                    <button
-                                        onClick={() => handlePageChange(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Next
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                </div>
+                        {/* Infinite Scroll Loading Indicator */}
+                        {hasMore && (
+                            <div ref={observerTarget} className="px-5 py-4 border-t border-slate-100 bg-slate-50">
+                                {loadingMore ? (
+                                    <div className="flex items-center justify-center gap-2 text-slate-500">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Loading more jobs…
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-sm text-slate-500">
+                                        Scroll for more
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {!hasMore && audioJobs.length > 0 && (
+                            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 text-center text-sm text-slate-500">
+                                No more jobs to load
                             </div>
                         )}
                     </>

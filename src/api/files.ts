@@ -3,7 +3,9 @@ import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
 
 async function getAudioFiles() {
     return handle<{ success: boolean; files: AudioFile[] }>(
-        await fetch(`${BASE_URL_V2}/api/admin/audio-files`)
+        await fetch(`${BASE_URL_V2}/api/admin/audio-files`, {
+            headers: getAuthHeaders(),
+        })
     );
 }
 

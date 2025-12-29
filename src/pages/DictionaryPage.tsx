@@ -56,7 +56,6 @@ const DictionaryPage: React.FC = () => {
         try {
             const res = await api.getVocab({ q: search, page, size });
             if (res.success) {
-                console.log(res.data)
                 setWords(res.data);
                 setTotal(res.total);
             }

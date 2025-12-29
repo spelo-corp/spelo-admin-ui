@@ -1,15 +1,38 @@
 import type { ProcessingJob, ProcessingJobDetail } from "../types";
-import { BASE_URL_V2, handle, getAuthHeaders } from "./base";
+import { BASE_URL_V2, JOB_BASE_URL, handle, getAuthHeaders } from "./base";
 
-async function getProcessingJobs(params?: { page?: number; per_page?: number; lesson_id?: number }) {
+// Get jobs from /api/v1/jobs with optional filtering
+async function getJobs(params?: {
+    page?: number;
+    size?: number;
+    lesson_id?: number;
+    job_type?: string;
+    status?: string;
+}) {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
-    if (params?.per_page) query.set("per_page", String(params.per_page));
+    if (params?.size) query.set("size", String(params.size));
     if (params?.lesson_id) query.set("lesson_id", String(params.lesson_id));
+    if (params?.job_type) query.set("job_type", params.job_type);
+    if (params?.status) query.set("status", params.status);
+
     const qs = query.toString();
-    return handle<{ success: boolean; jobs: ProcessingJob[] }>(
-        await fetch(`${BASE_URL_V2}/api/admin/processing-jobs${qs ? `?${qs}` : ""}`)
+
+    return handle<{ success: boolean; code: number; message: string; data: any[]; total: number; page: number; size: number }>(
+        await fetch(`${JOB_BASE_URL}/api/v1/jobs${qs ? `?${qs}` : ""}`, {
+            headers: getAuthHeaders(),
+        })
     );
+}
+
+// Legacy function name for backward compatibility
+async function getProcessingJobs(params?: { page?: number; per_page?: number; lesson_id?: number }) {
+    return getJobs({
+        page: params?.page,
+        size: params?.per_page,
+        lesson_id: params?.lesson_id,
+        job_type: "AUDIO_PROCESSING",
+    });
 }
 
 async function createProcessingJob(payload: {
@@ -131,6 +154,7 @@ async function updateAllTimings(
 }
 
 export const jobsApi = {
+    getJobs,
     getProcessingJobs,
     createProcessingJob,
     extractSentences,
