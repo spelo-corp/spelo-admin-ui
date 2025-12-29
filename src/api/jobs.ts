@@ -18,7 +18,7 @@ async function getJobs(params?: {
 
     const qs = query.toString();
 
-    return handle<{ success: boolean; code: number; message: string; data: any[]; total: number; page: number; size: number }>(
+    return handle<{ success: boolean; code: number; message: string; data: ProcessingJob[]; total: number; page: number; size: number }>(
         await fetch(`${JOB_BASE_URL}/api/v1/jobs${qs ? `?${qs}` : ""}`, {
             headers: getAuthHeaders(),
         })

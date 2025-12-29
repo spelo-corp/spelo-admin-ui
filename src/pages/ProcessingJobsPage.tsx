@@ -48,7 +48,7 @@ const ProcessingJobsPage: React.FC = () => {
                 lessonsPromise,
             ]);
 
-            if (jobsRes.success) setJobs(jobsRes.jobs);
+            if (jobsRes.success) setJobs(jobsRes.data);
             setLessons(mergedLessons);
         } finally {
             setLoading(false);
