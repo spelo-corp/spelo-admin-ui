@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Clock, FileAudio, Loader2, Play, Square, UploadCloud } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
+import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
@@ -19,13 +20,16 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
     const [previewing, setPreviewing] = useState(false);
     const [defaultEnd, setDefaultEnd] = useState<number | null>(null);
 
+    // Fetch presigned URL for the audio
+    const { url: presignedAudioUrl, loading: loadingUrl } = usePresignedAudioUrl(job.audioUrl);
+
     // Set default trim end to full audio duration when metadata is ready (with fallback to sentences)
     useEffect(() => {
         let cancelled = false;
         const fallbackEnd = sentences.reduce((max, s) => Math.max(max, s.end || 0), 0);
 
         async function loadDuration() {
-            if (!job?.audioUrl) {
+            if (!presignedAudioUrl) {
                 if (fallbackEnd > 0) {
                     setDefaultEnd(fallbackEnd);
                     setReplaceEnd((prev) => (prev <= 0 ? fallbackEnd : prev));
@@ -36,7 +40,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
             try {
                 const tmpAudio = new Audio();
                 tmpAudio.preload = "metadata";
-                tmpAudio.src = job.audioUrl;
+                tmpAudio.src = presignedAudioUrl;
 
                 const duration = await new Promise<number>((resolve, reject) => {
                     tmpAudio.onloadedmetadata = () => resolve(tmpAudio.duration);
@@ -64,7 +68,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
         return () => {
             cancelled = true;
         };
-    }, [job?.audioUrl, sentences]);
+    }, [presignedAudioUrl, sentences]);
 
     const stopPreviewPlayback = useCallback(() => {
         const audio = audioRef.current;
@@ -178,11 +182,16 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                     </div>
                 </div>
 
-                {job.audioUrl ? (
+                {loadingUrl ? (
+                    <div className="text-sm text-slate-600 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading audio...
+                    </div>
+                ) : presignedAudioUrl ? (
                     <audio
                         ref={audioRef}
                         controls
-                        src={job.audioUrl}
+                        src={presignedAudioUrl}
                         className="w-full rounded-xl overflow-hidden"
                     />
                 ) : (
@@ -213,7 +222,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                             className="text-[11px] text-brand hover:underline mt-1"
                             type="button"
                             onClick={setReplaceStartFromCurrent}
-                            disabled={!job.audioUrl}
+                            disabled={!presignedAudioUrl}
                         >
                             Use current playhead
                         </button>
@@ -231,7 +240,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                             className="text-[11px] text-brand hover:underline mt-1"
                             type="button"
                             onClick={setReplaceEndFromCurrent}
-                            disabled={!job.audioUrl}
+                            disabled={!presignedAudioUrl}
                         >
                             Use current playhead
                         </button>
@@ -246,7 +255,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                     <Btn.Secondary
                         type="button"
                         onClick={previewing ? stopPreviewPlayback : handlePreviewReplaceSegment}
-                        disabled={!job.audioUrl || readOnly}
+                        disabled={!presignedAudioUrl || readOnly}
                         className="flex-1 justify-center"
                     >
                         {previewing ? (
@@ -276,7 +285,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                 <Btn.Primary
                     onClick={handleReplaceAudio}
                     className="w-full justify-center"
-                    disabled={readOnly || replacing || !job.audioUrl}
+                    disabled={readOnly || replacing || !presignedAudioUrl}
                 >
                     {replacing ? (
                         <>

@@ -3,6 +3,7 @@ import { Clock, Loader2, Play, Save } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { WaveformRegionsPlayer } from "../../components/audio/WaveformRegionsPlayer";
+import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import { Btn } from "../../components/ui/Btn";
 import type { AudioSentence } from "../../types/audioProcessing";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
@@ -20,6 +21,9 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [activeSentence, setActiveSentence] = useState<number | null>(null);
     const [saving, setSaving] = useState(false);
+
+    // Fetch presigned URL for the audio
+    const { url: presignedAudioUrl, loading: loadingUrl } = usePresignedAudioUrl(job.audioUrl);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -113,11 +117,16 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                     </div>
                 </div>
 
-                {job.audioUrl ? (
+                {loadingUrl ? (
+                    <div className="text-sm text-slate-600 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading audio...
+                    </div>
+                ) : presignedAudioUrl ? (
                     <audio
                         ref={audioRef}
                         controls
-                        src={job.audioUrl}
+                        src={presignedAudioUrl}
                         className="w-full rounded-xl overflow-hidden"
                     />
                 ) : (
@@ -136,9 +145,9 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                     </p>
                 </div>
 
-                {job.audioUrl ? (
+                {presignedAudioUrl ? (
                     <WaveformRegionsPlayer
-                        audioUrl={job.audioUrl}
+                        audioUrl={presignedAudioUrl}
                         regions={waveformRegions}
                         onRegionUpdate={handleWaveformRegionUpdate}
                         editable={!readOnly}
@@ -146,7 +155,7 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                     />
                 ) : (
                     <div className="text-sm text-slate-500">
-                        Audio is not available yet. Refresh once processing is complete.
+                        {loadingUrl ? "Loading audio..." : "Audio is not available yet. Refresh once processing is complete."}
                     </div>
                 )}
             </div>

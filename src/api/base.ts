@@ -1,5 +1,5 @@
-const BASE_URL_V2 = "https://api.spelo.dev";
-const JOB_BASE_URL = "https://api.spelo.dev";
+const BASE_URL_V2 = "https://d0c8a9b8b4c3.ngrok-free.app";
+const JOB_BASE_URL = BASE_URL_V2;
 const AUDIO_BASE_URL = `${BASE_URL_V2}/api/v1/audio-processing`;
 
 function getAuthHeaders(options?: { contentType?: string | null }) {

@@ -320,6 +320,34 @@ async function translateLesson(lessonId: number) {
     };
 }
 
+async function uploadLessonAudio(lessonId: number, file: File, startTime?: number, endTime?: number) {
+    const form = new FormData();
+    form.append("file", file);
+    if (startTime !== undefined) form.append("startTime", String(startTime));
+    if (endTime !== undefined) form.append("endTime", String(endTime));
+
+    const response = await handle<{
+        success?: boolean;
+        code?: number;
+        message?: string;
+        data?: { audioUrl: string; updatedCount: number };
+    }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}/audio`, {
+            method: "POST",
+            headers: getAuthHeaders({ contentType: null }),
+            body: form,
+        })
+    );
+
+    const success = (response as { success?: boolean }).success ?? true;
+    return {
+        success,
+        audioUrl: response.data?.audioUrl ?? null,
+        updatedCount: response.data?.updatedCount ?? 0,
+        message: response.message,
+    };
+}
+
 export const lessonsApi = {
     getLessons,
     createLesson,
@@ -327,6 +355,7 @@ export const lessonsApi = {
     deleteLesson,
     updateLessonImage,
     uploadLessonImage,
+    uploadLessonAudio,
     resetUserLessonProgress,
     getLessonDetail,
     createListeningLesson,

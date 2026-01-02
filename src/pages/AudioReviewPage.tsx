@@ -17,6 +17,7 @@ import {
 
 import type WaveSurfer from "wavesurfer.js";
 import { WaveformRegionsPlayer } from "../components/audio/WaveformRegionsPlayer";
+import { usePresignedAudioUrl } from "../hooks/usePresignedAudioUrl";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 
@@ -36,6 +37,9 @@ const AudioReviewPage: React.FC = () => {
     const [mergeSelection, setMergeSelection] = useState<number[]>([]);
 
     const wsRef = useRef<WaveSurfer | null>(null);
+
+    // Fetch presigned URL for the audio
+    const { url: presignedAudioUrl, loading: loadingAudioUrl } = usePresignedAudioUrl(job?.audio_url);
 
     // ---------------- LOAD JOB ----------------
     useEffect(() => {
@@ -325,12 +329,22 @@ const AudioReviewPage: React.FC = () => {
             </div>
 
             {/* WAVEFORM */}
-            <WaveformRegionsPlayer
-                audioUrl={job.audio_url}
-                regions={regions}
-                onRegionUpdate={handleRegionUpdate}
-                onReady={(ws) => (wsRef.current = ws)}
-            />
+            {loadingAudioUrl ? (
+                <div className="flex items-center justify-center h-24 text-slate-500">
+                    Loading audio...
+                </div>
+            ) : presignedAudioUrl ? (
+                <WaveformRegionsPlayer
+                    audioUrl={presignedAudioUrl}
+                    regions={regions}
+                    onRegionUpdate={handleRegionUpdate}
+                    onReady={(ws) => (wsRef.current = ws)}
+                />
+            ) : (
+                <div className="flex items-center justify-center h-24 text-slate-500">
+                    Audio not available.
+                </div>
+            )}
 
             {/* SENTENCE LIST */}
             <div className="space-y-3 max-h-[70vh] overflow-y-auto">

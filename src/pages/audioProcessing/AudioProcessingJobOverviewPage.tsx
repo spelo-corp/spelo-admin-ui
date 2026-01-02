@@ -3,6 +3,7 @@ import { Clock } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
+import { PresignedAudioPlayer } from "../../components/audio/PresignedAudioPlayer";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
 import type { JobServiceStatus } from "../../types/jobService";
 
@@ -97,7 +98,7 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                     </div>
 
                     {job.audioUrl ? (
-                        <audio controls src={job.audioUrl} className="w-full rounded-xl overflow-hidden" />
+                        <PresignedAudioPlayer src={job.audioUrl} className="rounded-xl overflow-hidden" />
                     ) : (
                         <div className="text-sm text-slate-600 flex items-center gap-2">
                             <Clock className="w-4 h-4" />
@@ -183,8 +184,8 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                             {overrideNotice.type ? (
                                 <div
                                     className={`text-sm px-3 py-2 rounded-xl border ${overrideNotice.type === "success"
-                                            ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-                                            : "text-rose-700 bg-rose-50 border-rose-100"
+                                        ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+                                        : "text-rose-700 bg-rose-50 border-rose-100"
                                         }`}
                                 >
                                     {overrideNotice.message}
