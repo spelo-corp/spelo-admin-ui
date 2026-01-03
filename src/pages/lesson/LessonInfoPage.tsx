@@ -281,7 +281,7 @@ const LessonInfoPage: React.FC = () => {
 
                             <button
                                 onClick={handleUploadImage}
-                                disabled={saving || updatingImage || uploadingImage || !imageFile}
+                                disabled={saving || updatingImage || uploadingImage}
                                 className="
                                     px-3 py-1.5 rounded-lg text-xs font-medium
                                     bg-emerald-600 text-white hover:bg-emerald-700
