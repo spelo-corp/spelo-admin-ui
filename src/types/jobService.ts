@@ -1,6 +1,10 @@
 // Job types from the API
 export type JobType =
+    | "AUDIO_ALIGN"
     | "VOCAB_ENRICH"
+    | "VOCAB_EXTRACT"
+    | "VOCAB_SCRIPT_MAP"
+    | "LESSON_TRANSLATE"
     | "AUDIO_PROCESSING"
     | "LESSON_BUILD"
     | "AI_SCORING"
@@ -55,4 +59,25 @@ export interface JobListItemDTO {
     created_at: string;
     updated_at: string;
     completed_at: string | null;
+}
+
+export interface JobDetail<TDetail = unknown> {
+    id: number;
+    job_type: JobType;
+    status: JobServiceStatus;
+    total_items: number | null;
+    completed_items: number | null;
+    failed_items: number | null;
+    progress_percent: number | null;
+    current_step: string | null;
+    created_by: number | null;
+    created_at: string;
+    updated_at: string;
+    completed_at: string | null;
+    detail: TDetail;
+}
+
+export interface JobDetailResponse<TDetail = unknown> {
+    success: boolean;
+    data: JobDetail<TDetail>;
 }

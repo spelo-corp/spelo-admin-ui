@@ -13,25 +13,139 @@ import type {
     VocabWord,
 } from "../types";
 
-async function getLessons(params?: { categoryId?: number; level?: Lesson["level"] }) {
+type LessonListPayload =
+    | Lesson[]
+    | {
+        content?: Lesson[];
+        pageNumber?: number;
+        page?: number;
+        pageSize?: number;
+        size?: number;
+        totalElements?: number;
+        total?: number;
+        totalPages?: number;
+        last?: boolean;
+        lessons?: Lesson[];
+    };
+
+async function getLessons(params?: {
+    categoryId?: number;
+    level?: Lesson["level"];
+    page?: number;
+    size?: number;
+}) {
     const query = new URLSearchParams();
-    // Always include category_id, even when it's 0 (for "All Categories")
-    if (params?.categoryId !== undefined) {
+    if (params?.categoryId && params.categoryId > 0) {
         query.set("category_id", String(params.categoryId));
     }
     if (params?.level) query.set("level", params.level);
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.size) query.set("size", String(params.size));
     const qs = query.toString();
 
-    const response = await handle<{ status?: string; data?: Lesson[]; lessons?: Lesson[] }>(
+    const response = await handle<{
+        status?: string;
+        data?: LessonListPayload;
+        lessons?: Lesson[];
+    }>(
         await fetch(`${BASE_URL_V2}/api/v1/lessons${qs ? `?${qs}` : ""}`, {
             headers: getAuthHeaders(),
         })
     );
 
-    const lessons = response.data ?? response.lessons ?? [];
-    const success = response.status ? response.status === "success" : true;
+    const payload: LessonListPayload =
+        response.data ?? response.lessons ?? [];
+    const success =
+        (response as { success?: boolean }).success ??
+        (response.status ? response.status === "success" : true);
 
-    return { success, lessons };
+    if (
+        payload &&
+        typeof payload === "object" &&
+        "content" in payload &&
+        Array.isArray(payload.content)
+    ) {
+        const pageNumber = payload.pageNumber ?? payload.page ?? params?.page ?? 1;
+        const pageSize = payload.pageSize ?? payload.size ?? params?.size ?? payload.content.length;
+        const totalElements = payload.totalElements ?? payload.total ?? payload.content.length;
+        const totalPages =
+            payload.totalPages ?? (pageSize ? Math.ceil(totalElements / pageSize) : 1);
+        const last = payload.last ?? pageNumber >= totalPages;
+
+        return {
+            success,
+            lessons: payload.content,
+            pageNumber,
+            pageSize,
+            totalElements,
+            totalPages,
+            last,
+        };
+    }
+
+    const lessons = Array.isArray(payload)
+        ? payload
+        : (payload as { lessons?: Lesson[] }).lessons ?? [];
+
+    return {
+        success,
+        lessons,
+        pageNumber: params?.page ?? 1,
+        pageSize: params?.size ?? lessons.length,
+        totalElements: lessons.length,
+        totalPages: 1,
+        last: true,
+    };
+}
+
+async function getAllLessons(params?: {
+    categoryId?: number;
+    level?: Lesson["level"];
+    size?: number;
+}) {
+    const pageSize = params?.size ?? 50;
+    const first = await getLessons({
+        categoryId: params?.categoryId,
+        level: params?.level,
+        page: 1,
+        size: pageSize,
+    });
+
+    if (!first.success) {
+        return { success: false, lessons: [] as Lesson[] };
+    }
+
+    if (first.totalPages <= 1) {
+        return { success: true, lessons: first.lessons };
+    }
+
+    const remainingPages = Array.from(
+        { length: first.totalPages - 1 },
+        (_, index) => index + 2
+    );
+
+    const pageResponses = await Promise.all(
+        remainingPages.map((page) =>
+            getLessons({
+                categoryId: params?.categoryId,
+                level: params?.level,
+                page,
+                size: pageSize,
+            })
+        )
+    );
+
+    const combinedLessons = [first, ...pageResponses].flatMap((res) =>
+        res.success ? res.lessons : []
+    );
+    const uniqueLessons = Array.from(
+        new Map(combinedLessons.map((lesson) => [lesson.id, lesson])).values()
+    );
+
+    return {
+        success: pageResponses.every((res) => res.success),
+        lessons: uniqueLessons,
+    };
 }
 
 async function createLesson(payload: {
@@ -350,6 +464,7 @@ async function uploadLessonAudio(lessonId: number, file: File, startTime?: numbe
 
 export const lessonsApi = {
     getLessons,
+    getAllLessons,
     createLesson,
     updateLesson,
     deleteLesson,

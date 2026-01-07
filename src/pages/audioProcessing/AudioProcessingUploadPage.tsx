@@ -25,8 +25,6 @@ const formatBytes = (bytes: number) => {
 const AudioProcessingUploadPage: React.FC = () => {
     const navigate = useNavigate();
 
-    const CATEGORY_IDS = [1, 2, 3, 4, 5, 6];
-
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loadingLessons, setLoadingLessons] = useState(true);
 
@@ -47,16 +45,8 @@ const AudioProcessingUploadPage: React.FC = () => {
     useEffect(() => {
         (async () => {
             try {
-                const lessonResponses = await Promise.all(
-                    CATEGORY_IDS.map((categoryId) =>
-                        api.getLessons({ categoryId }).catch(() => null)
-                    )
-                );
-                const merged = lessonResponses
-                    .filter((res): res is { success: boolean; lessons: Lesson[] } => Boolean(res?.success))
-                    .flatMap((res) => res.lessons);
-
-                setLessons(merged);
+                const res = await api.getAllLessons();
+                setLessons(res.lessons);
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Failed to load lessons.");
             } finally {

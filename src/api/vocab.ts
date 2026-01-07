@@ -7,7 +7,38 @@ import type {
     MapVocabScriptResponse,
     VocabJob,
 } from "../types/vocabJob.ts";
-import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
+import { BASE_URL_V2, JOB_BASE_URL, getAuthHeaders, handle } from "./base";
+
+function mapJobDetailToVocabJob(payload: any): VocabJob {
+    const root = (payload?.data ?? payload ?? {}) as Record<string, any>;
+    const detail = (
+        root.detail && typeof root.detail === "object"
+            ? root.detail
+            : root
+    ) as Record<string, any>;
+    const itemsRaw = Array.isArray(detail.items) ? detail.items : [];
+
+    return {
+        id: Number(root.id ?? detail.id ?? 0),
+        total_words: detail.total_words ?? detail.totalWords ?? 0,
+        completed_words: detail.completed_words ?? detail.completedWords ?? 0,
+        failed_words: detail.failed_words ?? detail.failedWords ?? 0,
+        status: (root.status ?? detail.status ?? "PENDING") as VocabJob["status"],
+        created_at: root.created_at ?? detail.created_at ?? new Date().toISOString(),
+        updated_at:
+            root.updated_at ??
+            detail.updated_at ??
+            root.created_at ??
+            detail.created_at ??
+            new Date().toISOString(),
+        items: itemsRaw.map((item: any) => ({
+            id: Number(item.id ?? 0),
+            word: item.item_key ?? item.word ?? "",
+            status: item.status ?? "PENDING",
+            error_message: item.error_message ?? item.errorMessage ?? null,
+        })),
+    };
+}
 
 async function getVocab(params?: { q?: string; page?: number; size?: number }) {
     const query = new URLSearchParams();
@@ -86,11 +117,15 @@ async function autoCreateVocab(payload: AutoCreateVocabRequest) {
 }
 
 async function getVocabJob(id: number) {
-    return handle<{ success: boolean; data: VocabJob }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/jobs/${id}`, {
+    const res = await handle<{ success?: boolean; data?: any } | any>(
+        await fetch(`${JOB_BASE_URL}/api/v1/jobs/${id}`, {
             headers: getAuthHeaders(),
         })
     );
+
+    const mapped = mapJobDetailToVocabJob(res);
+    const success = (res as { success?: boolean }).success;
+    return { success: success ?? true, data: mapped };
 }
 
 async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFromLessonRequest) {

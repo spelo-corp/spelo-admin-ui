@@ -184,7 +184,7 @@ const DashboardPage: React.FC = () => {
     }, [fmt, kpis, pctFmt]);
 
     const renderJobLink = (job: JobListItemDTO) => {
-        if (job.job_type === "AUDIO_PROCESSING") {
+        if (job.job_type === "AUDIO_ALIGN" || job.job_type === "AUDIO_PROCESSING") {
             return `/admin/audio-processing/jobs/${job.id}`;
         }
         return null;

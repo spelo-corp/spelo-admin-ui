@@ -167,7 +167,7 @@ const LessonJobsPage: React.FC = () => {
             createdAt: job.createdAt,
             lessonId: job.lessonId,
             lessonName: job.lessonName,
-            jobType: "AUDIO_PROCESSING",
+            jobType: "AUDIO_ALIGN",
         }));
 
         return [...processing, ...audio].sort(
@@ -288,10 +288,14 @@ const LessonJobsPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-5 py-3">
                                                     {(() => {
-                                                        const jobType = isProcessing ? (item.jobType || "UNKNOWN") : "AUDIO_PROCESSING";
+                                                        const jobType = isProcessing ? (item.jobType || "UNKNOWN") : "AUDIO_ALIGN";
                                                         const badgeColors: Record<string, string> = {
                                                             "VOCAB_ENRICH": "bg-purple-100 text-purple-700",
+                                                            "VOCAB_EXTRACT": "bg-purple-100 text-purple-700",
+                                                            "VOCAB_SCRIPT_MAP": "bg-purple-100 text-purple-700",
+                                                            "AUDIO_ALIGN": "bg-blue-100 text-blue-700",
                                                             "AUDIO_PROCESSING": "bg-blue-100 text-blue-700",
+                                                            "LESSON_TRANSLATE": "bg-green-100 text-green-700",
                                                             "LESSON_BUILD": "bg-green-100 text-green-700",
                                                             "AI_SCORING": "bg-amber-100 text-amber-700",
                                                             "UPLOAD_TO_R2": "bg-cyan-100 text-cyan-700",
@@ -365,4 +369,3 @@ const LessonJobsPage: React.FC = () => {
 };
 
 export default LessonJobsPage;
-

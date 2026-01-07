@@ -62,8 +62,6 @@ const ConfirmResetModal: React.FC<ConfirmResetModalProps> = ({
     );
 };
 
-const CATEGORY_IDS = [1, 2, 3, 4, 5, 6];
-
 const LessonViewPage: React.FC = () => {
     const { lessonId } = useParams();
     const location = useLocation();
@@ -122,21 +120,18 @@ const LessonViewPage: React.FC = () => {
     const fetchLessonMeta = useCallback(async () => {
         if (lessonMeta || !lessonId) return;
 
-        for (const categoryId of CATEGORY_IDS) {
-            try {
-                const res = await api.getLessons({ categoryId });
-                if (res.success) {
-                    const found = res.lessons.find(
-                        (item) => item.id === Number(lessonId)
-                    );
-                    if (found) {
-                        setLessonMeta(found);
-                        break;
-                    }
+        try {
+            const res = await api.getAllLessons();
+            if (res.success) {
+                const found = res.lessons.find(
+                    (item) => item.id === Number(lessonId)
+                );
+                if (found) {
+                    setLessonMeta(found);
                 }
-            } catch {
-                // continue to next category
             }
+        } catch {
+            // ignore fallback lookup errors
         }
     }, [lessonId, lessonMeta]);
 

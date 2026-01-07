@@ -36,7 +36,7 @@ const LessonListPage: React.FC = () => {
     const [modalError, setModalError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [levelFilter, setLevelFilter] = useState<LessonLevel | "ALL">("ALL");
-    const [categoryFilter, setCategoryFilter] = useState<number>(0);
+    const [categoryFilter, setCategoryFilter] = useState<number | "ALL">("ALL");
 
     // form fields
     const [name, setName] = useState("");
@@ -56,18 +56,22 @@ const LessonListPage: React.FC = () => {
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const defaultCategoryId = useMemo(
+        () => (categories.length > 0 ? categories[0].id : 0),
+        [categories]
+    );
+
     const loadLessons = useCallback(async () => {
-        // Always pass categoryFilter, including 0 for "All Categories"
         setLoading(true);
         try {
-            const res = await api.getLessons({
-                categoryId: categoryFilter,
+            const res = await api.getAllLessons({
+                categoryId: categoryFilter === "ALL" ? undefined : categoryFilter,
                 level: levelFilter === "ALL" ? undefined : levelFilter,
             });
             if (res.success) {
                 // Deduplicate lessons by ID to prevent duplicate entries
                 const uniqueLessons = Array.from(
-                    new Map(res.lessons.map(lesson => [lesson.id, lesson])).values()
+                    new Map(res.lessons.map((lesson) => [lesson.id, lesson])).values()
                 );
                 setLessons(uniqueLessons);
             }
@@ -80,10 +84,21 @@ const LessonListPage: React.FC = () => {
         void loadLessons();
     }, [loadLessons]);
 
+    useEffect(() => {
+        if (!modalOpen || editingLesson) return;
+        if (categoryId === 0 && defaultCategoryId > 0) {
+            setCategoryId(defaultCategoryId);
+        }
+    }, [modalOpen, editingLesson, categoryId, defaultCategoryId]);
+
     const resetForm = () => {
         setName("");
         setLevel("A1");
-        setCategoryId(categoryFilter);
+        if (typeof categoryFilter === "number" && categoryFilter > 0) {
+            setCategoryId(categoryFilter);
+        } else {
+            setCategoryId(defaultCategoryId);
+        }
         setGems(0);
         setDescription("");
         setImage("");
@@ -144,6 +159,10 @@ const LessonListPage: React.FC = () => {
     const handleSaveLesson = async () => {
         if (!name.trim()) {
             setModalError("Lesson name is required.");
+            return;
+        }
+        if (!categoryId || categoryId <= 0) {
+            setModalError("Category is required.");
             return;
         }
 
@@ -259,22 +278,27 @@ const LessonListPage: React.FC = () => {
                         <select
                             className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium bg-white"
                             value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(Number(e.target.value))}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setCategoryFilter(value === "ALL" ? "ALL" : Number(value));
+                            }}
                             disabled={categoriesLoading}
                         >
+                            <option value="ALL">All Categories</option>
                             {categoriesLoading ? (
-                                <option value={0}>Loading categories...</option>
+                                <option value="LOADING" disabled>
+                                    Loading categories...
+                                </option>
                             ) : categories.length === 0 ? (
-                                <option value={0}>No categories available</option>
+                                <option value="EMPTY" disabled>
+                                    No categories available
+                                </option>
                             ) : (
-                                <>
-                                    <option value={0}>All Categories</option>
-                                    {categories.map((category) => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                                </>
+                                categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
+                                    </option>
+                                ))
                             )}
                         </select>
                         {levels.map((lvl) => (

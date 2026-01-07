@@ -218,7 +218,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
     const SubmitButton = showFinalize ? Btn.HeroSecondary : Btn.HeroPrimary;
 
     return (
-        <div className="flex flex-col h-full gap-8">
+        <div className="flex flex-col h-full gap-8 px-8 py-6">
             <PageHeader
                 badge={
                     <button

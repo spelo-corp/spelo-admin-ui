@@ -1,4 +1,5 @@
 import type { ProcessingJob, ProcessingJobDetail } from "../types";
+import type { JobDetailResponse } from "../types/jobService";
 import { BASE_URL_V2, JOB_BASE_URL, handle, getAuthHeaders } from "./base";
 
 // Get jobs from /api/v1/jobs with optional filtering
@@ -25,13 +26,21 @@ async function getJobs(params?: {
     );
 }
 
+async function getJobServiceDetail<TDetail = unknown>(jobId: number) {
+    return handle<JobDetailResponse<TDetail>>(
+        await fetch(`${JOB_BASE_URL}/api/v1/jobs/${jobId}`, {
+            headers: getAuthHeaders(),
+        })
+    );
+}
+
 // Legacy function name for backward compatibility
 async function getProcessingJobs(params?: { page?: number; per_page?: number; lesson_id?: number }) {
     return getJobs({
         page: params?.page,
         size: params?.per_page,
         lesson_id: params?.lesson_id,
-        job_type: "AUDIO_PROCESSING",
+        job_type: "AUDIO_ALIGN",
     });
 }
 
@@ -155,6 +164,7 @@ async function updateAllTimings(
 
 export const jobsApi = {
     getJobs,
+    getJobServiceDetail,
     getProcessingJobs,
     createProcessingJob,
     extractSentences,
