@@ -5,6 +5,7 @@ import { filesApi } from "./files";
 import { audioApi } from "./audioProcessing";
 import { vocabApi } from "./vocab";
 import { categoriesApi } from "./categories";
+import { collectionsApi } from "./collections";
 
 export const api = {
     ...dashboardApi,
@@ -14,6 +15,7 @@ export const api = {
     ...audioApi,
     ...vocabApi,
     ...categoriesApi,
+    ...collectionsApi,
 };
 
 export {
@@ -24,4 +26,5 @@ export {
     audioApi,
     vocabApi,
     categoriesApi,
+    collectionsApi,
 };

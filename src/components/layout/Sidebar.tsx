@@ -12,6 +12,7 @@ import {
     Headphones,
     BookA,
     Layers,
+    Folder,
 } from "lucide-react";
 
 const Sidebar: React.FC = () => {
@@ -78,6 +79,11 @@ const Sidebar: React.FC = () => {
                 <NavLink to="/admin/dictionary" className={linkClass}>
                     <BookA className="w-5 h-5" />
                     <span>Dictionary</span>
+                </NavLink>
+
+                <NavLink to="/admin/collections" className={linkClass}>
+                    <Folder className="w-5 h-5" />
+                    <span>Collections</span>
                 </NavLink>
 
                 <NavLink to="/admin/audio-processing" className={linkClass}>

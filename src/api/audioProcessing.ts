@@ -29,6 +29,15 @@ type RawJob = {
     completed_at?: string | null;
 };
 
+function extractJobId(payload: unknown): number | null {
+    if (!payload || typeof payload !== "object") return null;
+    const root = payload as Record<string, any>;
+    const data = (root.data ?? root.job ?? root.result ?? root) as Record<string, any>;
+    const jobId = data.jobId ?? data.job_id ?? data.id ?? root.jobId ?? root.job_id ?? root.id;
+    const parsed = Number(jobId);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
 function safeParseJson<T = any>(value: unknown): T | null {
     if (!value) return null;
     if (typeof value === "object") return value as T;
@@ -146,8 +155,8 @@ async function uploadAudioProcessingAudio(payload: {
     const form = new FormData();
     form.append("file", payload.file);
 
-    return handle<{ success: boolean; data?: { jobId?: number; audioUrl?: string }; jobId?: number }>(
-        await fetch(`${AUDIO_BASE_URL}/upload-audio/${payload.lessonId}`, {
+    return handle<any>(
+        await fetch(`${AUDIO_BASE_URL}/lessons/${payload.lessonId}/audio-jobs`, {
             method: "POST",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
@@ -160,15 +169,12 @@ async function uploadAudioProcessingTranscript(payload: {
     transcript: string;
     translatedScript?: string;
 }) {
-    const body: Record<string, unknown> = {
-        jobId: payload.jobId,
-        transcript: payload.transcript,
-    };
+    const body: Record<string, unknown> = { transcript: payload.transcript };
     if (payload.translatedScript) body.translatedScript = payload.translatedScript;
 
     return handle<{ success: boolean; data?: any }>(
-        await fetch(`${AUDIO_BASE_URL}/upload-transcript`, {
-            method: "POST",
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${payload.jobId}/transcript`, {
+            method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
         })
@@ -189,9 +195,7 @@ async function submitAudioProcessingJob(payload: {
         lessonId: payload.lessonId,
     });
 
-    const jobId =
-        (audioRes as { data?: { jobId?: number } }).data?.jobId ??
-        (audioRes as { jobId?: number }).jobId;
+    const jobId = extractJobId(audioRes);
 
     if (!jobId) throw new Error("Audio upload did not return a job ID.");
 
@@ -272,7 +276,7 @@ async function getAudioProcessingJob(jobId: number) {
 
 async function updateAudioProcessingSentences(jobId: number, sentences: AudioSentence[]) {
     return handle<{ success: boolean }>(
-        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/sentences`, {
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/sentences`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ sentences }),
@@ -285,7 +289,7 @@ async function replaceAudioForJob(jobId: number, file: File) {
     form.append("file", file);
 
     return handle<{ success: boolean }>(
-        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/audio`, {
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/audio`, {
             method: "PUT",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
@@ -295,7 +299,7 @@ async function replaceAudioForJob(jobId: number, file: File) {
 
 async function editAudioJob(jobId: number, segments: { start: number; end: number }[]) {
     return handle<{ success: boolean; data?: any }>(
-        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/edit`, {
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/audio/trim`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ segments }),
@@ -305,7 +309,7 @@ async function editAudioJob(jobId: number, segments: { start: number; end: numbe
 
 async function submitExistingAudioProcessingJob(jobId: number) {
     return handle<{ success?: boolean; data?: any }>(
-        await fetch(`${AUDIO_BASE_URL}/${jobId}/submit`, {
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/process`, {
             method: "POST",
             headers: getAuthHeaders(),
         })
@@ -314,7 +318,7 @@ async function submitExistingAudioProcessingJob(jobId: number) {
 
 async function finalizeAudioProcessingJob(jobId: number) {
     return handle<{ success?: boolean; data?: any; message?: string }>(
-        await fetch(`${AUDIO_BASE_URL}/jobs/${jobId}/finalize`, {
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/finalize`, {
             method: "POST",
             headers: getAuthHeaders(),
         })

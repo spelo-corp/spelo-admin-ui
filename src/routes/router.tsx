@@ -28,6 +28,8 @@ import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
 import AdminLoginPage from "../pages/AdminLoginPage";
 import CategoryManagementPage from "../pages/CategoryManagementPage";
+import CollectionsPage from "../pages/CollectionsPage";
+import CollectionWordsPage from "../pages/CollectionWordsPage";
 
 export const AppRoutes = () => {
     return (
@@ -105,6 +107,22 @@ export const AppRoutes = () => {
                         </RouteErrorBoundary>
                     }
                 />
+                <Route
+                    path="collections"
+                    element={
+                        <RouteErrorBoundary routeName="Collections">
+                            <CollectionsPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="collections/:collectionId"
+                    element={
+                        <RouteErrorBoundary routeName="Collection Words">
+                            <CollectionWordsPage />
+                        </RouteErrorBoundary>
+                    }
+                />
 
                 <Route path="lessons/:lessonId" element={<LessonViewPage />}>
                     <Route index element={<LessonInfoPage />} />
@@ -118,4 +136,3 @@ export const AppRoutes = () => {
         </Routes>
     );
 };
-
