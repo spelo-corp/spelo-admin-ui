@@ -6,6 +6,7 @@ import {
 import type {
     Lesson,
     LessonDetail,
+    LessonNewWord,
     ListeningAnswerDTO,
     ListeningLessonDTO,
     ListeningLessonData,
@@ -420,6 +421,120 @@ async function getWordDefinition(listeningLessonIds: number[]) {
     };
 }
 
+async function getListeningLessonNewWords(listeningLessonId: number) {
+    const response = await handle<{ code?: number; data?: LessonNewWord[]; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/${listeningLessonId}/new_words`, {
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        data: response.data ?? [],
+        message: response.message,
+    };
+}
+
+async function getListeningLessonNewWordsBySentenceId(sentenceId: number) {
+    const response = await handle<{ code?: number; data?: LessonNewWord[]; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/new_words?sentence_id=${sentenceId}`, {
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        data: response.data ?? [],
+        message: response.message,
+    };
+}
+
+async function createListeningLessonNewWord(payload: {
+    listening_lesson_id: number;
+    word: string;
+    word_id?: number | null;
+}) {
+    const response = await handle<{ code?: number; data?: LessonNewWord; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/new_words`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        data: response.data ?? null,
+        message: response.message,
+    };
+}
+
+async function bulkCreateListeningLessonNewWords(payload: {
+    listening_lesson_id: number;
+    words: Array<{ word: string; word_id?: number | null }>;
+}) {
+    const response = await handle<{ code?: number; data?: LessonNewWord[]; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/new_words/bulk`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        data: response.data ?? [],
+        message: response.message,
+    };
+}
+
+async function updateListeningLessonNewWord(
+    id: number,
+    payload: { word?: string; word_id?: number | null }
+) {
+    const response = await handle<{ code?: number; data?: LessonNewWord; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/new_words/${id}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        data: response.data ?? null,
+        message: response.message,
+    };
+}
+
+async function deleteListeningLessonNewWord(id: number) {
+    const response = await handle<{ code?: number; data?: string; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/new_words/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        message: response.data ?? response.message,
+    };
+}
+
+async function deleteListeningLessonNewWords(listeningLessonId: number) {
+    const response = await handle<{ code?: number; data?: string; message?: string }>(
+        await fetch(`${BASE_URL_V2}/api/v1/lessons/listening/${listeningLessonId}/new_words`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        })
+    );
+
+    return {
+        success: response.code ? response.code === 200 : true,
+        message: response.data ?? response.message,
+    };
+}
+
 async function translateLesson(lessonId: number) {
     const response = await handle<{ success: boolean; data?: any }>(
         await fetch(`${BASE_URL_V2}/api/v1/lessons/${lessonId}/translate`, {
@@ -478,5 +593,12 @@ export const lessonsApi = {
     checkListeningAnswer,
     getNotCompletedListeningLessons,
     getWordDefinition,
+    getListeningLessonNewWords,
+    getListeningLessonNewWordsBySentenceId,
+    createListeningLessonNewWord,
+    bulkCreateListeningLessonNewWords,
+    updateListeningLessonNewWord,
+    deleteListeningLessonNewWord,
+    deleteListeningLessonNewWords,
     translateLesson,
 };

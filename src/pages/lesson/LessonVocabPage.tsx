@@ -1,17 +1,65 @@
 // src/pages/lesson/LessonVocabPage.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCcw, Save, Sparkles } from "lucide-react";
 import { api } from "../../api/client";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
 import type { LessonOutletContext } from "../LessonViewPage";
 import type { ExtractVocabFromLessonResponse, MapVocabScriptResponse, VocabJob } from "../../types/vocabJob";
-import type { VocabWord } from "../../types";
+import type { ListeningLessonDTO, VocabWord } from "../../types";
+
+interface WordCandidate {
+    key: string;
+    word: string;
+    wordId?: number;
+}
+
+const WORD_TOKEN_REGEX = /[\p{L}\p{N}'-]+/gu;
+
+const normalizeWord = (word: string) => word.trim().toLowerCase();
+
+const cleanWordToken = (token: string) =>
+    token.replace(/^[^\p{L}\p{N}'-]+|[^\p{L}\p{N}'-]+$/gu, "");
+
+const getSentenceTranscript = (detail: ListeningLessonDTO) =>
+    detail.str_script ||
+    detail.script
+        .map((word) => word.w)
+        .filter((word): word is string => Boolean(word))
+        .join(" ");
+
+const buildWordCandidates = (detail: ListeningLessonDTO, transcript: string) => {
+    const seen = new Map<string, WordCandidate>();
+    const addWord = (raw: string, wordId?: number | null) => {
+        const cleaned = cleanWordToken(raw);
+        if (!cleaned) return;
+        const key = normalizeWord(cleaned);
+        const existing = seen.get(key);
+        if (!existing) {
+            seen.set(key, { key, word: cleaned, wordId: wordId ?? undefined });
+        } else if (!existing.wordId && wordId) {
+            existing.wordId = wordId;
+        }
+    };
+
+    detail.script?.forEach((token) => {
+        if (token.w) {
+            addWord(token.w, token.id);
+        }
+    });
+
+    const transcriptTokens = transcript.match(WORD_TOKEN_REGEX) ?? [];
+    transcriptTokens.forEach((token) => addWord(token));
+
+    detail.new_words?.forEach((word) => addWord(word.word, word.word_id));
+
+    return Array.from(seen.values());
+};
 
 const LessonVocabPage = () => {
     const { lessonId } = useParams();
-    const { lessonMeta, lessonDetail } = useOutletContext<LessonOutletContext>();
+    const { lessonMeta, lessonDetail, setLessonDetail } = useOutletContext<LessonOutletContext>();
 
     const numericLessonId = Number(lessonId);
 
@@ -37,6 +85,10 @@ const LessonVocabPage = () => {
     const [wordsError, setWordsError] = useState<string | null>(null);
     const [wordsByLessonId, setWordsByLessonId] = useState<Record<number, VocabWord[]>>({});
     const [wordSearch, setWordSearch] = useState("");
+    const [wordSelections, setWordSelections] = useState<Record<number, string[]>>({});
+    const [savingNewWords, setSavingNewWords] = useState<Record<number, boolean>>({});
+    const [newWordErrors, setNewWordErrors] = useState<Record<number, string | null>>({});
+    const [newWordSuccess, setNewWordSuccess] = useState<Record<number, string | null>>({});
 
     useEffect(() => {
         setExtractError(null);
@@ -51,7 +103,25 @@ const LessonVocabPage = () => {
         setWordsError(null);
         setWordsByLessonId({});
         setWordSearch("");
+        setWordSelections({});
+        setSavingNewWords({});
+        setNewWordErrors({});
+        setNewWordSuccess({});
     }, [lessonId]);
+
+    useEffect(() => {
+        if (!lessonDetail) return;
+
+        const nextSelections: Record<number, string[]> = {};
+        lessonDetail.lesson_details?.forEach((detail) => {
+            const words = (detail.new_words ?? [])
+                .map((word) => normalizeWord(cleanWordToken(word.word)))
+                .filter(Boolean);
+            nextSelections[detail.id] = Array.from(new Set(words));
+        });
+
+        setWordSelections(nextSelections);
+    }, [lessonDetail]);
 
     const normalized = useMemo(() => {
         if (!extractResult) return null;
@@ -86,6 +156,15 @@ const LessonVocabPage = () => {
         () => lessonDetail?.lesson_details?.map((item) => item.id) ?? [],
         [lessonDetail]
     );
+    const listeningLessons = lessonDetail?.lesson_details ?? [];
+
+    const refreshLessonDetail = useCallback(async () => {
+        if (!Number.isFinite(numericLessonId) || numericLessonId <= 0) return;
+        const res = await api.getLessonDetail(numericLessonId);
+        if (res.success && res.lesson) {
+            setLessonDetail(res.lesson);
+        }
+    }, [numericLessonId, setLessonDetail]);
 
     const parsedMapIds = useMemo(() => {
         const ids = mapIdsInput
@@ -265,6 +344,63 @@ const LessonVocabPage = () => {
             setWordsError(err instanceof Error ? err.message : "Failed to load word definitions.");
         } finally {
             setWordsLoading(false);
+        }
+    };
+
+    const toggleWordSelection = (lessonItemId: number, key: string) => {
+        setWordSelections((prev) => {
+            const current = new Set(prev[lessonItemId] ?? []);
+            if (current.has(key)) {
+                current.delete(key);
+            } else {
+                current.add(key);
+            }
+            return { ...prev, [lessonItemId]: Array.from(current) };
+        });
+    };
+
+    const clearWordSelections = (lessonItemId: number) => {
+        setWordSelections((prev) => ({ ...prev, [lessonItemId]: [] }));
+    };
+
+    const handleSaveNewWords = async (detail: ListeningLessonDTO, candidates: WordCandidate[]) => {
+        const selectedKeys = new Set(wordSelections[detail.id] ?? []);
+        const selectedWords = candidates.filter((candidate) => selectedKeys.has(candidate.key));
+
+        setSavingNewWords((prev) => ({ ...prev, [detail.id]: true }));
+        setNewWordErrors((prev) => ({ ...prev, [detail.id]: null }));
+        setNewWordSuccess((prev) => ({ ...prev, [detail.id]: null }));
+
+        try {
+            const clearRes = await api.deleteListeningLessonNewWords(detail.id);
+            if (!clearRes.success) {
+                throw new Error(clearRes.message || "Failed to clear existing new words.");
+            }
+
+            if (selectedWords.length > 0) {
+                const createRes = await api.bulkCreateListeningLessonNewWords({
+                    listening_lesson_id: detail.id,
+                    words: selectedWords.map((word) => ({
+                        word: word.word,
+                        word_id: word.wordId ?? undefined,
+                    })),
+                });
+
+                if (!createRes.success) {
+                    throw new Error(createRes.message || "Failed to save new words.");
+                }
+            }
+
+            await refreshLessonDetail();
+            setNewWordSuccess((prev) => ({ ...prev, [detail.id]: "New words updated." }));
+            window.setTimeout(() => {
+                setNewWordSuccess((prev) => ({ ...prev, [detail.id]: null }));
+            }, 3000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to save new words.";
+            setNewWordErrors((prev) => ({ ...prev, [detail.id]: message }));
+        } finally {
+            setSavingNewWords((prev) => ({ ...prev, [detail.id]: false }));
         }
     };
 
@@ -556,6 +692,123 @@ const LessonVocabPage = () => {
                                 Listening lesson IDs: {normalizedMap.listeningLessonIds.join(", ")}
                             </div>
                         )}
+                    </div>
+                )}
+            </div>
+
+            <div className="p-4 bg-white border rounded-xl space-y-4">
+                <div className="space-y-1">
+                    <h3 className="text-base font-semibold text-slate-900">Sentence New Words</h3>
+                    <p className="text-slate-600 text-sm">
+                        Choose which words in each sentence should be marked as new vocabulary.
+                    </p>
+                </div>
+
+                {listeningLessons.length === 0 ? (
+                    <div className="text-sm text-slate-500">No listening lessons found for this lesson.</div>
+                ) : (
+                    <div className="space-y-3">
+                        {listeningLessons.map((detail) => {
+                            const transcript = getSentenceTranscript(detail);
+                            const candidates = buildWordCandidates(detail, transcript);
+                            const selectedKeys = wordSelections[detail.id] ?? [];
+                            const savingWords = savingNewWords[detail.id] ?? false;
+                            const saveError = newWordErrors[detail.id];
+                            const saveSuccess = newWordSuccess[detail.id];
+
+                            return (
+                                <div key={detail.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                                                Sentence #{detail.id} • Type {detail.type}
+                                            </p>
+                                            <p className="text-sm font-semibold text-slate-900">
+                                                {transcript || "No transcript provided"}
+                                            </p>
+                                        </div>
+                                        <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                                            Status {detail.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="text-xs text-slate-600">
+                                        {detail.translated_script || "—"}
+                                    </div>
+
+                                    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-[11px] uppercase text-slate-500">New Words</p>
+                                            <span className="text-xs text-slate-500">
+                                                {selectedKeys.length} selected
+                                            </span>
+                                        </div>
+
+                                        {candidates.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {candidates.map((candidate) => {
+                                                    const isSelected = selectedKeys.includes(candidate.key);
+                                                    return (
+                                                        <button
+                                                            key={candidate.key}
+                                                            type="button"
+                                                            onClick={() => toggleWordSelection(detail.id, candidate.key)}
+                                                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                                                                isSelected
+                                                                    ? "bg-blue-600 border-blue-600 text-white"
+                                                                    : "bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-700"
+                                                            }`}
+                                                        >
+                                                            {candidate.word}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-slate-500">No words found for this sentence.</div>
+                                        )}
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSaveNewWords(detail, candidates)}
+                                                disabled={savingWords}
+                                                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50"
+                                            >
+                                                {savingWords ? (
+                                                    <>
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-3.5 h-3.5" />
+                                                        Save new words
+                                                    </>
+                                                )}
+                                            </button>
+                                            {selectedKeys.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => clearWordSelections(detail.id)}
+                                                    className="text-xs text-slate-500 hover:text-slate-700"
+                                                    disabled={savingWords}
+                                                >
+                                                    Clear selection
+                                                </button>
+                                            )}
+                                            {saveSuccess && (
+                                                <span className="text-xs text-emerald-600">{saveSuccess}</span>
+                                            )}
+                                        </div>
+
+                                        {saveError && (
+                                            <div className="text-xs text-rose-600">{saveError}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>

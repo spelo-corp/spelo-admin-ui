@@ -1,4 +1,5 @@
 import { AUDIO_BASE_URL, JOB_BASE_URL, getAuthHeaders, handle } from "./base";
+import { filesApi } from "./files";
 import type { AudioJob, AudioSentence } from "../types/audioProcessing";
 import type { JobListItemDTO, JobServiceStatus } from "../types/jobService";
 
@@ -36,6 +37,51 @@ function extractJobId(payload: unknown): number | null {
     const jobId = data.jobId ?? data.job_id ?? data.id ?? root.jobId ?? root.job_id ?? root.id;
     const parsed = Number(jobId);
     return Number.isFinite(parsed) ? parsed : null;
+}
+
+const normalizeObjectName = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.includes("://")) {
+        return filesApi.extractFilenameFromUrl(trimmed) ?? trimmed;
+    }
+    if (trimmed.includes("/")) {
+        const parts = trimmed.split("/").filter(Boolean);
+        return parts[parts.length - 1] ?? null;
+    }
+    return trimmed;
+};
+
+function extractObjectName(payload: unknown): string | null {
+    if (typeof payload === "string") return normalizeObjectName(payload);
+    if (!payload || typeof payload !== "object") return null;
+    const root = payload as Record<string, any>;
+    const data = root.data ?? root.file ?? root.result ?? root;
+
+    if (typeof data === "string") return normalizeObjectName(data);
+
+    const candidates = [
+        data?.objectName,
+        data?.object_name,
+        root.objectName,
+        root.object_name,
+        data?.fileName,
+        data?.file_name,
+        data?.filename,
+        data?.path,
+        data?.url,
+        root.url,
+        root.path,
+    ];
+
+    for (const candidate of candidates) {
+        if (typeof candidate === "string") {
+            const normalized = normalizeObjectName(candidate);
+            if (normalized) return normalized;
+        }
+    }
+
+    return null;
 }
 
 function safeParseJson<T = any>(value: unknown): T | null {
@@ -83,6 +129,15 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
 
     const lessonId = merged.lessonId ?? merged.lesson_id ?? 0;
 
+    const bucketName = merged.bucketName ?? merged.bucket_name ?? undefined;
+    const objectName = normalizeObjectName(
+        merged.objectName ?? merged.object_name ?? ""
+    );
+    const resolvedAudioUrl =
+        merged.audioUrl ??
+        merged.audio_url ??
+        (bucketName && objectName ? `${bucketName}/${objectName}` : undefined);
+
     return {
         id: Number(raw.id),
         status: normalizeAudioStatus(raw.status),
@@ -91,7 +146,7 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
         transcript: merged.transcript ?? "",
         translatedScript: merged.translatedScript ?? merged.translated_script ?? undefined,
         type: merged.lessonType ?? merged.lesson_type ?? undefined,
-        audioUrl: merged.audioUrl ?? merged.audio_url ?? undefined,
+        audioUrl: resolvedAudioUrl,
         sentences: merged.sentences ?? [],
         progressPercent: raw.progressPercent ?? raw.progress_percent ?? null,
         currentStep: raw.currentStep ?? raw.current_step ?? null,
@@ -120,6 +175,17 @@ function mapSingleJob(job: any): AudioJob {
         root.lesson_id ??
         0;
 
+    const bucketName = detail.bucketName ?? detail.bucket_name ?? root.bucketName ?? root.bucket_name ?? undefined;
+    const objectName = normalizeObjectName(
+        detail.objectName ?? detail.object_name ?? root.objectName ?? root.object_name ?? ""
+    );
+    const resolvedAudioUrl =
+        detail.audioUrl ??
+        detail.audio_url ??
+        root.audioUrl ??
+        root.audio_url ??
+        (bucketName && objectName ? `${bucketName}/${objectName}` : undefined);
+
     return {
         id: Number(root.id ?? detail.id ?? 0),
         status: normalizeAudioStatus(root.status ?? detail.status),
@@ -128,7 +194,7 @@ function mapSingleJob(job: any): AudioJob {
         transcript: detail.transcript ?? root.transcript ?? "",
         translatedScript: detail.translatedScript ?? detail.translated_script ?? root.translatedScript,
         type: detail.type ?? detail.lessonType ?? detail.lesson_type ?? root.type,
-        audioUrl: detail.audioUrl ?? detail.audio_url ?? root.audioUrl ?? root.audio_url,
+        audioUrl: resolvedAudioUrl,
         sentences: detail.sentences ?? root.sentences ?? [],
         progressPercent: root.progressPercent ?? root.progress_percent ?? detail.progressPercent ?? detail.progress_percent ?? null,
         currentStep: root.currentStep ?? root.current_step ?? detail.currentStep ?? detail.current_step ?? null,
@@ -148,32 +214,60 @@ function mapSingleJob(job: any): AudioJob {
     };
 }
 
-async function uploadAudioProcessingAudio(payload: {
-    file: File;
-    lessonId: number;
-}) {
-    const form = new FormData();
-    form.append("file", payload.file);
+async function uploadAudioProcessingAudio(payload: { file: File; bucketName?: string }) {
+    const bucketName = payload.bucketName ?? filesApi.AUDIO_BUCKET;
+    const res = await filesApi.uploadFile(payload.file, bucketName);
+    if ((res as { success?: boolean; message?: string }).success === false) {
+        throw new Error((res as { message?: string }).message || "Audio upload failed.");
+    }
 
-    return handle<any>(
-        await fetch(`${AUDIO_BASE_URL}/lessons/${payload.lessonId}/audio-jobs`, {
+    const objectName = extractObjectName(res);
+    if (!objectName) {
+        throw new Error("Audio upload did not return an object name.");
+    }
+
+    return { objectName, bucketName };
+}
+
+async function createAudioProcessingJob(payload: {
+    objectName: string;
+    transcript: string;
+    lessonId: number;
+    bucketName?: string;
+}) {
+    const body: Record<string, unknown> = {
+        objectName: payload.objectName,
+        transcript: payload.transcript,
+        lessonId: payload.lessonId,
+    };
+    if (payload.bucketName) body.bucketName = payload.bucketName;
+
+    return handle<{ success?: boolean; data?: any; message?: string }>(
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs`, {
             method: "POST",
-            headers: getAuthHeaders({ contentType: null }),
-            body: form,
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
         })
     );
 }
 
-async function uploadAudioProcessingTranscript(payload: {
-    jobId: number;
-    transcript: string;
-    translatedScript?: string;
-}) {
-    const body: Record<string, unknown> = { transcript: payload.transcript };
-    if (payload.translatedScript) body.translatedScript = payload.translatedScript;
+async function updateAudioProcessingJob(
+    jobId: number,
+    payload: {
+        objectName?: string;
+        transcript?: string;
+        lessonId?: number;
+        bucketName?: string;
+    }
+) {
+    const body: Record<string, unknown> = {};
+    if (payload.objectName) body.objectName = payload.objectName;
+    if (payload.transcript) body.transcript = payload.transcript;
+    if (payload.lessonId) body.lessonId = payload.lessonId;
+    if (payload.bucketName) body.bucketName = payload.bucketName;
 
-    return handle<{ success: boolean; data?: any }>(
-        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${payload.jobId}/transcript`, {
+    return handle<{ success?: boolean; data?: any; message?: string }>(
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
@@ -181,29 +275,42 @@ async function uploadAudioProcessingTranscript(payload: {
     );
 }
 
+async function uploadAudioProcessingTranscript(payload: {
+    jobId: number;
+    transcript: string;
+}) {
+    return updateAudioProcessingJob(payload.jobId, { transcript: payload.transcript });
+}
+
 async function submitAudioProcessingJob(payload: {
     file: File;
     transcript: string;
     lessonId: number;
+    bucketName?: string;
     translatedScript?: string;
     type?: number;
     startTime?: number;
     endTime?: number;
 }) {
-    const audioRes = await uploadAudioProcessingAudio({
+    const { objectName, bucketName } = await uploadAudioProcessingAudio({
         file: payload.file,
-        lessonId: payload.lessonId,
+        bucketName: payload.bucketName,
     });
 
-    const jobId = extractJobId(audioRes);
-
-    if (!jobId) throw new Error("Audio upload did not return a job ID.");
-
-    await uploadAudioProcessingTranscript({
-        jobId,
+    const res = await createAudioProcessingJob({
+        objectName,
         transcript: payload.transcript,
-        translatedScript: payload.translatedScript,
+        lessonId: payload.lessonId,
+        bucketName,
     });
+
+    if ((res as { success?: boolean; message?: string }).success === false) {
+        throw new Error((res as { message?: string }).message || "Failed to create job.");
+    }
+
+    const jobId = extractJobId(res);
+
+    if (!jobId) throw new Error("Create job did not return a job ID.");
 
     return { jobId };
 }

@@ -19,7 +19,9 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
         useOutletContext<AudioProcessingJobOutletContext>();
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const sentenceStopHandlerRef = useRef<(() => void) | null>(null);
     const [activeSentence, setActiveSentence] = useState<number | null>(null);
+    const [selectedSentenceIndexes, setSelectedSentenceIndexes] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
 
     // Fetch presigned URL for the audio
@@ -39,23 +41,107 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
         return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
     }, [sentences]);
 
+    const clearSentenceStopHandler = useCallback(() => {
+        const audio = audioRef.current;
+        const handler = sentenceStopHandlerRef.current;
+        if (audio && handler) {
+            audio.removeEventListener("timeupdate", handler);
+        }
+        sentenceStopHandlerRef.current = null;
+    }, []);
+
+    useEffect(() => () => clearSentenceStopHandler(), [clearSentenceStopHandler]);
+
+    useEffect(() => {
+        setSelectedSentenceIndexes([]);
+    }, [job.id]);
+
     const handlePlaySentence = (sentence: AudioSentence, index: number) => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        audio.currentTime = sentence.start;
         const stopTime = sentence.end;
 
         const stopIfNeeded = () => {
             if (audio.currentTime >= stopTime) {
                 audio.pause();
-                audio.removeEventListener("timeupdate", stopIfNeeded);
+                clearSentenceStopHandler();
             }
         };
 
+        clearSentenceStopHandler();
+        audio.pause();
+        audio.currentTime = sentence.start;
+        sentenceStopHandlerRef.current = stopIfNeeded;
         audio.addEventListener("timeupdate", stopIfNeeded);
         void audio.play();
         setActiveSentence(index);
+    };
+
+    const toggleSentenceSelection = (index: number) => {
+        setSelectedSentenceIndexes((prev) => {
+            if (prev.includes(index)) {
+                return prev.filter((i) => i !== index);
+            }
+            return [...prev, index].sort((a, b) => a - b);
+        });
+    };
+
+    const clearSentenceSelection = () => {
+        setSelectedSentenceIndexes([]);
+    };
+
+    const mergeSelectedSentences = () => {
+        if (readOnly) return;
+        setError(null);
+
+        if (selectedSentenceIndexes.length < 2) {
+            setError("Select at least two adjacent sentences to merge.");
+            return;
+        }
+
+        const sortedIndexes = [...new Set(selectedSentenceIndexes)].sort((a, b) => a - b);
+        const areConsecutive = sortedIndexes.every((idx, i) =>
+            i === 0 ? true : idx === sortedIndexes[i - 1] + 1
+        );
+
+        if (!areConsecutive) {
+            setError("Please select consecutive sentences to merge.");
+            return;
+        }
+
+        const selectedSentences = sortedIndexes
+            .map((idx) => sentences[idx])
+            .filter(Boolean);
+
+        if (selectedSentences.length < 2) {
+            setError("Selected sentences are not available to merge.");
+            return;
+        }
+
+        const start = Math.min(...selectedSentences.map((s) => s.start));
+        const end = Math.max(...selectedSentences.map((s) => s.end));
+        const mergedText = selectedSentences
+            .map((s) => s.text.trim())
+            .filter(Boolean)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const mergedSentence: AudioSentence = {
+            text: mergedText || selectedSentences[0].text,
+            start,
+            end,
+        };
+
+        setSentences((prev) => {
+            const next = prev.filter((_, idx) => !sortedIndexes.includes(idx));
+            next.splice(sortedIndexes[0], 0, mergedSentence);
+            return next;
+        });
+
+        setActiveSentence(sortedIndexes[0]);
+        setSelectedSentenceIndexes([]);
     };
 
     const handleSave = async () => {
@@ -161,38 +247,80 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
             </div>
 
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-900">Sentences ({sentences.length})</h3>
-                    <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
-                        {saving ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Saving…
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-4 h-4" />
-                                Save Changes
-                            </>
-                        )}
-                    </Btn.Primary>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Sentences ({sentences.length})
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                            {selectedSentenceIndexes.length} selected for merge.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Btn.Secondary
+                            onClick={mergeSelectedSentences}
+                            disabled={readOnly || selectedSentenceIndexes.length < 2}
+                        >
+                            Merge Selected
+                        </Btn.Secondary>
+                        <button
+                            type="button"
+                            onClick={clearSentenceSelection}
+                            disabled={readOnly || selectedSentenceIndexes.length === 0}
+                            className="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-60"
+                        >
+                            Clear selection
+                        </button>
+                        <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Saving…
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    Save Changes
+                                </>
+                            )}
+                        </Btn.Primary>
+                    </div>
                 </div>
 
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
                     {sentences.map((sentence, index) => {
                         const duration = sentence.end - sentence.start;
                         const isActive = activeSentence === index;
+                        const isSelected = selectedSentenceIndexes.includes(index);
 
                         return (
                             <div
                                 key={`${sentence.start}-${index}`}
                                 className={`
                                     border rounded-xl p-3 space-y-2
-                                    ${isActive ? "border-brand bg-brand-soft/60" : "border-slate-200 bg-slate-50"}
+                                    ${isActive
+                                    ? "border-brand bg-brand-soft/60"
+                                    : isSelected
+                                        ? "border-sky-200 bg-sky-50"
+                                        : "border-slate-200 bg-slate-50"}
                                 `}
                             >
                                 <div className="flex items-center justify-between text-xs">
-                                    <span className="font-semibold text-slate-900">Sentence {index + 1}</span>
+                                    <div className="flex items-center gap-2">
+                                        <label className="flex items-center gap-1 text-slate-500">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleSentenceSelection(index)}
+                                                disabled={readOnly}
+                                                className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500/30"
+                                            />
+                                            Merge
+                                        </label>
+                                        <span className="font-semibold text-slate-900">
+                                            Sentence {index + 1}
+                                        </span>
+                                    </div>
                                     <span className="text-slate-500">
                                         {formatSeconds(sentence.start)} → {formatSeconds(sentence.end)} •{" "}
                                         {duration.toFixed(2)}s

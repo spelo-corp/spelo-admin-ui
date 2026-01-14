@@ -99,6 +99,18 @@ export interface WordResponseDTO {
     word_definition: WordData;
 }
 
+export interface LessonNewWord {
+    id: number;
+    lesson_id?: number;
+    listening_lesson_id?: number;
+    word: string;
+    word_id?: number | null;
+    word_definition?: WordData;
+    created_by?: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface ListeningLessonDTO {
     id: number;
     type: number;
@@ -107,7 +119,7 @@ export interface ListeningLessonDTO {
     script: ListeningLessonScript[];
     str_script: string;
     translated_script: string;
-    new_words: WordResponseDTO[];
+    new_words: LessonNewWord[];
 }
 
 export type TokenDiffType = "MATCH" | "MATCH_FUZZY" | "SUBSTITUTE" | "MISSING" | "EXTRA";

@@ -1,6 +1,8 @@
 import type { AudioFile } from "../types";
 import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
 
+const AUDIO_BUCKET = "spelo-audio";
+
 async function getAudioFiles() {
     return handle<{ success: boolean; files: AudioFile[] }>(
         await fetch(`${BASE_URL_V2}/api/admin/audio-files`, {
@@ -63,11 +65,11 @@ async function uploadLocalAudio(file: File, lessonId: number) {
     return handle<{ success: boolean; file_path: string }>(res);
 }
 
-async function uploadFile(file: File) {
+async function uploadFile(file: File, bucketName: string = AUDIO_BUCKET) {
     const form = new FormData();
     form.append("file", file);
 
-    const res = await fetch(`${BASE_URL_V2}/api/v1/file/upload`, {
+    const res = await fetch(`${BASE_URL_V2}/api/v1/file/${bucketName}/upload`, {
         method: "POST",
         headers: getAuthHeaders({ contentType: null }),
         body: form,
@@ -75,8 +77,6 @@ async function uploadFile(file: File) {
 
     return handle<{ success?: boolean; data?: string; message?: string; code?: number }>(res);
 }
-
-const AUDIO_BUCKET = "spelo-audio";
 
 /**
  * Get a presigned URL for accessing a file in MinIO storage.
@@ -127,18 +127,28 @@ async function getPresignedUrlFromMinioUrl(minioUrl: string): Promise<PresignRes
     if (cached) return cached;
 
     const fetchPromise = (async () => {
-        const filename = (() => {
-            if (minioUrl.includes("://")) return extractFilenameFromUrl(minioUrl);
-            const parts = minioUrl.split('/').filter(Boolean);
-            return parts[parts.length - 1] || null;
+        const parsed = (() => {
+            if (minioUrl.includes("://")) {
+                const url = new URL(minioUrl);
+                const parts = url.pathname.split("/").filter(Boolean);
+                const bucket = parts.length > 1 ? parts[0] : AUDIO_BUCKET;
+                const filename = parts[parts.length - 1] || null;
+                return { bucket, filename };
+            }
+            const parts = minioUrl.split("/").filter(Boolean);
+            if (parts.length >= 2) {
+                return { bucket: parts[0], filename: parts[parts.length - 1] || null };
+            }
+            return { bucket: AUDIO_BUCKET, filename: parts[parts.length - 1] || null };
         })();
+        const filename = parsed.filename;
         if (!filename) {
             presignedUrlCache.delete(minioUrl);
             return { success: false, url: null, message: "Invalid URL format" };
         }
 
         try {
-            return await getPresignedUrl(filename, AUDIO_BUCKET);
+            return await getPresignedUrl(filename, parsed.bucket);
         } catch (error) {
             presignedUrlCache.delete(minioUrl);
             throw error;
