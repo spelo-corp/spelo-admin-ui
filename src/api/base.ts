@@ -1,4 +1,4 @@
-const BASE_URL_V2 = "http://localhost:8080";
+const BASE_URL_V2 = "https://api.spelo.dev";
 const JOB_BASE_URL = BASE_URL_V2;
 const AUDIO_BASE_URL = `${BASE_URL_V2}/api/v1`;
 
