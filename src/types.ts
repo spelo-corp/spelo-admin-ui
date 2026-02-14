@@ -116,7 +116,7 @@ export interface ListeningLessonDTO {
     type: number;
     data: ListeningLessonData;
     status: number;
-    script: ListeningLessonScript[];
+    script?: ListeningLessonScript[];
     str_script: string;
     translated_script: string;
     new_words: LessonNewWord[];

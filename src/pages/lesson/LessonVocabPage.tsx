@@ -24,7 +24,7 @@ const cleanWordToken = (token: string) =>
 
 const getSentenceTranscript = (detail: ListeningLessonDTO) =>
     detail.str_script ||
-    detail.script
+    (detail.script || [])
         .map((word) => word.w)
         .filter((word): word is string => Boolean(word))
         .join(" ");

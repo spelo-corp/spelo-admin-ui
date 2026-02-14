@@ -929,7 +929,7 @@ const LessonAudioPage = () => {
                     listeningLessons.map((detail) => {
                         const transcript =
                             detail.str_script ||
-                            detail.script
+                            (detail.script || [])
                                 .map((word) => word.w)
                                 .filter((word): word is string => Boolean(word))
                                 .join(" ");
