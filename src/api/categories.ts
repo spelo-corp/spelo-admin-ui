@@ -51,10 +51,25 @@ async function deleteCategory(id: number) {
     );
 }
 
+// Upload category image
+async function uploadCategoryImage(id: number, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return handle<{ success: boolean; data: Category }>(
+        await fetch(`${BASE_URL_V2}/api/v1/categories/${id}/image/upload`, {
+            method: "PATCH",
+            headers: getAuthHeaders({ contentType: null }),
+            body: formData,
+        })
+    );
+}
+
 export const categoriesApi = {
     getCategories,
     getCategoryById,
     createCategory,
     updateCategory,
     deleteCategory,
+    uploadCategoryImage,
 };

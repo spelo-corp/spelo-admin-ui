@@ -159,6 +159,35 @@ async function getPresignedUrlFromMinioUrl(minioUrl: string): Promise<PresignRes
     return fetchPromise;
 }
 
+async function replaceFile(bucketName: string, objectName: string, file: File) {
+    const form = new FormData();
+    form.append("bucketName", bucketName);
+    form.append("objectName", objectName);
+    form.append("file", file);
+
+    return handle<{ success: boolean; data?: any }>(
+        await fetch(`${BASE_URL_V2}/api/v1/file/replace`, {
+            method: "POST",
+            headers: getAuthHeaders({ contentType: null }),
+            body: form,
+        })
+    );
+}
+
+async function trimAudio(bucketName: string, objectName: string, segments: { start: number; end: number }[]) {
+    return handle<{ success: boolean; data?: any }>(
+        await fetch(`${BASE_URL_V2}/api/v1/file/audio/trim`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                bucket_name: bucketName,
+                object_name: objectName,
+                segments,
+            }),
+        })
+    );
+}
+
 export const filesApi = {
     getAudioFiles,
     uploadAudioFile,
@@ -169,5 +198,7 @@ export const filesApi = {
     getPresignedUrl,
     extractFilenameFromUrl,
     getPresignedUrlFromMinioUrl,
+    replaceFile,
+    trimAudio,
     AUDIO_BUCKET,
 };

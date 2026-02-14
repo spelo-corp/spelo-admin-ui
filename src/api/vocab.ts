@@ -135,7 +135,7 @@ async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFr
     };
 
     return handle<{ success: boolean; data: ExtractVocabFromLessonResponse; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/extract-from-lesson/${lessonId}`, {
+        await fetch(`${BASE_URL_V2}/api/v1/admin/vocab/extract-from-lesson/${lessonId}`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),

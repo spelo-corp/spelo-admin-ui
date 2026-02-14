@@ -79,14 +79,16 @@ const DictionaryPage: React.FC = () => {
         const groups: Record<string, VocabWord[]> = {};
 
         for (const w of words) {
-            const first = w.word[0]?.toUpperCase() ?? "#";
+            // Use lemma instead of word
+            const wordText = w.lemma || w.word || "";
+            const first = wordText[0]?.toUpperCase() ?? "#";
             if (!groups[first]) groups[first] = [];
             groups[first].push(w);
         }
 
         alphabet.forEach((l) => {
             if (!groups[l]) groups[l] = [];
-            else groups[l].sort((a, b) => a.word.localeCompare(b.word));
+            else groups[l].sort((a, b) => (a.lemma || "").localeCompare(b.lemma || ""));
         });
 
         return groups;
@@ -116,23 +118,16 @@ const DictionaryPage: React.FC = () => {
         void loadWords();
     };
 
-    const getWordDefinition = (w: VocabWord) =>
-        // Support both snake_case and camelCase payloads
-        (w.word_definition as VocabWord["word_definition"] | undefined) ||
-        (w as unknown as { wordDefinition?: VocabWord["word_definition"] }).wordDefinition ||
-        undefined;
-
     const toModalData = (w: VocabWord): VocabFormData => {
-        const def = getWordDefinition(w);
-        const meaning = def?.meaning ?? {};
-        const pronunciations = def?.pronunciations ?? [];
+        const primarySense = w.senses?.[0] || {};
+        const primaryPron = w.pronunciations?.[0] || {};
 
         return {
-            word: w.word,
-            ipa: pronunciations[0]?.ipa || "",
-            definition: meaning.definition || "",
-            translation: meaning.translation || "",
-            example: meaning.example || "",
+            word: w.lemma || "",
+            ipa: primaryPron.ipa || "",
+            definition: primarySense.definition || "",
+            translation: primarySense.translation || "",
+            example: primarySense.examples?.[0] || "",
         };
     };
 
@@ -331,13 +326,9 @@ const DictionaryPage: React.FC = () => {
 
                                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 {list.map((w) => {
-                                                    const def = getWordDefinition(w);
-                                                    const meaning = def?.meaning ?? {
-                                                        definition: "",
-                                                        translation: "",
-                                                        example: "",
-                                                    };
-                                                    const pronunciations = def?.pronunciations ?? [];
+                                                    // Map new structure to UI
+                                                    const primarySense = w.senses?.[0] || {};
+                                                    const primaryIpa = w.pronunciations?.[0]?.ipa;
 
                                                     return (
                                                         <article
@@ -349,17 +340,24 @@ const DictionaryPage: React.FC = () => {
                                                                 <div className="space-y-1">
                                                                     <div className="flex flex-wrap items-center gap-2">
                                                                         <h3 className="text-xl font-semibold text-slate-900">
-                                                                            {w.word}
+                                                                            {w.lemma}
                                                                         </h3>
-                                                                        {pronunciations[0]?.ipa && (
+                                                                        {primaryIpa && (
                                                                             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                                                                {pronunciations[0].ipa}
+                                                                                {primaryIpa}
+                                                                            </span>
+                                                                        )}
+                                                                        {w.pos && (
+                                                                            <span className="rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500 uppercase">
+                                                                                {w.pos}
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                                                        {pronunciations.map((p) => p.ipa).join(" • ")}
-                                                                    </p>
+                                                                    {w.pronunciations?.length > 0 && (
+                                                                        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                                                                            {w.pronunciations.map((p) => p.ipa).filter(Boolean).join(" • ")}
+                                                                        </p>
+                                                                    )}
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2">
@@ -380,24 +378,33 @@ const DictionaryPage: React.FC = () => {
                                                             </div>
 
                                                             <p className="mt-3 text-base leading-relaxed text-slate-800">
-                                                                {meaning.definition || "N/A"}
+                                                                {primarySense.definition || "N/A"}
                                                             </p>
                                                             <p className="mt-2 font-semibold text-brand">
-                                                                → {meaning.translation || "N/A"}
+                                                                → {primarySense.translation || "N/A"}
                                                             </p>
-                                                            <p className="mt-1 text-sm italic text-slate-500">
-                                                                {meaning.example ? `“${meaning.example}”` : "N/A"}
-                                                            </p>
+                                                            <div className="mt-1 space-y-1">
+                                                                {primarySense.examples?.slice(0, 1).map((ex, i) => (
+                                                                    <p key={i} className="text-sm italic text-slate-500">
+                                                                        “{ex}”
+                                                                    </p>
+                                                                ))}
+                                                                {!primarySense.examples?.length && (
+                                                                    <p className="text-sm italic text-slate-400">No examples</p>
+                                                                )}
+                                                            </div>
 
                                                             <div className="mt-4 flex flex-wrap gap-2">
-                                                                {pronunciations.map((p, idx) => (
+                                                                {w.pronunciations?.map((p, idx) => (
                                                                     <button
-                                                                        key={`${p.dialect}-${idx}`}
+                                                                        key={`${p.accent}-${idx}`}
                                                                         className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-brand hover:text-brand"
                                                                         onClick={() => playAudio(p.audio)}
+                                                                        disabled={!p.audio}
+                                                                        title={!p.audio ? "No audio available" : ""}
                                                                     >
                                                                         <Volume2 className="h-4 w-4" />
-                                                                        {p.dialect || "Listen"}
+                                                                        {p.accent || "Default"}
                                                                     </button>
                                                                 ))}
                                                             </div>
@@ -412,7 +419,7 @@ const DictionaryPage: React.FC = () => {
                         </div>
                     </main>
                 </div>
-            </div>
+            </div >
 
             <VocabAutoCreateSection
                 show={showAutoCreate}
@@ -447,7 +454,7 @@ const DictionaryPage: React.FC = () => {
                     }
                 }}
             />
-        </div>
+        </div >
     );
 };
 

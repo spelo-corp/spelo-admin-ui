@@ -14,6 +14,16 @@ async function getCollections() {
     );
 }
 
+async function getLibraryCollections(page = 0, size = 20) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    return handle<CollectionListResponse>(
+        await fetch(`${BASE_URL_V2}/api/v1/collections/library?${query.toString()}`, {
+            method: "GET",
+            headers: getAuthHeaders(),
+        })
+    );
+}
+
 async function createCollection(payload: CollectionRequestDTO) {
     return handle<{ success: boolean; data?: any }>(
         await fetch(`${BASE_URL_V2}/api/v1/collections`, {
@@ -78,6 +88,7 @@ async function deleteWordFromCollection(collectionId: number, wordId: number) {
 
 export const collectionsApi = {
     getCollections,
+    getLibraryCollections,
     createCollection,
     updateCollection,
     deleteCollection,

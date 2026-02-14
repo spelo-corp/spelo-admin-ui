@@ -162,18 +162,31 @@ export interface LessonDetail {
     gems?: number;
 }
 
-export interface VocabWordDefinition {
-    pronunciations: WordPronunciation[];
-    meaning: WordMeaning;
+export interface VocabSense {
+    id: number;
+    pos: string;
+    definition: string;
+    translation: string;
+    examples: string[];
+}
+
+export interface VocabPronunciation {
+    accent: string | null;
+    ipa: string;
+    audio: string | null;
 }
 
 export interface VocabWord {
     id: number;
-    word: string;
+    lemma: string;
+    pos: string;
+    entry_type: string;
+    difficulty: number | null;
+    flags: string | null;
+    senses: VocabSense[];
+    pronunciations: VocabPronunciation[];
 
-    word_definition: VocabWordDefinition;
-    wordDefinition?: VocabWordDefinition; // allow camelCase payloads from API
-
+    word?: string;
     createdAt?: string;
     updatedAt?: string;
 }

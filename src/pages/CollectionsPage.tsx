@@ -18,7 +18,7 @@ import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
 import type { Collection } from "../types/collection";
 import {
-    useCollections,
+    useLibraryCollections,
     useCreateCollection,
     useDeleteCollection,
     useUpdateCollection,
@@ -33,7 +33,8 @@ const formatDate = (value?: string) => {
 
 const CollectionsPage: React.FC = () => {
     const navigate = useNavigate();
-    const { data: collections = [], isLoading, error } = useCollections();
+    // Default to managing library collections
+    const { data: collections = [], isLoading, error } = useLibraryCollections(0, 100);
     const createCollectionMutation = useCreateCollection();
     const updateCollectionMutation = useUpdateCollection();
     const deleteCollectionMutation = useDeleteCollection();
@@ -42,7 +43,13 @@ const CollectionsPage: React.FC = () => {
     const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
     const [modalError, setModalError] = useState<string | null>(null);
     const [collectionSearch, setCollectionSearch] = useState("");
+
+    // Form state
     const [name, setName] = useState("");
+    const [description, setDescription] = useState("");
+    const [image, setImage] = useState("");
+    const [price, setPrice] = useState<string>(""); // input as string to handle empty
+    const [type, setType] = useState<"LIBRARY" | "USER">("LIBRARY");
 
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
@@ -50,6 +57,10 @@ const CollectionsPage: React.FC = () => {
 
     const resetForm = () => {
         setName("");
+        setDescription("");
+        setImage("");
+        setPrice("");
+        setType("LIBRARY");
         setEditingCollection(null);
         setModalError(null);
     };
@@ -62,6 +73,10 @@ const CollectionsPage: React.FC = () => {
     const openEditModal = (collection: Collection) => {
         setEditingCollection(collection);
         setName(collection.name);
+        setDescription(collection.description || "");
+        setImage(collection.image || "");
+        setPrice(collection.price !== undefined ? String(collection.price) : "");
+        setType(collection.type === "USER" ? "USER" : "LIBRARY");
         setModalError(null);
         setModalOpen(true);
     };
@@ -80,26 +95,40 @@ const CollectionsPage: React.FC = () => {
     };
 
     const handleSaveCollection = async () => {
-        const trimmed = name.trim();
-        if (!trimmed) {
+        const trimmedName = name.trim();
+        if (!trimmedName) {
             setModalError("Collection name is required.");
             return;
         }
-        if (trimmed.length > 255) {
+        if (trimmedName.length > 255) {
             setModalError("Collection name must be 255 characters or less.");
+            return;
+        }
+
+        const parsedPrice = price.trim() === "" ? undefined : Number(price);
+        if (parsedPrice !== undefined && (Number.isNaN(parsedPrice) || parsedPrice < 0)) {
+            setModalError("Price must be a valid non-negative number (or leave empty for free).");
             return;
         }
 
         setModalError(null);
 
+        const payload = {
+            collection_name: trimmedName,
+            description: description.trim() || undefined,
+            image: image.trim() || undefined,
+            type: type,
+            price: parsedPrice,
+        };
+
         try {
             if (editingCollection) {
                 await updateCollectionMutation.mutateAsync({
                     id: editingCollection.id,
-                    data: { collection_name: trimmed },
+                    data: payload,
                 });
             } else {
-                await createCollectionMutation.mutateAsync({ collection_name: trimmed });
+                await createCollectionMutation.mutateAsync(payload);
             }
             setModalOpen(false);
             resetForm();
@@ -137,16 +166,16 @@ const CollectionsPage: React.FC = () => {
                 badge={
                     <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
                         <Sparkles className="w-3.5 h-3.5" />
-                        Word Collections
+                        Library Collections
                     </div>
                 }
-                title="Collections"
+                title="Library Collections"
                 titleAddon={
                     <span className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
                         {collections.length} total
                     </span>
                 }
-                description="Create collections of terminology that are shared with all users."
+                description="Manage public collections available in the library."
                 actions={
                     <Btn.HeroPrimary onClick={openCreateModal}>
                         <Plus className="w-4 h-4" />
@@ -178,7 +207,7 @@ const CollectionsPage: React.FC = () => {
                             <Folder className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Collections</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Library</p>
                             <p className="text-sm text-slate-600">{filteredCollections.length} showing</p>
                         </div>
                     </div>
@@ -210,9 +239,9 @@ const CollectionsPage: React.FC = () => {
                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                 <Folder className="w-6 h-6" />
                             </div>
-                            <p className="font-medium text-slate-700">No collections found yet.</p>
+                            <p className="font-medium text-slate-700">No library collections found.</p>
                             <p className="text-sm text-slate-500">
-                                Create your first collection to share with all users.
+                                Create a collection to make it available in the library.
                             </p>
                             <div className="flex justify-center pt-1">
                                 <Btn.Primary onClick={openCreateModal} className="px-5">
@@ -237,35 +266,42 @@ const CollectionsPage: React.FC = () => {
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                                                    Collection
-                                                </p>
-                                                <h3 className="font-semibold text-slate-800">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
+                                                        {collection.type}
+                                                    </span>
+                                                    {collection.price && collection.price > 0 ? (
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">
+                                                            {collection.price} gems
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+                                                            Free
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h3 className="font-semibold text-slate-800 line-clamp-1" title={collection.name}>
                                                     {collection.name}
                                                 </h3>
                                             </div>
-                                            <div className="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                                            <div className="h-10 w-10 shrink-0 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
                                                 <Folder className="w-5 h-5" />
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2 text-sm text-slate-600">
+                                        <p className="text-sm text-slate-500 line-clamp-2 h-10">
+                                            {collection.description || "No description provided."}
+                                        </p>
+
+                                        <div className="space-y-1 text-xs text-slate-500">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-slate-500">ID</span>
-                                                <span className="font-medium">#{collection.id}</span>
+                                                <span>Words</span>
+                                                <span className="font-medium text-slate-700">{collection.total_words ?? 0}</span>
                                             </div>
-                                            {typeof collection.total_words === "number" ? (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-slate-500">Words</span>
-                                                    <span className="font-medium">{collection.total_words}</span>
-                                                </div>
-                                            ) : null}
-                                            {updatedLabel ? (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-slate-500">Updated</span>
-                                                    <span className="font-medium">{updatedLabel}</span>
-                                                </div>
-                                            ) : null}
+                                            <div className="flex items-center justify-between">
+                                                <span>Updated</span>
+                                                <span className="font-medium text-slate-700">{updatedLabel || "N/A"}</span>
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-2 pt-2">
@@ -274,7 +310,7 @@ const CollectionsPage: React.FC = () => {
                                                 className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition inline-flex items-center justify-center gap-2"
                                             >
                                                 <BookOpen className="w-4 h-4" />
-                                                Manage words
+                                                Manage
                                             </button>
                                             <button
                                                 onClick={() => openEditModal(collection)}
@@ -307,10 +343,10 @@ const CollectionsPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                                        Collection
+                                        {editingCollection ? "Edit" : "Create"}
                                     </p>
                                     <h2 className="text-lg font-semibold text-slate-900">
-                                        {editingCollection ? "Edit Collection" : "Create New Collection"}
+                                        {editingCollection ? "Edit Collection" : "New Library Collection"}
                                     </h2>
                                 </div>
                             </div>
@@ -325,7 +361,7 @@ const CollectionsPage: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="space-y-5 text-sm">
+                        <div className="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-2">
                             {modalError && (
                                 <div className="px-3 py-2 rounded-lg bg-rose-50 text-rose-700 border border-rose-100 text-xs">
                                     {modalError}
@@ -334,13 +370,67 @@ const CollectionsPage: React.FC = () => {
 
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Collection Name *
+                                    Name *
                                 </label>
                                 <Input
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     maxLength={255}
+                                    placeholder="e.g. Business English"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none min-h-[80px]"
+                                    placeholder="What is this collection about?"
+                                    maxLength={5000}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1">
+                                    Image URL
+                                </label>
+                                <Input
+                                    value={image}
+                                    onChange={(e) => setImage(e.target.value)}
+                                    placeholder="https://..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                                        Type
+                                    </label>
+                                    <select
+                                        value={type}
+                                        onChange={(e) => setType(e.target.value as "LIBRARY" | "USER")}
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none bg-white"
+                                    >
+                                        <option value="LIBRARY">Library (Public)</option>
+                                        <option value="USER">User (Private)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                                        Price (Gems)
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        value={price}
+                                        onChange={(e) => setPrice(e.target.value)}
+                                        placeholder="0 for free"
+                                        min={0}
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Leave empty or 0 for free.</p>
+                                </div>
                             </div>
                         </div>
 
@@ -356,7 +446,7 @@ const CollectionsPage: React.FC = () => {
                             </Btn.Secondary>
 
                             <Btn.Primary onClick={handleSaveCollection} disabled={saving}>
-                                {saving ? "Saving..." : editingCollection ? "Save Changes" : "Create"}
+                                {saving ? "Saving..." : "Save Collection"}
                             </Btn.Primary>
                         </div>
                     </div>
@@ -433,3 +523,4 @@ const CollectionsPage: React.FC = () => {
 };
 
 export default CollectionsPage;
+

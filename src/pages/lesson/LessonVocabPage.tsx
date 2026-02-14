@@ -309,10 +309,18 @@ const LessonVocabPage = () => {
         if (url) void new Audio(url).play();
     };
 
-    const getWordDef = (w: VocabWord) =>
-        (w.word_definition as VocabWord["word_definition"] | undefined) ||
-        (w as unknown as { wordDefinition?: VocabWord["word_definition"] }).wordDefinition ||
-        undefined;
+    const getWordDef = (w: VocabWord) => {
+        // map new structure to old interface if needed, or just return the primary sense
+        const sense = w.senses?.[0];
+        return sense ? {
+            meaning: {
+                definition: sense.definition,
+                translation: sense.translation,
+                example: sense.examples?.[0]
+            },
+            pronunciations: w.pronunciations
+        } : undefined;
+    };
 
     const handleLoadWords = async () => {
         if (!Number.isFinite(numericLessonId) || numericLessonId <= 0) {
@@ -429,13 +437,13 @@ const LessonVocabPage = () => {
                 byId.set(w.id, w);
             }
         });
-        return Array.from(byId.values()).sort((a, b) => a.word.localeCompare(b.word));
+        return Array.from(byId.values()).sort((a, b) => (a.lemma || "").localeCompare(b.lemma || ""));
     }, [wordsByLessonId]);
 
     const filteredWords = useMemo(() => {
         const term = wordSearch.trim().toLowerCase();
         if (!term) return uniqueWords;
-        return uniqueWords.filter((w) => w.word.toLowerCase().includes(term));
+        return uniqueWords.filter((w) => (w.lemma || "").toLowerCase().includes(term));
     }, [uniqueWords, wordSearch]);
 
     const progress =
@@ -753,11 +761,10 @@ const LessonVocabPage = () => {
                                                             key={candidate.key}
                                                             type="button"
                                                             onClick={() => toggleWordSelection(detail.id, candidate.key)}
-                                                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                                                                isSelected
-                                                                    ? "bg-blue-600 border-blue-600 text-white"
-                                                                    : "bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-700"
-                                                            }`}
+                                                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${isSelected
+                                                                ? "bg-blue-600 border-blue-600 text-white"
+                                                                : "bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-700"
+                                                                }`}
                                                         >
                                                             {candidate.word}
                                                         </button>
@@ -929,7 +936,7 @@ const LessonVocabPage = () => {
                             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                                 {filteredWords.map((w) => {
                                     const def = getWordDef(w);
-                                    const meaning = def?.meaning ?? {};
+                                    const meaning = def?.meaning ?? { definition: "", translation: "", example: "" };
                                     const pronunciations = def?.pronunciations ?? [];
                                     const top = pronunciations[0];
 
@@ -941,7 +948,7 @@ const LessonVocabPage = () => {
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div className="text-sm font-semibold text-slate-900">
-                                                        {w.word}
+                                                        {w.lemma || w.word}
                                                     </div>
                                                     {top?.ipa ? (
                                                         <div className="text-xs text-slate-500">{top.ipa}</div>

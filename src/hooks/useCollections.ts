@@ -14,6 +14,11 @@ const normalizeCollection = (dto: CollectionListItemDTO | Record<string, any>): 
     return {
         id: Number(raw.id ?? 0),
         name: raw.collection_name ?? raw.collectionName ?? raw.name ?? "",
+        description: raw.description,
+        image: raw.image,
+        type: raw.type ?? "USER",
+        price: typeof raw.price === "number" ? raw.price : undefined,
+        status: Number(raw.status ?? 1),
         created_at: raw.created_at ?? raw.createdAt ?? undefined,
         updated_at: raw.updated_at ?? raw.updatedAt ?? undefined,
         total_words: raw.total_words ?? raw.totalWords ?? raw.word_count ?? raw.wordCount ?? undefined,
@@ -25,6 +30,19 @@ export function useCollections() {
         queryKey: COLLECTIONS_QUERY_KEY,
         queryFn: async () => {
             const res = await api.getCollections();
+            if (res?.data && Array.isArray(res.data)) {
+                return res.data.map((dto) => normalizeCollection(dto));
+            }
+            return [];
+        },
+    });
+}
+
+export function useLibraryCollections(page = 0, size = 100) {
+    return useQuery({
+        queryKey: [...COLLECTIONS_QUERY_KEY, "library", page, size],
+        queryFn: async () => {
+            const res = await api.getLibraryCollections(page, size);
             if (res?.data && Array.isArray(res.data)) {
                 return res.data.map((dto) => normalizeCollection(dto));
             }

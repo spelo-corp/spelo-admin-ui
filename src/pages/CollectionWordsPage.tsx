@@ -24,8 +24,8 @@ import {
 } from "../hooks/useCollections";
 
 const getWordMeaning = (word: VocabWord) => {
-    const def = word.word_definition ?? word.wordDefinition;
-    return def?.meaning?.definition ?? def?.meaning?.translation ?? "";
+    const sense = word.senses?.[0];
+    return sense?.definition ?? sense?.translation ?? "";
 };
 
 const CollectionWordsPage: React.FC = () => {
@@ -101,7 +101,7 @@ const CollectionWordsPage: React.FC = () => {
         setAddError(null);
 
         const payload = selectedWords.map((word) => ({
-            terminology: word.word,
+            terminology: word.lemma || word.word || "",
             word_id: word.id,
             collection_id: parsedId,
         }));
@@ -262,11 +262,10 @@ const CollectionWordsPage: React.FC = () => {
                             {filteredTerminologies.map((item) => (
                                 <div
                                     key={`${item.word_id}-${item.terminology}`}
-                                    className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2 transition ${
-                                        selectedTerminologyId === item.word_id
+                                    className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2 transition ${selectedTerminologyId === item.word_id
                                             ? "border-brand/40 bg-brand/10"
                                             : "border-slate-100 bg-slate-50/60 hover:bg-slate-50"
-                                    }`}
+                                        }`}
                                     onClick={() => setSelectedTerminologyId(item.word_id)}
                                     role="button"
                                     tabIndex={0}
@@ -364,7 +363,7 @@ const CollectionWordsPage: React.FC = () => {
                                         className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2"
                                     >
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800">{word.word}</p>
+                                            <p className="text-sm font-semibold text-slate-800">{word.lemma}</p>
                                             <p className="text-xs text-slate-400">ID #{word.id}</p>
                                             {meaning ? (
                                                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">
@@ -375,11 +374,10 @@ const CollectionWordsPage: React.FC = () => {
                                         <button
                                             onClick={() => handleSelectWord(word)}
                                             disabled={isSelected}
-                                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
-                                                isSelected
+                                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition ${isSelected
                                                     ? "bg-emerald-100 text-emerald-700 cursor-default"
                                                     : "bg-brand/10 text-brand hover:bg-brand/20"
-                                            }`}
+                                                }`}
                                         >
                                             {isSelected ? (
                                                 <>
