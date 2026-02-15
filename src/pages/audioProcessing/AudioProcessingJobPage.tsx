@@ -116,8 +116,8 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         setFinalizeStatus({ type: null, message: "" });
         setError(null);
 
-        if (job.status !== "COMPLETED") {
-            setFinalizeStatus({ type: "error", message: "Job must be COMPLETED before finalizing." });
+        if (job.status !== "COMPLETED" && job.status !== "REVIEWING") {
+            setFinalizeStatus({ type: "error", message: "Job must be COMPLETED or REVIEWING before finalizing." });
             return;
         }
 
@@ -215,8 +215,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         job.status === "WAITING_FOR_INPUT" ||
         activelyProcessing.includes(job.status as typeof activelyProcessing[number]);
 
-    const showFinalize = !readOnly && job.status === "COMPLETED";
-    const SubmitButton = showFinalize ? Btn.HeroSecondary : Btn.HeroPrimary;
+    const showFinalize = !readOnly && (job.status === "COMPLETED" || job.status === "REVIEWING");
 
     return (
         <div className="flex flex-col h-full gap-8 px-8 py-6">
@@ -250,7 +249,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                         </Btn.HeroSecondary>
                         {mode !== "review" && (
                             <>
-                                {showFinalize && (
+                                {showFinalize ? (
                                     <Btn.HeroPrimary onClick={handleFinalizeListening} disabled={finalizing}>
                                         {finalizing ? (
                                             <>
@@ -260,24 +259,25 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                                         ) : (
                                             <>
                                                 <CheckCircle2 className="w-4 h-4" />
-                                                Finalize Listening
+                                                Finalize Job
+                                            </>
+                                        )}
+                                    </Btn.HeroPrimary>
+                                ) : (
+                                    <Btn.HeroPrimary onClick={handleSubmitJob} disabled={disableSubmit}>
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Submitting…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                Submit Job
                                             </>
                                         )}
                                     </Btn.HeroPrimary>
                                 )}
-                                <SubmitButton onClick={handleSubmitJob} disabled={disableSubmit}>
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Submitting…
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Submit Job
-                                        </>
-                                    )}
-                                </SubmitButton>
                             </>
                         )}
                     </>
@@ -292,8 +292,8 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                 {finalizeStatus.type ? (
                     <div
                         className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${finalizeStatus.type === "success"
-                                ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
-                                : "text-rose-50 bg-rose-500/15 border-rose-300/25"
+                            ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
+                            : "text-rose-50 bg-rose-500/15 border-rose-300/25"
                             }`}
                     >
                         {finalizeStatus.type === "success" ? (

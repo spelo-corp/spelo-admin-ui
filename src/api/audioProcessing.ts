@@ -433,6 +433,16 @@ async function finalizeAudioProcessingJob(jobId: number) {
     );
 }
 
+async function refineBoundaries(jobId: number) {
+    const res = await handle<{ success?: boolean; data?: any }>(
+        await fetch(`${AUDIO_BASE_URL}/audio-jobs/${jobId}/refine-boundaries`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+        })
+    );
+    return mapSingleJob(res);
+}
+
 async function updateJobStatus(
     jobId: number,
     payload: { status: JobServiceStatus; reason?: string }
@@ -462,5 +472,6 @@ export const audioApi = {
     editAudioJob,
     submitExistingAudioProcessingJob,
     finalizeAudioProcessingJob,
+    refineBoundaries,
     updateJobStatus,
 };

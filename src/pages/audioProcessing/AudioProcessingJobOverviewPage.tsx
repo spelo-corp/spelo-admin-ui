@@ -128,6 +128,26 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                             <span>Current state</span>
                             <StatusBadge status={job.status} />
                         </div>
+                        {job.currentStep && (
+                            <div className="flex items-center justify-between">
+                                <span>Current step</span>
+                                <span className="font-semibold text-slate-900">{job.currentStep}</span>
+                            </div>
+                        )}
+                        {job.progressPercent != null && (
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <span>Progress</span>
+                                    <span className="font-semibold text-slate-900">{job.progressPercent}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                    <div
+                                        className="bg-brand h-1.5 rounded-full transition-all duration-300"
+                                        style={{ width: `${job.progressPercent}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between">
                             <span>Sentences</span>
                             <span className="font-semibold text-slate-900">{sentences.length}</span>

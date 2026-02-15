@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Clock, Loader2, Play, Save } from "lucide-react";
+import { Clock, Loader2, Play, Save, Wand2 } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { WaveformRegionsPlayer } from "../../components/audio/WaveformRegionsPlayer";
@@ -23,6 +23,7 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
     const [activeSentence, setActiveSentence] = useState<number | null>(null);
     const [selectedSentenceIndexes, setSelectedSentenceIndexes] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
+    const [refining, setRefining] = useState(false);
 
     // Fetch presigned URL for the audio
     const { url: presignedAudioUrl, loading: loadingUrl } = usePresignedAudioUrl(job.audioUrl);
@@ -163,6 +164,25 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
         }
     };
 
+    const handleRefine = async () => {
+        setRefining(true);
+        setError(null);
+        try {
+            // Save current sentences first so the server has the latest edits
+            await api.updateAudioProcessingSentences(job.id, sentences);
+            // Call refine endpoint
+            const refined = await api.refineBoundaries(job.id);
+            if (refined.sentences && refined.sentences.length > 0) {
+                setSentences(refined.sentences);
+                setJob((prev) => (prev ? { ...prev, sentences: refined.sentences } : prev));
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to refine boundaries.");
+        } finally {
+            setRefining(false);
+        }
+    };
+
     const waveformRegions = useMemo(
         () =>
             sentences.map((sentence, index) => ({
@@ -271,6 +291,22 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                         >
                             Clear selection
                         </button>
+                        <Btn.Secondary
+                            onClick={handleRefine}
+                            disabled={refining || readOnly || sentences.length < 2}
+                        >
+                            {refining ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Refining…
+                                </>
+                            ) : (
+                                <>
+                                    <Wand2 className="w-4 h-4" />
+                                    Refine Boundaries
+                                </>
+                            )}
+                        </Btn.Secondary>
                         <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
                             {saving ? (
                                 <>
@@ -299,10 +335,10 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                                 className={`
                                     border rounded-xl p-3 space-y-2
                                     ${isActive
-                                    ? "border-brand bg-brand-soft/60"
-                                    : isSelected
-                                        ? "border-sky-200 bg-sky-50"
-                                        : "border-slate-200 bg-slate-50"}
+                                        ? "border-brand bg-brand-soft/60"
+                                        : isSelected
+                                            ? "border-sky-200 bg-sky-50"
+                                            : "border-slate-200 bg-slate-50"}
                                 `}
                             >
                                 <div className="flex items-center justify-between text-xs">
