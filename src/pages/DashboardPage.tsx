@@ -88,6 +88,8 @@ const DashboardPage: React.FC = () => {
         if (upper === "PARTIAL") return "bg-amber-100 text-amber-700";
         if (upper === "RUNNING") return "bg-sky-100 text-sky-700";
         if (upper === "PENDING") return "bg-slate-100 text-slate-700";
+        if (upper === "WAITING_FOR_INPUT") return "bg-violet-100 text-violet-700";
+        if (upper === "REVIEWING") return "bg-indigo-100 text-indigo-700";
         return "bg-slate-100 text-slate-700";
     };
 

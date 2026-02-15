@@ -8,7 +8,8 @@ export type AudioJobStatus =
     | "REPROCESSING"
     | "PENDING"
     | "RUNNING"
-    | "PARTIAL";
+    | "PARTIAL"
+    | "REVIEWING";
 
 export interface AudioSentence {
     text: string;

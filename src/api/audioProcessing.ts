@@ -110,6 +110,7 @@ const normalizeAudioStatus = (status?: string): AudioJob["status"] => {
     if (upper === "PARTIAL") return "PARTIAL";
     if (upper === "REPROCESSING") return "REPROCESSING";
     if (upper === "PROCESSING") return "PROCESSING";
+    if (upper === "REVIEWING") return "REVIEWING";
     return "PROCESSING";
 };
 

@@ -20,6 +20,7 @@ const statusFilters: StatusFilter[] = [
     "FINALIZED",
     "REPROCESSING",
     "PARTIAL",
+    "REVIEWING",
 ];
 
 const AudioProcessingDashboardPage: React.FC = () => {

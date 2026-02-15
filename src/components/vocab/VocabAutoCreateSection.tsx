@@ -30,6 +30,8 @@ const statusStyles = {
     FAILED: "border-rose-100 bg-rose-50 text-rose-700",
     COMPLETED: "border-emerald-100 bg-emerald-50 text-emerald-700",
     PARTIAL: "border-amber-100 bg-amber-50 text-amber-700",
+    WAITING_FOR_INPUT: "border-violet-100 bg-violet-50 text-violet-700",
+    REVIEWING: "border-indigo-100 bg-indigo-50 text-indigo-700",
 };
 
 const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {

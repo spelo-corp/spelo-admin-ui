@@ -9,7 +9,7 @@ import type { JobServiceStatus } from "../../types/jobService";
 
 function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null {
     const upper = status.toUpperCase();
-    if (upper === "WAITING_FOR_INPUT") return "PENDING";
+    if (upper === "WAITING_FOR_INPUT") return "WAITING_FOR_INPUT";
     if (upper === "READY_TO_PROCESS") return "PENDING";
     if (upper === "PENDING") return "PENDING";
     if (upper === "RUNNING") return "RUNNING";
@@ -19,6 +19,7 @@ function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null 
     if (upper === "FINALIZED") return "COMPLETED";
     if (upper === "PARTIAL") return "PARTIAL";
     if (upper === "FAILED") return "FAILED";
+    if (upper === "REVIEWING") return "REVIEWING";
     return null;
 }
 
@@ -166,6 +167,8 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                                 <option value="COMPLETED">COMPLETED</option>
                                 <option value="PARTIAL">PARTIAL</option>
                                 <option value="FAILED">FAILED</option>
+                                <option value="WAITING_FOR_INPUT">WAITING FOR INPUT</option>
+                                <option value="REVIEWING">REVIEWING</option>
                             </select>
                             <textarea
                                 className="w-full min-h-[72px] px-3 py-2 rounded-xl border border-slate-200 text-sm disabled:opacity-60"

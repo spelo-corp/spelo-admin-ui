@@ -5,17 +5,18 @@ export type JobType =
     | "VOCAB_EXTRACT"
     | "VOCAB_SCRIPT_MAP"
     | "LESSON_TRANSLATE"
-    | "AUDIO_PROCESSING"
-    | "LESSON_BUILD"
     | "AI_SCORING"
-    | "UPLOAD_TO_R2";
+    | "UPLOAD_TO_R2"
+    | "COLLECTION_GENERATE";
 
 export type JobServiceStatus =
     | "PENDING"
     | "RUNNING"
     | "COMPLETED"
     | "PARTIAL"
-    | "FAILED";
+    | "FAILED"
+    | "WAITING_FOR_INPUT"
+    | "REVIEWING";
 
 // Main Job interface matching /api/v1/jobs response
 export interface Job {

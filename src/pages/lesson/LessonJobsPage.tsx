@@ -294,11 +294,10 @@ const LessonJobsPage: React.FC = () => {
                                                             "VOCAB_EXTRACT": "bg-purple-100 text-purple-700",
                                                             "VOCAB_SCRIPT_MAP": "bg-purple-100 text-purple-700",
                                                             "AUDIO_ALIGN": "bg-blue-100 text-blue-700",
-                                                            "AUDIO_PROCESSING": "bg-blue-100 text-blue-700",
                                                             "LESSON_TRANSLATE": "bg-green-100 text-green-700",
-                                                            "LESSON_BUILD": "bg-green-100 text-green-700",
                                                             "AI_SCORING": "bg-amber-100 text-amber-700",
                                                             "UPLOAD_TO_R2": "bg-cyan-100 text-cyan-700",
+                                                            "COLLECTION_GENERATE": "bg-teal-100 text-teal-700",
                                                             "UNKNOWN": "bg-slate-100 text-slate-700",
                                                         };
                                                         const colorClass = badgeColors[jobType] || badgeColors["UNKNOWN"];

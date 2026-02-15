@@ -208,11 +208,12 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         );
     }
 
+    const activelyProcessing = ["PROCESSING", "REPROCESSING", "RUNNING"] as const;
     const disableSubmit =
         readOnly ||
         submitting ||
         job.status === "WAITING_FOR_INPUT" ||
-        POLL_STATUSES.includes(job.status);
+        activelyProcessing.includes(job.status as typeof activelyProcessing[number]);
 
     const showFinalize = !readOnly && job.status === "COMPLETED";
     const SubmitButton = showFinalize ? Btn.HeroSecondary : Btn.HeroPrimary;

@@ -16,6 +16,7 @@ const badgeStyles: Record<AudioJobStatus, string> = {
     FINALIZED: "bg-blue-50 text-blue-700 border border-blue-100",
     REPROCESSING: "bg-orange-50 text-orange-700 border border-orange-100",
     PARTIAL: "bg-orange-50 text-orange-700 border border-orange-100",
+    REVIEWING: "bg-indigo-50 text-indigo-700 border border-indigo-100",
 };
 
 const dotStyles: Record<AudioJobStatus, string> = {
@@ -29,6 +30,7 @@ const dotStyles: Record<AudioJobStatus, string> = {
     FINALIZED: "bg-blue-500",
     REPROCESSING: "bg-orange-500 animate-pulse",
     PARTIAL: "bg-orange-500 animate-pulse",
+    REVIEWING: "bg-indigo-500",
 };
 
 export const StatusBadge: React.FC<Props> = ({ status }) => (
