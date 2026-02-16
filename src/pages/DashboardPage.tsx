@@ -409,9 +409,9 @@ const DashboardPage: React.FC = () => {
                             <div className="text-center text-slate-500 text-sm">No data.</div>
                         ) : (
                             ([
-                                { label: "Stuck (RUNNING)", items: alerts.stuck_jobs },
-                                { label: "Failed", items: alerts.failed_jobs },
-                                { label: "Partial", items: alerts.partial_jobs },
+                                { label: "Stuck (RUNNING)", items: alerts.stuck_jobs ?? [] },
+                                { label: "Failed", items: alerts.failed_jobs ?? [] },
+                                { label: "Partial", items: alerts.partial_jobs ?? [] },
                             ] as const).map((section) => (
                                 <div key={section.label} className="space-y-2">
                                     <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">

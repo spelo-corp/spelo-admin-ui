@@ -7,7 +7,7 @@ import type {
     MapVocabScriptResponse,
     VocabJob,
 } from "../types/vocabJob.ts";
-import { BASE_URL_V2, JOB_BASE_URL, getAuthHeaders, handle } from "./base";
+import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
 
 function mapJobDetailToVocabJob(payload: any): VocabJob {
     const root = (payload?.data ?? payload ?? {}) as Record<string, any>;
@@ -118,7 +118,7 @@ async function autoCreateVocab(payload: AutoCreateVocabRequest) {
 
 async function getVocabJob(id: number) {
     const res = await handle<{ success?: boolean; data?: any } | any>(
-        await fetch(`${JOB_BASE_URL}/api/v1/jobs/${id}`, {
+        await fetch(`${BASE_URL_V2}/api/v1/jobs/${id}`, {
             headers: getAuthHeaders(),
         })
     );

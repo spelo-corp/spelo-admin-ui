@@ -1,6 +1,6 @@
 import type { ProcessingJob, ProcessingJobDetail } from "../types";
 import type { JobDetailResponse } from "../types/jobService";
-import { BASE_URL_V2, JOB_BASE_URL, handle, getAuthHeaders } from "./base";
+import { BASE_URL_V2, handle, getAuthHeaders } from "./base";
 
 // Get jobs from /api/v1/jobs with optional filtering
 async function getJobs(params?: {
@@ -20,7 +20,7 @@ async function getJobs(params?: {
     const qs = query.toString();
 
     return handle<{ success: boolean; code: number; message: string; data: ProcessingJob[]; total: number; page: number; size: number }>(
-        await fetch(`${JOB_BASE_URL}/api/v1/jobs${qs ? `?${qs}` : ""}`, {
+        await fetch(`${BASE_URL_V2}/api/v1/jobs${qs ? `?${qs}` : ""}`, {
             headers: getAuthHeaders(),
         })
     );
@@ -28,7 +28,7 @@ async function getJobs(params?: {
 
 async function getJobServiceDetail<TDetail = unknown>(jobId: number) {
     return handle<JobDetailResponse<TDetail>>(
-        await fetch(`${JOB_BASE_URL}/api/v1/jobs/${jobId}`, {
+        await fetch(`${BASE_URL_V2}/api/v1/jobs/${jobId}`, {
             headers: getAuthHeaders(),
         })
     );
