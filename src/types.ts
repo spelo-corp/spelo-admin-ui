@@ -162,12 +162,17 @@ export interface LessonDetail {
     gems?: number;
 }
 
+export interface ExampleEntry {
+    sentence: string;
+    translation?: string;
+}
+
 export interface VocabSense {
     id: number;
     pos: string;
     definition: string;
     translation: string;
-    examples: string[];
+    examples: ExampleEntry[];
 }
 
 export interface VocabPronunciation {

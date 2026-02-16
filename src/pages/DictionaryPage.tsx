@@ -127,7 +127,7 @@ const DictionaryPage: React.FC = () => {
             ipa: primaryPron.ipa || "",
             definition: primarySense.definition || "",
             translation: primarySense.translation || "",
-            example: primarySense.examples?.[0] || "",
+            example: primarySense.examples?.[0]?.sentence || "",
         };
     };
 
@@ -384,10 +384,17 @@ const DictionaryPage: React.FC = () => {
                                                                 → {primarySense.translation || "N/A"}
                                                             </p>
                                                             <div className="mt-1 space-y-1">
-                                                                {primarySense.examples?.slice(0, 1).map((ex, i) => (
-                                                                    <p key={i} className="text-sm italic text-slate-500">
-                                                                        “{ex}”
-                                                                    </p>
+                                                                {primarySense.examples?.slice(0, 2).map((ex, i) => (
+                                                                    <div key={i}>
+                                                                        <p className="text-sm italic text-slate-500">
+                                                                            "{ex.sentence}"
+                                                                        </p>
+                                                                        {ex.translation && (
+                                                                            <p className="text-xs text-slate-400">
+                                                                                {ex.translation}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
                                                                 ))}
                                                                 {!primarySense.examples?.length && (
                                                                     <p className="text-sm italic text-slate-400">No examples</p>

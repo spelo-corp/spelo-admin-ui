@@ -31,7 +31,6 @@ export interface AutoCreateVocabRequest {
 
 export interface ExtractVocabFromLessonRequest {
     include_stop_words?: boolean;
-    min_word_length?: number;
 }
 
 export interface ExtractVocabFromLessonResponse {

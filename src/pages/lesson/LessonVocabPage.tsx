@@ -64,7 +64,6 @@ const LessonVocabPage = () => {
     const numericLessonId = Number(lessonId);
 
     const [includeStopWords, setIncludeStopWords] = useState(false);
-    const [minWordLength, setMinWordLength] = useState(2);
 
     const [extracting, setExtracting] = useState(false);
     const [extractError, setExtractError] = useState<string | null>(null);
@@ -194,8 +193,6 @@ const LessonVocabPage = () => {
             return;
         }
 
-        const resolvedMinLength = Math.max(1, Math.floor(minWordLength || 1));
-
         setExtracting(true);
         setExtractError(null);
         setExtractResult(null);
@@ -205,7 +202,6 @@ const LessonVocabPage = () => {
         try {
             const res = await api.extractVocabFromLesson(numericLessonId, {
                 include_stop_words: includeStopWords,
-                min_word_length: resolvedMinLength,
             });
 
             if (!res.success) {
@@ -316,7 +312,7 @@ const LessonVocabPage = () => {
             meaning: {
                 definition: sense.definition,
                 translation: sense.translation,
-                example: sense.examples?.[0]
+                example: sense.examples?.[0]?.sentence
             },
             pronunciations: w.pronunciations
         } : undefined;
@@ -486,32 +482,15 @@ const LessonVocabPage = () => {
                     </Btn.Primary>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                        <input
-                            type="checkbox"
-                            checked={includeStopWords}
-                            onChange={(e) => setIncludeStopWords(e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
-                        />
-                        Include stop words
-                    </label>
-
-                    <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-600">
-                            Min word length
-                        </label>
-                        <div className="max-w-[220px]">
-                            <Input
-                                type="number"
-                                min={1}
-                                step={1}
-                                value={minWordLength}
-                                onChange={(e) => setMinWordLength(Number(e.target.value))}
-                            />
-                        </div>
-                    </div>
-                </div>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                        type="checkbox"
+                        checked={includeStopWords}
+                        onChange={(e) => setIncludeStopWords(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
+                    />
+                    Include stop words
+                </label>
 
                 {extractError && (
                     <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">

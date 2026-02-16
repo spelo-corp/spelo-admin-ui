@@ -129,16 +129,15 @@ async function getVocabJob(id: number) {
 }
 
 async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFromLessonRequest) {
-    const body = {
-        include_stop_words: payload?.include_stop_words ?? false,
-        min_word_length: payload?.min_word_length ?? 2,
-    };
+    const skipStopWords = !(payload?.include_stop_words ?? false);
+
+    const query = new URLSearchParams();
+    query.set("skipStopWords", String(skipStopWords));
 
     return handle<{ success: boolean; data: ExtractVocabFromLessonResponse; message?: string }>(
-        await fetch(`${BASE_URL}/api/v1/admin/vocab/extract-from-lesson/${lessonId}`, {
+        await fetch(`${BASE_URL}/api/v1/admin/vocab/extract-from-lesson/${lessonId}?${query.toString()}`, {
             method: "POST",
             headers: getAuthHeaders(),
-            body: JSON.stringify(body),
         })
     );
 }
