@@ -1,61 +1,82 @@
+import { BASE_URL } from "../api/base";
+
 const STORAGE_KEY = "spelo_admin_auth_v1";
 
-const DEFAULT_USERNAME = (import.meta as any)?.env?.VITE_ADMIN_USER ?? "spelo_admin";
-const DEFAULT_PASSWORD = (import.meta as any)?.env?.VITE_ADMIN_PASS ?? "spelo_admin_pass";
-
 type StoredAuth = {
-    loggedIn: boolean;
+    token: string;
     username: string;
     loggedInAt: number;
+    expiresAt: number;
 };
 
 export function isAdminLoggedIn(): boolean {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw) as Partial<StoredAuth>;
-        return parsed.loggedIn === true;
-    } catch {
-        return false;
-    }
+    const auth = getStoredAuth();
+    if (!auth) return false;
+    return auth.expiresAt > Date.now();
 }
 
 export function getAdminUsername(): string | null {
+    const auth = getStoredAuth();
+    return auth?.username ?? null;
+}
+
+export function getAdminToken(): string | null {
+    const auth = getStoredAuth();
+    if (!auth) return null;
+    if (auth.expiresAt <= Date.now()) {
+        adminLogout();
+        return null;
+    }
+    return auth.token;
+}
+
+function getStoredAuth(): StoredAuth | null {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
-        const parsed = JSON.parse(raw) as Partial<StoredAuth>;
-        return typeof parsed.username === "string" ? parsed.username : null;
+        return JSON.parse(raw) as StoredAuth;
     } catch {
         return null;
     }
 }
 
-export function adminLogin(payload: { username: string; password: string }): {
+export async function adminLogin(payload: { username: string; password: string }): Promise<{
     success: boolean;
     message?: string;
-} {
-    const username = payload.username.trim();
-    const password = payload.password;
+}> {
+    try {
+        const response = await fetch(`${BASE_URL}/api/admin/auth/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
 
-    if (!username || !password) {
-        return { success: false, message: "Username and password are required." };
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                return { success: false, message: "Invalid credentials" };
+            }
+            return { success: false, message: "Login failed" };
+        }
+
+        const data = await response.json();
+        const stored: StoredAuth = {
+            token: data.token,
+            username: payload.username,
+            loggedInAt: Date.now(),
+            expiresAt: data.expire_at || (Date.now() + 24 * 60 * 60 * 1000)
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        return { success: true };
+
+    } catch (e) {
+        console.error("Login error", e);
+        return { success: false, message: "Connection error" };
     }
-
-    if (username !== DEFAULT_USERNAME || password !== DEFAULT_PASSWORD) {
-        return { success: false, message: "Invalid username or password." };
-    }
-
-    const stored: StoredAuth = {
-        loggedIn: true,
-        username,
-        loggedInAt: Date.now(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    return { success: true };
 }
 
 export function adminLogout() {
     localStorage.removeItem(STORAGE_KEY);
+    window.location.href = "/admin/login";
 }
-

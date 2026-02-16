@@ -38,7 +38,7 @@ const AdminLoginPage: React.FC = () => {
         setError(null);
 
         try {
-            const res = adminLogin({ username, password });
+            const res = await adminLogin({ username, password });
             if (!res.success) {
                 setError(res.message ?? "Login failed.");
                 return;
@@ -70,7 +70,7 @@ const AdminLoginPage: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="mt-5 space-y-3">
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-700">Username</label>
+                        <label className="text-xs font-semibold text-slate-700">Username or Email</label>
                         <Input
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}

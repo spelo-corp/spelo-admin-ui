@@ -1,7 +1,9 @@
+import { getAdminToken } from "../auth/adminAuth";
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://api.spelo.dev";
 
 function getAuthHeaders(options?: { contentType?: string | null }) {
-    const token = import.meta.env.VITE_AUTH_TOKEN ?? "";
+    const token = getAdminToken() ?? import.meta.env.VITE_AUTH_TOKEN ?? "";
 
     const headers: Record<string, string> = {
         Authorization: token ? `Bearer ${token}` : "",
