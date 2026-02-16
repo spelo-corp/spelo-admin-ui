@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
-import { BASE_URL_V2 } from "../../api/base";
+import { BASE_URL } from "../../api/base";
 import type { LessonOutletContext } from "../LessonViewPage";
 import type { Lesson, LessonLevel } from "../../types";
 
@@ -53,7 +53,7 @@ const LessonInfoPage: React.FC = () => {
     const resolvedImage = useMemo(() => {
         if (!image.trim()) return "";
         try {
-            return new URL(image.trim(), BASE_URL_V2).toString();
+            return new URL(image.trim(), BASE_URL).toString();
         } catch {
             return image.trim();
         }

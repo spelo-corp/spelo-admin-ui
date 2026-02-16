@@ -1,10 +1,10 @@
-import { BASE_URL_V2, handle, getAuthHeaders } from "./base";
+import { BASE_URL, handle, getAuthHeaders } from "./base";
 import type { Category, CategoryRequestDTO, CategoryListResponse } from "../types/category";
 
 // Get all categories
 async function getCategories() {
     return handle<CategoryListResponse>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories?parent_id=0`, {
+        await fetch(`${BASE_URL}/api/v1/categories?parent_id=0`, {
             headers: getAuthHeaders(),
         })
     );
@@ -13,7 +13,7 @@ async function getCategories() {
 // Get category by ID
 async function getCategoryById(id: number) {
     return handle<{ success: boolean; data: Category }>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/categories/${id}`, {
             headers: getAuthHeaders(),
         })
     );
@@ -22,7 +22,7 @@ async function getCategoryById(id: number) {
 // Create new category
 async function createCategory(data: CategoryRequestDTO) {
     return handle<{ success: boolean; data: Category }>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories`, {
+        await fetch(`${BASE_URL}/api/v1/categories`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(data),
@@ -33,7 +33,7 @@ async function createCategory(data: CategoryRequestDTO) {
 // Update existing category
 async function updateCategory(id: number, data: CategoryRequestDTO) {
     return handle<{ success: boolean; data: Category }>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/categories/${id}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(data),
@@ -44,7 +44,7 @@ async function updateCategory(id: number, data: CategoryRequestDTO) {
 // Delete category (soft delete)
 async function deleteCategory(id: number) {
     return handle<{ success: boolean }>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/categories/${id}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
         })
@@ -57,7 +57,7 @@ async function uploadCategoryImage(id: number, file: File) {
     formData.append("file", file);
 
     return handle<{ success: boolean; data: Category }>(
-        await fetch(`${BASE_URL_V2}/api/v1/categories/${id}/image/upload`, {
+        await fetch(`${BASE_URL}/api/v1/categories/${id}/image/upload`, {
             method: "PATCH",
             headers: getAuthHeaders({ contentType: null }),
             body: formData,

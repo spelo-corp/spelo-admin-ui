@@ -1,11 +1,11 @@
 import type { AudioFile } from "../types";
-import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 const AUDIO_BUCKET = "spelo-audio";
 
 async function getAudioFiles() {
     return handle<{ success: boolean; files: AudioFile[] }>(
-        await fetch(`${BASE_URL_V2}/api/admin/audio-files`, {
+        await fetch(`${BASE_URL}/api/admin/audio-files`, {
             headers: getAuthHeaders(),
         })
     );
@@ -18,7 +18,7 @@ async function uploadAudioFile(payload: {
     duration?: number;
 }) {
     return handle<{ success: boolean; file: AudioFile }>(
-        await fetch(`${BASE_URL_V2}/api/admin/audio-files`, {
+        await fetch(`${BASE_URL}/api/admin/audio-files`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -28,7 +28,7 @@ async function uploadAudioFile(payload: {
 
 async function deleteAudioFile(id: number) {
     return handle<{ success: boolean }>(
-        await fetch(`${BASE_URL_V2}/api/admin/audio-files/${id}`, {
+        await fetch(`${BASE_URL}/api/admin/audio-files/${id}`, {
             method: "DELETE",
         })
     );
@@ -41,7 +41,7 @@ async function uploadLocalTranscript(file: File, lessonId: number) {
     form.append("lesson_id", lessonId.toString());
 
     const headers = getAuthHeaders({ contentType: null });
-    const res = await fetch(`${BASE_URL_V2}/api/upload-local/transcript`, {
+    const res = await fetch(`${BASE_URL}/api/upload-local/transcript`, {
         method: "POST",
         headers,
         body: form,
@@ -56,7 +56,7 @@ async function uploadLocalAudio(file: File, lessonId: number) {
     form.append("lesson_id", lessonId.toString());
 
     const headers = getAuthHeaders({ contentType: null });
-    const res = await fetch(`${BASE_URL_V2}/api/upload-local/audio`, {
+    const res = await fetch(`${BASE_URL}/api/upload-local/audio`, {
         method: "POST",
         headers,
         body: form,
@@ -69,7 +69,7 @@ async function uploadFile(file: File, bucketName: string = AUDIO_BUCKET) {
     const form = new FormData();
     form.append("file", file);
 
-    const res = await fetch(`${BASE_URL_V2}/api/v1/file/${bucketName}/upload`, {
+    const res = await fetch(`${BASE_URL}/api/v1/file/${bucketName}/upload`, {
         method: "POST",
         headers: getAuthHeaders({ contentType: null }),
         body: form,
@@ -85,7 +85,7 @@ async function uploadFile(file: File, bucketName: string = AUDIO_BUCKET) {
  * @returns The presigned URL for direct file access
  */
 async function getPresignedUrl(filename: string, bucket: string = AUDIO_BUCKET) {
-    const res = await fetch(`${BASE_URL_V2}/api/v1/file/presigned_url/${bucket}/${filename}`, {
+    const res = await fetch(`${BASE_URL}/api/v1/file/presigned_url/${bucket}/${filename}`, {
         method: "GET",
         headers: getAuthHeaders(),
     });
@@ -166,7 +166,7 @@ async function replaceFile(bucketName: string, objectName: string, file: File) {
     form.append("file", file);
 
     return handle<{ success: boolean; data?: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/file/replace`, {
+        await fetch(`${BASE_URL}/api/v1/file/replace`, {
             method: "POST",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
@@ -176,7 +176,7 @@ async function replaceFile(bucketName: string, objectName: string, file: File) {
 
 async function trimAudio(bucketName: string, objectName: string, segments: { start: number; end: number }[]) {
     return handle<{ success: boolean; data?: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/file/audio/trim`, {
+        await fetch(`${BASE_URL}/api/v1/file/audio/trim`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({

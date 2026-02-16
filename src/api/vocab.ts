@@ -7,7 +7,7 @@ import type {
     MapVocabScriptResponse,
     VocabJob,
 } from "../types/vocabJob.ts";
-import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 function mapJobDetailToVocabJob(payload: any): VocabJob {
     const root = (payload?.data ?? payload ?? {}) as Record<string, any>;
@@ -54,7 +54,7 @@ async function getVocab(params?: { q?: string; page?: number; size?: number }) {
         message?: string;
         code?: number;
     }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab?${query.toString()}`, {
+        await fetch(`${BASE_URL}/api/v1/vocab?${query.toString()}`, {
             method: "GET",
             headers: getAuthHeaders(),
         })
@@ -63,7 +63,7 @@ async function getVocab(params?: { q?: string; page?: number; size?: number }) {
 
 async function getVocabById(id: number) {
     return handle<{ success: boolean; data: VocabWord }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/vocab/${id}`, {
             method: "GET",
             headers: getAuthHeaders(),
         })
@@ -74,7 +74,7 @@ async function getVocabByIds(ids: number[]) {
     const query = new URLSearchParams();
     ids.forEach(id => query.append("ids", String(id)));
 
-    await fetch(`${BASE_URL_V2}/api/v1/vocab/ids?${query.toString()}`, {
+    await fetch(`${BASE_URL}/api/v1/vocab/ids?${query.toString()}`, {
         method: "GET",
         headers: getAuthHeaders(),
     });
@@ -88,7 +88,7 @@ async function createVocab(payload: {
     level?: string;
 }) {
     return handle<{ success: boolean; data: VocabWord }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab`, {
+        await fetch(`${BASE_URL}/api/v1/vocab`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
@@ -98,7 +98,7 @@ async function createVocab(payload: {
 
 async function updateVocab(id: number, payload: any) {
     return handle<{ success: boolean; data: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/vocab/${id}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
@@ -108,7 +108,7 @@ async function updateVocab(id: number, payload: any) {
 
 async function autoCreateVocab(payload: AutoCreateVocabRequest) {
     return handle<{ success: boolean; data: number }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/auto-create`, {
+        await fetch(`${BASE_URL}/api/v1/vocab/auto-create`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
@@ -118,7 +118,7 @@ async function autoCreateVocab(payload: AutoCreateVocabRequest) {
 
 async function getVocabJob(id: number) {
     const res = await handle<{ success?: boolean; data?: any } | any>(
-        await fetch(`${BASE_URL_V2}/api/v1/jobs/${id}`, {
+        await fetch(`${BASE_URL}/api/v1/jobs/${id}`, {
             headers: getAuthHeaders(),
         })
     );
@@ -135,7 +135,7 @@ async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFr
     };
 
     return handle<{ success: boolean; data: ExtractVocabFromLessonResponse; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/admin/vocab/extract-from-lesson/${lessonId}`, {
+        await fetch(`${BASE_URL}/api/v1/admin/vocab/extract-from-lesson/${lessonId}`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
@@ -148,7 +148,7 @@ async function mapVocabScriptForLesson(lessonId: number, payload?: MapVocabScrip
     const body = ids.length > 0 ? { listening_lesson_ids: ids } : {};
 
     return handle<{ success: boolean; data: MapVocabScriptResponse; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/vocab/map-script/${lessonId}`, {
+        await fetch(`${BASE_URL}/api/v1/vocab/map-script/${lessonId}`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),

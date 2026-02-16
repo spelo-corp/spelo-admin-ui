@@ -1,4 +1,4 @@
-import { BASE_URL_V2, getAuthHeaders, handle } from "./base";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 import { filesApi } from "./files";
 import type { AudioJob, AudioSentence } from "../types/audioProcessing";
 import type { JobListItemDTO, JobServiceStatus } from "../types/jobService";
@@ -244,7 +244,7 @@ async function createAudioProcessingJob(payload: {
     if (payload.bucketName) body.bucketName = payload.bucketName;
 
     return handle<{ success?: boolean; data?: any; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
@@ -268,7 +268,7 @@ async function updateAudioProcessingJob(
     if (payload.bucketName) body.bucketName = payload.bucketName;
 
     return handle<{ success?: boolean; data?: any; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
@@ -332,7 +332,7 @@ async function getAudioProcessingJobs(params?: {
     if (params?.size) query.set("size", String(params.size));
 
     const response = await handle<any>(
-        await fetch(`${BASE_URL_V2}/api/v1/jobs?${query.toString()}`, {
+        await fetch(`${BASE_URL}/api/v1/jobs?${query.toString()}`, {
             headers: getAuthHeaders(),
         })
     );
@@ -374,7 +374,7 @@ async function getAudioProcessingJobs(params?: {
 
 async function getAudioProcessingJob(jobId: number) {
     const res = await handle<{ success?: boolean; data?: any } | any>(
-        await fetch(`${BASE_URL_V2}/api/v1/jobs/${jobId}`, {
+        await fetch(`${BASE_URL}/api/v1/jobs/${jobId}`, {
             headers: getAuthHeaders(),
         })
     );
@@ -384,7 +384,7 @@ async function getAudioProcessingJob(jobId: number) {
 
 async function updateAudioProcessingSentences(jobId: number, sentences: AudioSentence[]) {
     return handle<{ success: boolean }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/sentences`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/sentences`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ sentences }),
@@ -397,7 +397,7 @@ async function replaceAudioForJob(jobId: number, file: File) {
     form.append("file", file);
 
     return handle<{ success: boolean }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/audio`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/audio`, {
             method: "PUT",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
@@ -407,7 +407,7 @@ async function replaceAudioForJob(jobId: number, file: File) {
 
 async function editAudioJob(jobId: number, segments: { start: number; end: number }[]) {
     return handle<{ success: boolean; data?: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/audio/trim`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/audio/trim`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ segments }),
@@ -417,7 +417,7 @@ async function editAudioJob(jobId: number, segments: { start: number; end: numbe
 
 async function submitExistingAudioProcessingJob(jobId: number) {
     return handle<{ success?: boolean; data?: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/process`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/process`, {
             method: "POST",
             headers: getAuthHeaders(),
         })
@@ -426,7 +426,7 @@ async function submitExistingAudioProcessingJob(jobId: number) {
 
 async function finalizeAudioProcessingJob(jobId: number) {
     return handle<{ success?: boolean; data?: any; message?: string }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/finalize`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/finalize`, {
             method: "POST",
             headers: getAuthHeaders(),
         })
@@ -435,7 +435,7 @@ async function finalizeAudioProcessingJob(jobId: number) {
 
 async function refineBoundaries(jobId: number) {
     const res = await handle<{ success?: boolean; data?: any }>(
-        await fetch(`${BASE_URL_V2}/api/v1/audio-jobs/${jobId}/refine-boundaries`, {
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/refine-boundaries`, {
             method: "POST",
             headers: getAuthHeaders(),
         })
@@ -451,7 +451,7 @@ async function updateJobStatus(
     if (payload.reason !== undefined) body.reason = payload.reason;
 
     const res = await handle<{ data?: JobListItemDTO } | JobListItemDTO>(
-        await fetch(`${BASE_URL_V2}/api/v1/jobs/${jobId}/status`, {
+        await fetch(`${BASE_URL}/api/v1/jobs/${jobId}/status`, {
             method: "PATCH",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),

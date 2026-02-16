@@ -1,4 +1,4 @@
-const BASE_URL_V2 = import.meta.env.VITE_API_BASE_URL ?? "https://api.spelo.dev";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://api.spelo.dev";
 
 function getAuthHeaders(options?: { contentType?: string | null }) {
     const token = import.meta.env.VITE_AUTH_TOKEN ?? "";
@@ -23,5 +23,5 @@ async function handle<T>(res: Response): Promise<T> {
     return await res.json() as Promise<T>;
 }
 
-export { BASE_URL_V2, getAuthHeaders, handle };
+export { BASE_URL, getAuthHeaders, handle };
 
