@@ -7,12 +7,10 @@ import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
 import { Btn } from "../../components/ui/Btn";
 import PageHeader from "../../components/common/PageHeader";
 
-export interface AudioProcessingJobOutletContext {
+export interface YoutubeJobOutletContext {
     job: AudioJob;
     sentences: AudioSentence[];
     setSentences: React.Dispatch<React.SetStateAction<AudioSentence[]>>;
-    transcriptDraft: string;
-    setTranscriptDraft: React.Dispatch<React.SetStateAction<string>>;
     readOnly: boolean;
     error: string | null;
     setError: React.Dispatch<React.SetStateAction<string | null>>;
@@ -20,23 +18,17 @@ export interface AudioProcessingJobOutletContext {
     setJob: React.Dispatch<React.SetStateAction<AudioJob | null>>;
 }
 
-interface AudioProcessingJobPageProps {
-    mode?: "edit" | "review";
-}
-
 const POLL_STATUSES: AudioJob["status"][] = ["PROCESSING", "PENDING", "REPROCESSING", "RUNNING"];
 
-const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = "edit" }) => {
+const YoutubeJobPage: React.FC = () => {
     const { jobId } = useParams();
     const navigate = useNavigate();
 
     const [job, setJob] = useState<AudioJob | null>(null);
     const [sentences, setSentences] = useState<AudioSentence[]>([]);
-    const [transcriptDraft, setTranscriptDraft] = useState("");
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
     const [finalizeStatus, setFinalizeStatus] = useState<{
         type: "success" | "error" | null;
@@ -44,7 +36,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
     }>({ type: null, message: "" });
     const [error, setError] = useState<string | null>(null);
 
-    const readOnly = mode === "review" || job?.status === "FINALIZED";
+    const readOnly = job?.status === "FINALIZED";
 
     const loadJob = useCallback(
         async (options?: { silent?: boolean; preserveError?: boolean }) => {
@@ -61,7 +53,6 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
 
                 setJob(data);
                 setSentences(data?.sentences ?? []);
-                setTranscriptDraft(data?.transcript ?? "");
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Failed to load job.");
             } finally {
@@ -96,21 +87,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         setRefreshing(false);
     };
 
-    const handleSubmitJob = async () => {
-        if (!job || readOnly) return;
-        setSubmitting(true);
-        setError(null);
-        try {
-            await api.submitExistingAudioProcessingJob(job.id);
-            await loadJob({ silent: true });
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to submit job.");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleFinalizeListening = async () => {
+    const handleFinalize = async () => {
         if (!job || readOnly) return;
 
         setFinalizeStatus({ type: null, message: "" });
@@ -121,33 +98,14 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
             return;
         }
 
-        const transcriptDirty = transcriptDraft.trim() !== (job.transcript ?? "").trim();
-        const sentencesDirty = JSON.stringify(sentences) !== JSON.stringify(job.sentences ?? []);
-        if (transcriptDirty || sentencesDirty) {
-            const dirtyParts = [
-                transcriptDirty ? "transcript" : null,
-                sentencesDirty ? "sentences" : null,
-            ].filter(Boolean);
-            setFinalizeStatus({
-                type: "error",
-                message: `You have unsaved ${dirtyParts.join(" & ")} edits. Save them (and submit if needed) before finalizing.`,
-            });
-            return;
-        }
-
-        if (!job.audioUrl) {
-            setFinalizeStatus({ type: "error", message: "Audio is not ready yet. Try refreshing." });
-            return;
-        }
-
         if ((job.sentences ?? []).length === 0) {
-            setFinalizeStatus({ type: "error", message: "No sentences found. Submit the job and wait for processing." });
+            setFinalizeStatus({ type: "error", message: "No sentences found." });
             return;
         }
 
         setFinalizing(true);
         try {
-            const res = await api.finalizeAudioProcessingJob(job.id);
+            const res = await api.finalizeYouTubeJob(job.id);
             const success =
                 (res as { success?: boolean }).success ??
                 ((res as { status?: string }).status ? (res as { status?: string }).status === "success" : true);
@@ -157,15 +115,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                 throw new Error(message || "Finalization failed.");
             }
 
-            const created = (res as { data?: unknown }).data;
-            const createdCount = Array.isArray(created) ? created.length : null;
-
-            setFinalizeStatus({
-                type: "success",
-                message: createdCount !== null
-                    ? `Finalized: created ${createdCount} listening items.`
-                    : "Finalized: created listening items.",
-            });
+            setFinalizeStatus({ type: "success", message: "Finalized successfully." });
             await loadJob({ silent: true, preserveError: true });
             navigate(`/admin/lessons/${job.lessonId}/audio`);
         } catch (err: unknown) {
@@ -181,9 +131,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
     const tabs = useMemo(
         () => [
             { label: "Overview", path: "overview" },
-            { label: "Transcript", path: "transcript" },
             { label: "Sentences", path: "sentences" },
-            { label: "Audio Edit", path: "audio" },
         ],
         []
     );
@@ -192,7 +140,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         return (
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-6 flex items-center gap-3 text-slate-500">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Loading job…
+                Loading job...
             </div>
         );
     }
@@ -201,19 +149,12 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         return (
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-6">
                 <p className="text-slate-700">Job not found.</p>
-                <Link to="/admin/jobs/audio" className="text-brand hover:underline text-sm">
-                    Back to dashboard
+                <Link to="/admin/jobs" className="text-brand hover:underline text-sm">
+                    Back to Jobs
                 </Link>
             </div>
         );
     }
-
-    const activelyProcessing = ["PROCESSING", "REPROCESSING", "RUNNING"] as const;
-    const disableSubmit =
-        readOnly ||
-        submitting ||
-        job.status === "WAITING_FOR_INPUT" ||
-        activelyProcessing.includes(job.status as typeof activelyProcessing[number]);
 
     const showFinalize = !readOnly && (job.status === "COMPLETED" || job.status === "REVIEWING");
 
@@ -222,63 +163,36 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
             <PageHeader
                 badge={
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate("/admin/jobs")}
                         className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 border border-white/15 hover:bg-white/15"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Back
+                        Back to Jobs
                     </button>
                 }
-                title={`Job #${job.id}`}
-                titleAddon={
-                    <>
-                        <StatusBadge status={job.status} />
-                        {mode === "review" && (
-                            <span className="text-[11px] px-2 py-1 rounded-full bg-white/10 border border-white/15 text-white/85 uppercase tracking-wide">
-                                Review mode
-                            </span>
-                        )}
-                    </>
-                }
-                description="Manage transcript alignment and submit for processing when ready."
+                title={`YouTube Job #${job.id}`}
+                titleAddon={<StatusBadge status={job.status} />}
+                description="YouTube alignment job details."
                 actions={
                     <>
                         <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
                             <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
                             Refresh
                         </Btn.HeroSecondary>
-                        {mode !== "review" && (
-                            <>
-                                {showFinalize ? (
-                                    <Btn.HeroPrimary onClick={handleFinalizeListening} disabled={finalizing}>
-                                        {finalizing ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Finalizing…
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Finalize Job
-                                            </>
-                                        )}
-                                    </Btn.HeroPrimary>
+                        {showFinalize && (
+                            <Btn.HeroPrimary onClick={handleFinalize} disabled={finalizing}>
+                                {finalizing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Finalizing...
+                                    </>
                                 ) : (
-                                    <Btn.HeroPrimary onClick={handleSubmitJob} disabled={disableSubmit}>
-                                        {submitting ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Submitting…
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Submit Job
-                                            </>
-                                        )}
-                                    </Btn.HeroPrimary>
+                                    <>
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        Finalize Job
+                                    </>
                                 )}
-                            </>
+                            </Btn.HeroPrimary>
                         )}
                     </>
                 }
@@ -338,14 +252,12 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                                 job,
                                 sentences,
                                 setSentences,
-                                transcriptDraft,
-                                setTranscriptDraft,
                                 readOnly,
                                 error,
                                 setError,
                                 reloadJob: loadJob,
                                 setJob,
-                            } satisfies AudioProcessingJobOutletContext
+                            } satisfies YoutubeJobOutletContext
                         }
                     />
                 </div>
@@ -354,4 +266,4 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
     );
 };
 
-export default AudioProcessingJobPage;
+export default YoutubeJobPage;

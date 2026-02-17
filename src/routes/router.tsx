@@ -15,6 +15,10 @@ import AudioProcessingJobOverviewPage from "../pages/audioProcessing/AudioProces
 import AudioProcessingJobTranscriptPage from "../pages/audioProcessing/AudioProcessingJobTranscriptPage";
 import AudioProcessingJobSentencesPage from "../pages/audioProcessing/AudioProcessingJobSentencesPage";
 import AudioProcessingJobAudioEditPage from "../pages/audioProcessing/AudioProcessingJobAudioEditPage";
+import JobsDashboardPage from "../pages/jobs/JobsDashboardPage";
+import YoutubeJobPage from "../pages/jobs/YoutubeJobPage";
+import YoutubeJobOverviewPage from "../pages/jobs/YoutubeJobOverviewPage";
+import YoutubeJobSentencesPage from "../pages/jobs/YoutubeJobSentencesPage";
 import LessonListPage from "../pages/LessonListPage";
 import AudioFilesPage from "../pages/AudioFilesPage";
 import UsersPage from "../pages/UsersPage";
@@ -64,22 +68,39 @@ export const AppRoutes = () => {
                     }
                 />
                 <Route path="processing-jobs/:jobId/review" element={<AudioReviewPage />} />
-                <Route path="audio-processing" element={<AudioProcessingDashboardPage />} />
-                <Route path="audio-processing/upload" element={<AudioProcessingUploadPage />} />
-                <Route path="audio-processing/jobs/:jobId" element={<AudioProcessingJobPage />}>
+
+                {/* Unified Jobs Dashboard */}
+                <Route path="jobs" element={<JobsDashboardPage />} />
+
+                {/* Audio jobs under /jobs/audio */}
+                <Route path="jobs/audio" element={<AudioProcessingDashboardPage />} />
+                <Route path="jobs/audio/upload" element={<AudioProcessingUploadPage />} />
+                <Route path="jobs/audio/jobs/:jobId" element={<AudioProcessingJobPage />}>
                     <Route index element={<Navigate to="overview" replace />} />
                     <Route path="overview" element={<AudioProcessingJobOverviewPage />} />
                     <Route path="transcript" element={<AudioProcessingJobTranscriptPage />} />
                     <Route path="sentences" element={<AudioProcessingJobSentencesPage />} />
                     <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
                 </Route>
-                <Route path="audio-processing/jobs/:jobId/review" element={<AudioProcessingJobPage mode="review" />}>
+                <Route path="jobs/audio/jobs/:jobId/review" element={<AudioProcessingJobPage mode="review" />}>
                     <Route index element={<Navigate to="overview" replace />} />
                     <Route path="overview" element={<AudioProcessingJobOverviewPage />} />
                     <Route path="transcript" element={<AudioProcessingJobTranscriptPage />} />
                     <Route path="sentences" element={<AudioProcessingJobSentencesPage />} />
                     <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
                 </Route>
+
+                {/* YouTube jobs under /jobs/youtube */}
+                <Route path="jobs/youtube/:jobId" element={<YoutubeJobPage />}>
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<YoutubeJobOverviewPage />} />
+                    <Route path="sentences" element={<YoutubeJobSentencesPage />} />
+                </Route>
+
+                {/* Redirects for old audio-processing URLs */}
+                <Route path="audio-processing" element={<Navigate to="/admin/jobs/audio" replace />} />
+                <Route path="audio-processing/upload" element={<Navigate to="/admin/jobs/audio/upload" replace />} />
+                <Route path="audio-processing/jobs/:jobId/*" element={<AudioProcessingRedirect />} />
 
                 <Route
                     path="lessons"
@@ -136,3 +157,10 @@ export const AppRoutes = () => {
         </Routes>
     );
 };
+
+/** Redirect /admin/audio-processing/jobs/:jobId/* → /admin/jobs/audio/jobs/:jobId/* */
+function AudioProcessingRedirect() {
+    const path = window.location.pathname;
+    const newPath = path.replace("/admin/audio-processing/jobs/", "/admin/jobs/audio/jobs/");
+    return <Navigate to={newPath} replace />;
+}

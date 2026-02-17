@@ -157,6 +157,10 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
         createdAt: createdAt || new Date().toISOString(),
         updatedAt: updatedAt || createdAt || new Date().toISOString(),
         finalizedAt: completedAt ?? undefined,
+        youtubeVideoId: merged.youtubeVideoId ?? merged.youtube_video_id ?? undefined,
+        startTime: merged.startTime ?? merged.start_time ?? undefined,
+        endTime: merged.endTime ?? merged.end_time ?? undefined,
+        jobType: raw.jobType ?? raw.job_type ?? undefined,
     };
 }
 
@@ -212,6 +216,10 @@ function mapSingleJob(job: any): AudioJob {
             root.created_at ??
             new Date().toISOString(),
         finalizedAt: detail.finalizedAt ?? detail.finalized_at ?? root.completedAt ?? root.completed_at ?? undefined,
+        youtubeVideoId: detail.youtubeVideoId ?? detail.youtube_video_id ?? root.youtubeVideoId ?? root.youtube_video_id ?? undefined,
+        startTime: detail.startTime ?? detail.start_time ?? root.startTime ?? root.start_time ?? undefined,
+        endTime: detail.endTime ?? detail.end_time ?? root.endTime ?? root.end_time ?? undefined,
+        jobType: root.jobType ?? root.job_type ?? detail.jobType ?? detail.job_type ?? undefined,
     };
 }
 
@@ -461,6 +469,15 @@ async function updateJobStatus(
     return (res as { data?: JobListItemDTO }).data ?? (res as JobListItemDTO);
 }
 
+async function finalizeYouTubeJob(jobId: number) {
+    return handle<{ success?: boolean; data?: any; message?: string }>(
+        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/finalize`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+        })
+    );
+}
+
 export const audioApi = {
     uploadAudioProcessingAudio,
     uploadAudioProcessingTranscript,
@@ -474,4 +491,5 @@ export const audioApi = {
     finalizeAudioProcessingJob,
     refineBoundaries,
     updateJobStatus,
+    finalizeYouTubeJob,
 };

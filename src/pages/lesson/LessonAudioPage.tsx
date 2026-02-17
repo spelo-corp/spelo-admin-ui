@@ -1,7 +1,7 @@
 // src/pages/lesson/LessonAudioPage.tsx
 import { useOutletContext } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { Pencil, X, Save, Loader2, Upload, Scissors, Check, AlertCircle, Play, Square, Music } from "lucide-react";
+import { Pencil, X, Save, Loader2, Upload, Scissors, Check, AlertCircle, Play, Square, Music, Youtube } from "lucide-react";
 import type { LessonOutletContext } from "../LessonViewPage";
 import { api } from "../../api/client";
 import type { ListeningLessonDTO } from "../../types";
@@ -782,6 +782,235 @@ const MainAudioEditor: React.FC<MainAudioEditorProps> = ({ audioUrl, lessonId, o
     );
 };
 
+interface YouTubeSectionProps {
+    lessonId: number;
+    onJobCreated: () => void;
+}
+
+const YouTubeSection: React.FC<YouTubeSectionProps> = ({ lessonId, onJobCreated }) => {
+    const [youtubeUrl, setYoutubeUrl] = useState("");
+    const [transcript, setTranscript] = useState("");
+    const [mode, setMode] = useState<"auto" | "captions" | "manual">("auto");
+    const [startTime, setStartTime] = useState<string>("");
+    const [endTime, setEndTime] = useState<string>("");
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+
+    // Extract video ID for preview
+    const videoIdMatch = youtubeUrl.match(
+        /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    );
+    const videoId = videoIdMatch?.[1] ?? (youtubeUrl.match(/^[a-zA-Z0-9_-]{11}$/) ? youtubeUrl : null);
+
+    const handleSubmit = async () => {
+        if (!youtubeUrl.trim()) {
+            setError("Please enter a YouTube URL");
+            return;
+        }
+        setSubmitting(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            const payload: Parameters<typeof api.createYouTubeLesson>[1] = {
+                youtubeUrl: youtubeUrl.trim(),
+            };
+            if (mode === "manual" && transcript.trim()) {
+                payload.transcript = transcript.trim();
+            }
+            if (mode !== "auto") {
+                payload.transcriptSource = mode;
+            }
+            if (startTime) payload.startTime = parseFloat(startTime);
+            if (endTime) payload.endTime = parseFloat(endTime);
+
+            const result = await api.createYouTubeLesson(lessonId, payload);
+            if (result.success && result.data) {
+                setSuccess(`YouTube processing job #${result.data.id} created. Check the Jobs tab for progress.`);
+                onJobCreated();
+            } else {
+                setError(result.message || "Failed to create YouTube job");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create YouTube job");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="bg-white border rounded-xl p-4 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+                <Youtube className="w-5 h-5 text-red-600" />
+                <h3 className="text-sm font-semibold text-slate-900">YouTube Source</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+                Paste a YouTube URL to create dictation lessons from the video audio.
+            </p>
+
+            {/* URL Input */}
+            <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                    YouTube URL
+                </label>
+                <input
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=... or video ID"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                    disabled={submitting}
+                />
+            </div>
+
+            {/* Preview */}
+            {videoId && (
+                <div className="aspect-video w-full max-w-md rounded-lg overflow-hidden border border-slate-200">
+                    <iframe
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title="YouTube preview"
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                </div>
+            )}
+
+            {/* Mode Toggle */}
+            <div className="flex gap-3">
+                <button
+                    type="button"
+                    onClick={() => setMode("auto")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                        mode === "auto"
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                    disabled={submitting}
+                >
+                    Auto-transcribe
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMode("captions")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                        mode === "captions"
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                    disabled={submitting}
+                >
+                    YouTube Captions
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setMode("manual")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                        mode === "manual"
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                    disabled={submitting}
+                >
+                    Provide transcript
+                </button>
+            </div>
+
+            {/* Captions mode info */}
+            {mode === "captions" && (
+                <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <p>Will extract subtitles from the YouTube video. Falls back to auto-transcribe if no captions are available.</p>
+                </div>
+            )}
+
+            {/* Transcript input (manual mode) */}
+            {mode === "manual" && (
+                <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                        Transcript
+                    </label>
+                    <textarea
+                        value={transcript}
+                        onChange={(e) => setTranscript(e.target.value)}
+                        placeholder="Paste transcript here. Each sentence should be on a new line or separated by periods."
+                        rows={6}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-y"
+                        disabled={submitting}
+                    />
+                </div>
+            )}
+
+            {/* Optional time range */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                        Start Time (seconds, optional)
+                    </label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        disabled={submitting}
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                        End Time (seconds, optional)
+                    </label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        placeholder="Full video"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        disabled={submitting}
+                    />
+                </div>
+            </div>
+
+            {/* Submit */}
+            <button
+                onClick={handleSubmit}
+                disabled={submitting || !youtubeUrl.trim()}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+                {submitting ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing...
+                    </>
+                ) : (
+                    <>
+                        <Youtube className="w-4 h-4" />
+                        Process YouTube Video
+                    </>
+                )}
+            </button>
+
+            {success && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-700">
+                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{success}</span>
+                </div>
+            )}
+
+            {error && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-700">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{error}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const LessonAudioPage = () => {
     const { lessonDetail, loading, setLessonDetail } = useOutletContext<LessonOutletContext>();
     const [editingSentence, setEditingSentence] = useState<ListeningLessonDTO | null>(null);
@@ -920,6 +1149,12 @@ const LessonAudioPage = () => {
                     </div>
                 </div>
 
+                {/* YouTube Section */}
+                <YouTubeSection
+                    lessonId={lessonDetail.lesson_id}
+                    onJobCreated={refreshLessonDetail}
+                />
+
                 {/* Sentences List */}
                 {listeningLessons.length === 0 ? (
                     <div className="p-4 bg-white border rounded-xl text-sm text-slate-600">
@@ -967,7 +1202,14 @@ const LessonAudioPage = () => {
                                     </div>
                                 </div>
 
-                                <PresignedAudioPlayer src={detail.data?.audio} />
+                                {detail.type === 3 && detail.data?.youtube_video_id ? (
+                                    <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+                                        <Youtube className="w-4 h-4" />
+                                        YouTube: {detail.data.youtube_video_id}
+                                    </div>
+                                ) : (
+                                    <PresignedAudioPlayer src={detail.data?.audio} />
+                                )}
 
                                 {(detail.data?.start !== undefined || detail.data?.end !== undefined) && (
                                     <div className="text-xs text-slate-500">

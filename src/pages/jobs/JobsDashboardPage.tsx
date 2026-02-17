@@ -2,47 +2,83 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RefreshCcw, PlusCircle, Search, Loader2, FolderOpen } from "lucide-react";
 import { api } from "../../api/client";
-import type { AudioJob, AudioJobStatus } from "../../types/audioProcessing";
+import type { JobType } from "../../types/jobService";
 import { Input } from "../../components/ui/Input";
 import { Btn } from "../../components/ui/Btn";
-import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
 import PageHeader from "../../components/common/PageHeader";
 
-type StatusFilter = "ALL" | AudioJobStatus;
+type TypeFilter = "ALL" | JobType;
 
-const statusFilters: StatusFilter[] = [
+const typeFilters: TypeFilter[] = [
     "ALL",
-    "WAITING_FOR_INPUT",
-    "READY_TO_PROCESS",
-    "PROCESSING",
-    "COMPLETED",
-    "FAILED",
-    "FINALIZED",
-    "REPROCESSING",
-    "PARTIAL",
-    "REVIEWING",
+    "AUDIO_ALIGN",
+    "YOUTUBE_ALIGN",
+    "VOCAB_ENRICH",
+    "VOCAB_EXTRACT",
+    "VOCAB_SCRIPT_MAP",
+    "LESSON_TRANSLATE",
+    "AI_SCORING",
+    "UPLOAD_TO_R2",
+    "COLLECTION_GENERATE",
 ];
 
-const AudioProcessingDashboardPage: React.FC = () => {
-    const [jobs, setJobs] = useState<AudioJob[]>([]);
+const statusColors: Record<string, string> = {
+    PENDING: "bg-slate-100 text-slate-700",
+    RUNNING: "bg-sky-100 text-sky-700",
+    PROCESSING: "bg-sky-100 text-sky-700",
+    COMPLETED: "bg-emerald-100 text-emerald-700",
+    FINALIZED: "bg-emerald-100 text-emerald-700",
+    FAILED: "bg-rose-100 text-rose-700",
+    PARTIAL: "bg-amber-100 text-amber-700",
+    WAITING_FOR_INPUT: "bg-violet-100 text-violet-700",
+    REVIEWING: "bg-indigo-100 text-indigo-700",
+};
+
+const badgeColors: Record<string, string> = {
+    AUDIO_ALIGN: "bg-blue-100 text-blue-700",
+    YOUTUBE_ALIGN: "bg-red-100 text-red-700",
+    VOCAB_ENRICH: "bg-purple-100 text-purple-700",
+    VOCAB_EXTRACT: "bg-purple-100 text-purple-700",
+    VOCAB_SCRIPT_MAP: "bg-purple-100 text-purple-700",
+    LESSON_TRANSLATE: "bg-green-100 text-green-700",
+    AI_SCORING: "bg-amber-100 text-amber-700",
+    UPLOAD_TO_R2: "bg-cyan-100 text-cyan-700",
+    COLLECTION_GENERATE: "bg-teal-100 text-teal-700",
+};
+
+interface JobRow {
+    id: number;
+    job_type: string;
+    status: string;
+    current_step: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+const JobsDashboardPage: React.FC = () => {
+    const [jobs, setJobs] = useState<JobRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+    const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
     const [search, setSearch] = useState("");
 
     const loadJobs = async () => {
         setLoading(true);
         setError(null);
         try {
-            const payload = await api.getAudioProcessingJobs();
-            // Handle paginated response
-            if (payload && typeof payload === "object" && "content" in payload) {
-                setJobs(payload.content);
-            } else {
-                // Fallback for non-paginated response
-                setJobs(Array.isArray(payload) ? payload : []);
-            }
+            const res = await api.getJobs({ size: 200 });
+            const data = res.data ?? [];
+            setJobs(
+                data.map((j: any) => ({
+                    id: j.id,
+                    job_type: j.job_type ?? "UNKNOWN",
+                    status: j.status ?? j.current_step ?? "UNKNOWN",
+                    current_step: j.current_step ?? null,
+                    created_at: j.created_at ?? "",
+                    updated_at: j.updated_at ?? "",
+                }))
+            );
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load jobs.");
         } finally {
@@ -63,33 +99,32 @@ const AudioProcessingDashboardPage: React.FC = () => {
     const filteredJobs = useMemo(() => {
         const term = search.trim().toLowerCase();
         return jobs.filter((job) => {
-            const matchesStatus = statusFilter === "ALL" || job.status === statusFilter;
+            const matchesType = typeFilter === "ALL" || job.job_type === typeFilter;
             const matchesSearch =
                 !term ||
                 String(job.id).includes(term) ||
-                job.lessonName?.toLowerCase().includes(term) ||
-                job.transcript?.toLowerCase().includes(term);
-            return matchesStatus && matchesSearch;
+                job.job_type.toLowerCase().includes(term);
+            return matchesType && matchesSearch;
         });
-    }, [jobs, search, statusFilter]);
+    }, [jobs, search, typeFilter]);
 
     const summaryStats = useMemo(() => {
-        const activeStatuses: AudioJobStatus[] = [
-            "WAITING_FOR_INPUT",
-            "READY_TO_PROCESS",
-            "PROCESSING",
-            "PENDING",
-            "REPROCESSING",
-            "RUNNING",
-        ];
-        const completedStatuses: AudioJobStatus[] = ["COMPLETED", "FINALIZED"];
+        const running = jobs.filter((j) => j.status === "RUNNING" || j.status === "PENDING" || j.status === "PROCESSING").length;
+        const completed = jobs.filter((j) => j.status === "COMPLETED" || j.status === "FINALIZED").length;
+        const failed = jobs.filter((j) => j.status === "FAILED").length;
         return [
             { label: "Total jobs", value: jobs.length },
-            { label: "Active", value: jobs.filter((job) => activeStatuses.includes(job.status)).length },
-            { label: "Completed", value: jobs.filter((job) => completedStatuses.includes(job.status)).length },
-            { label: "Failed", value: jobs.filter((job) => job.status === "FAILED").length },
+            { label: "Active", value: running },
+            { label: "Completed", value: completed },
+            { label: "Failed", value: failed },
         ];
     }, [jobs]);
+
+    const getViewLink = (job: JobRow): string | null => {
+        if (job.job_type === "AUDIO_ALIGN") return `/admin/jobs/audio/jobs/${job.id}`;
+        if (job.job_type === "YOUTUBE_ALIGN") return `/admin/jobs/youtube/${job.id}`;
+        return null;
+    };
 
     return (
         <div className="relative overflow-hidden px-8 py-6">
@@ -100,16 +135,15 @@ const AudioProcessingDashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-8 relative">
-                {/* Header */}
                 <PageHeader
                     badge={
                         <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
                             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                            Audio Align Jobs
+                            All Jobs
                         </div>
                     }
-                    title="Audio Jobs"
-                    description="Track uploads, processing status, and jump into sentence edits without losing momentum."
+                    title="Jobs Dashboard"
+                    description="Unified view of all processing jobs across the platform."
                     actions={
                         <>
                             <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
@@ -120,7 +154,7 @@ const AudioProcessingDashboardPage: React.FC = () => {
                             <Link to="/admin/jobs/audio/upload" className="w-full sm:w-auto">
                                 <Btn.HeroPrimary className="w-full sm:w-auto">
                                     <PlusCircle className="w-4 h-4" />
-                                    New Upload
+                                    New Audio Upload
                                 </Btn.HeroPrimary>
                             </Link>
                         </>
@@ -147,24 +181,24 @@ const AudioProcessingDashboardPage: React.FC = () => {
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by job ID, lesson name, or transcript text"
+                                placeholder="Search by job ID or type"
                                 className="rounded-xl"
                             />
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            {statusFilters.map((status) => (
+                            {typeFilters.map((type) => (
                                 <button
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
+                                    key={type}
+                                    onClick={() => setTypeFilter(type)}
                                     className={`
-                                    px-3 py-1.5 rounded-full text-xs font-medium border
-                                    ${statusFilter === status
+                                        px-3 py-1.5 rounded-full text-xs font-medium border
+                                        ${typeFilter === type
                                             ? "bg-brand text-white border-brand"
                                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
-                                `}
+                                    `}
                                 >
-                                    {status === "ALL" ? "All" : status}
+                                    {type === "ALL" ? "All" : type.replace(/_/g, " ")}
                                 </button>
                             ))}
                         </div>
@@ -190,7 +224,7 @@ const AudioProcessingDashboardPage: React.FC = () => {
                     {loading ? (
                         <div className="px-5 py-10 flex items-center justify-center gap-2 text-slate-500">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Loading jobs…
+                            Loading jobs...
                         </div>
                     ) : filteredJobs.length === 0 ? (
                         <div className="px-5 py-12 text-center text-slate-500">
@@ -201,49 +235,50 @@ const AudioProcessingDashboardPage: React.FC = () => {
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50 text-left text-slate-500 uppercase text-xs tracking-wide">
                                     <tr>
-                                        <th className="px-5 py-3">Job</th>
-                                        <th className="px-5 py-3">Lesson</th>
+                                        <th className="px-5 py-3">Job ID</th>
+                                        <th className="px-5 py-3">Type</th>
                                         <th className="px-5 py-3">Status</th>
                                         <th className="px-5 py-3">Created</th>
-                                        <th className="px-5 py-3">Updated</th>
                                         <th className="px-5 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredJobs.map((job) => (
-                                        <tr key={job.id} className="hover:bg-slate-50/60">
-                                            <td className="px-5 py-3">
-                                                <div className="font-semibold text-slate-900">#{job.id}</div>
-                                                <div className="text-[12px] text-slate-500">
-                                                    Transcript: {job.transcript?.slice(0, 38) || "—"}
-                                                    {job.transcript?.length > 38 ? "…" : ""}
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <div className="text-sm font-medium text-slate-900">
-                                                    {job.lessonName || `Lesson ${job.lessonId}`}
-                                                </div>
-                                                <div className="text-[12px] text-slate-500">ID {job.lessonId}</div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <StatusBadge status={job.status} />
-                                            </td>
-                                            <td className="px-5 py-3 text-slate-700">
-                                                {new Date(job.createdAt).toLocaleString()}
-                                            </td>
-                                            <td className="px-5 py-3 text-slate-700">
-                                                {new Date(job.updatedAt).toLocaleString()}
-                                            </td>
-                                            <td className="px-5 py-3 text-right">
-                                                <Link
-                                                    to={`/admin/jobs/audio/jobs/${job.id}`}
-                                                    className="text-brand font-semibold hover:underline"
-                                                >
-                                                    View
-                                                </Link>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {filteredJobs.map((job) => {
+                                        const link = getViewLink(job);
+                                        const colorClass = badgeColors[job.job_type] || "bg-slate-100 text-slate-700";
+                                        return (
+                                            <tr key={job.id} className="hover:bg-slate-50/60">
+                                                <td className="px-5 py-3">
+                                                    <div className="font-semibold text-slate-900">#{job.id}</div>
+                                                </td>
+                                                <td className="px-5 py-3">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}>
+                                                        {job.job_type.replace(/_/g, " ")}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-3">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[job.status] || "bg-slate-100 text-slate-700"}`}>
+                                                        {job.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-3 text-slate-700">
+                                                    {job.created_at ? new Date(job.created_at).toLocaleString() : "—"}
+                                                </td>
+                                                <td className="px-5 py-3 text-right">
+                                                    {link ? (
+                                                        <Link
+                                                            to={link}
+                                                            className="text-brand font-semibold hover:underline"
+                                                        >
+                                                            View
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="text-slate-400 text-xs">—</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -254,4 +289,4 @@ const AudioProcessingDashboardPage: React.FC = () => {
     );
 };
 
-export default AudioProcessingDashboardPage;
+export default JobsDashboardPage;

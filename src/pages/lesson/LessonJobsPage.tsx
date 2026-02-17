@@ -294,6 +294,7 @@ const LessonJobsPage: React.FC = () => {
                                                             "VOCAB_EXTRACT": "bg-purple-100 text-purple-700",
                                                             "VOCAB_SCRIPT_MAP": "bg-purple-100 text-purple-700",
                                                             "AUDIO_ALIGN": "bg-blue-100 text-blue-700",
+                                                            "YOUTUBE_ALIGN": "bg-red-100 text-red-700",
                                                             "LESSON_TRANSLATE": "bg-green-100 text-green-700",
                                                             "AI_SCORING": "bg-amber-100 text-amber-700",
                                                             "UPLOAD_TO_R2": "bg-cyan-100 text-cyan-700",
@@ -323,8 +324,10 @@ const LessonJobsPage: React.FC = () => {
                                                     <Link
                                                         to={
                                                             isProcessing
-                                                                ? `/admin/processing-jobs/${item.id}/review`
-                                                                : `/admin/audio-processing/jobs/${item.id}`
+                                                                ? (item.jobType === "YOUTUBE_ALIGN"
+                                                                    ? `/admin/jobs/youtube/${item.id}`
+                                                                    : `/admin/processing-jobs/${item.id}/review`)
+                                                                : `/admin/jobs/audio/jobs/${item.id}`
                                                         }
                                                         className="inline-flex items-center gap-1 text-brand font-semibold hover:underline text-xs"
                                                     >

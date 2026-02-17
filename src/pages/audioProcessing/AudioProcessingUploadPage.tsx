@@ -121,7 +121,7 @@ const AudioProcessingUploadPage: React.FC = () => {
 
             if (jobId) {
                 // small delay to let users see the success state
-                setTimeout(() => navigate(`/admin/audio-processing/jobs/${jobId}`), 350);
+                setTimeout(() => navigate(`/admin/jobs/audio/jobs/${jobId}`), 350);
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to submit audio for processing.");
@@ -135,7 +135,7 @@ const AudioProcessingUploadPage: React.FC = () => {
             <PageHeader
                 badge={
                     <Link
-                        to="/admin/audio-processing"
+                        to="/admin/jobs/audio"
                         className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 border border-white/15 hover:bg-white/15"
                     >
                         <ArrowLeft className="w-4 h-4" />
@@ -327,7 +327,7 @@ const AudioProcessingUploadPage: React.FC = () => {
                         </Btn.Primary>
 
                         <Link
-                            to="/admin/audio-processing"
+                            to="/admin/jobs/audio"
                             className="block text-center text-xs text-slate-500 hover:text-slate-700"
                         >
                             Cancel and go back

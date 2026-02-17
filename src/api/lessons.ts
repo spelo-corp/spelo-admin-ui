@@ -577,6 +577,50 @@ async function uploadLessonAudio(lessonId: number, file: File, startTime?: numbe
     };
 }
 
+async function createYouTubeLesson(
+    lessonId: number,
+    payload: {
+        youtubeUrl: string;
+        transcript?: string;
+        transcriptSource?: string;
+        startTime?: number;
+        endTime?: number;
+    },
+) {
+    const body: Record<string, unknown> = {
+        youtubeUrl: payload.youtubeUrl,
+    };
+    if (payload.transcript) body.transcript = payload.transcript;
+    if (payload.transcriptSource) body.transcriptSource = payload.transcriptSource;
+    if (payload.startTime != null) body.startTime = payload.startTime;
+    if (payload.endTime != null) body.endTime = payload.endTime;
+
+    const res = await fetch(
+        `${BASE_URL}/api/v1/admin/lessons/${lessonId}/youtube`,
+        {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(body),
+        },
+    );
+    return handle<{
+        success: boolean;
+        data?: { id: number; status: string; progressPercent: number; currentStep: string };
+        message?: string;
+    }>(res);
+}
+
+async function finalizeYouTubeJob(jobId: number) {
+    const res = await fetch(
+        `${BASE_URL}/api/v1/youtube-jobs/${jobId}/finalize`,
+        {
+            method: "POST",
+            headers: getAuthHeaders(),
+        },
+    );
+    return handle<{ success: boolean; message?: string }>(res);
+}
+
 export const lessonsApi = {
     getLessons,
     getAllLessons,
@@ -601,4 +645,6 @@ export const lessonsApi = {
     deleteListeningLessonNewWord,
     deleteListeningLessonNewWords,
     translateLesson,
+    createYouTubeLesson,
+    finalizeYouTubeJob,
 };

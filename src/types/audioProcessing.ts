@@ -35,4 +35,8 @@ export interface AudioJob {
     createdAt: string;
     updatedAt: string;
     finalizedAt?: string;
+    youtubeVideoId?: string;
+    startTime?: number;
+    endTime?: number;
+    jobType?: string;
 }

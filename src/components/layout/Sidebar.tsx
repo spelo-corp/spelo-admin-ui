@@ -86,9 +86,9 @@ const Sidebar: React.FC = () => {
                     <span>Collections</span>
                 </NavLink>
 
-                <NavLink to="/admin/audio-processing" className={linkClass}>
+                <NavLink to="/admin/jobs" className={linkClass}>
                     <Workflow className="w-5 h-5" />
-                    <span>Audio Processing</span>
+                    <span>Jobs</span>
                 </NavLink>
 
                 <NavLink to="/admin/audio-files" className={linkClass}>

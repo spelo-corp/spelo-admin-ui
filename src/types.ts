@@ -69,6 +69,7 @@ export interface ListeningLessonData {
     audio?: string;
     start?: number;
     end?: number;
+    youtube_video_id?: string;
 }
 
 export interface ListeningLessonScript {

@@ -148,7 +148,7 @@ const DashboardPage: React.FC = () => {
                 hint: `${fmt.format(kpis?.jobs_completed ?? 0)} completed`,
                 icon: Settings,
                 tone: "neutral" as const,
-                href: "/admin/audio-processing",
+                href: "/admin/jobs",
             },
             {
                 label: "Jobs running",
@@ -156,7 +156,7 @@ const DashboardPage: React.FC = () => {
                 hint: `${fmt.format(kpis?.jobs_pending ?? 0)} pending`,
                 icon: Activity,
                 tone: "brand" as const,
-                href: "/admin/audio-processing",
+                href: "/admin/jobs",
             },
             {
                 label: "Jobs failed",
@@ -164,7 +164,7 @@ const DashboardPage: React.FC = () => {
                 hint: `Failure rate ${pctFmt.format(failureRate)}`,
                 icon: ShieldAlert,
                 tone: (kpis?.jobs_failed ?? 0) > 0 ? ("bad" as const) : ("good" as const),
-                href: "/admin/audio-processing",
+                href: "/admin/jobs",
             },
             {
                 label: "Jobs partial",
@@ -172,7 +172,7 @@ const DashboardPage: React.FC = () => {
                 hint: "Needs review",
                 icon: AlertTriangle,
                 tone: (kpis?.jobs_partial ?? 0) > 0 ? ("warn" as const) : ("neutral" as const),
-                href: "/admin/audio-processing",
+                href: "/admin/jobs",
             },
             {
                 label: "Lessons inactive",
@@ -187,7 +187,10 @@ const DashboardPage: React.FC = () => {
 
     const renderJobLink = (job: JobListItemDTO) => {
         if (job.job_type === "AUDIO_ALIGN" || job.job_type === "AUDIO_PROCESSING") {
-            return `/admin/audio-processing/jobs/${job.id}`;
+            return `/admin/jobs/audio/jobs/${job.id}`;
+        }
+        if (job.job_type === "YOUTUBE_ALIGN") {
+            return `/admin/jobs/youtube/${job.id}`;
         }
         return null;
     };
@@ -252,7 +255,7 @@ const DashboardPage: React.FC = () => {
                                 Refresh
                             </Btn.HeroSecondary>
 
-                            <Link to="/admin/audio-processing/upload" className="w-full sm:w-auto">
+                            <Link to="/admin/jobs/audio/upload" className="w-full sm:w-auto">
                                 <Btn.HeroPrimary className="w-full sm:w-auto">
                                     <FileAudio2 className="w-4 h-4" />
                                     New upload
@@ -348,7 +351,7 @@ const DashboardPage: React.FC = () => {
                             <ArrowRight className="w-4 h-4 text-slate-400" />
                         </Link>
                         <Link
-                            to="/admin/audio-processing"
+                            to="/admin/jobs"
                             className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2 hover:bg-slate-50"
                         >
                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -358,7 +361,7 @@ const DashboardPage: React.FC = () => {
                             <ArrowRight className="w-4 h-4 text-slate-400" />
                         </Link>
                         <Link
-                            to="/admin/audio-processing/upload"
+                            to="/admin/jobs/audio/upload"
                             className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2 hover:bg-slate-50"
                         >
                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -393,7 +396,7 @@ const DashboardPage: React.FC = () => {
                         title="Alerts"
                         icon={ShieldAlert}
                         action={
-                            <Link to="/admin/audio-processing" className="text-sm text-brand hover:underline">
+                            <Link to="/admin/jobs" className="text-sm text-brand hover:underline">
                                 View jobs →
                             </Link>
                         }
@@ -492,7 +495,7 @@ const DashboardPage: React.FC = () => {
                                         ) : null}
                                         {item.entity?.kind === "JOB" && typeof item.entity.id === "number" ? (
                                             <Link
-                                                to={`/admin/audio-processing/jobs/${item.entity.id}`}
+                                                to={`/admin/jobs/audio/jobs/${item.entity.id}`}
                                                 className="text-xs text-brand hover:underline"
                                             >
                                                 View job →
@@ -717,7 +720,7 @@ const DashboardPage: React.FC = () => {
                                 + New lesson
                             </Btn.HeroPrimary>
                         </Link>
-                        <Link to="/admin/audio-processing" className="w-full sm:w-auto">
+                        <Link to="/admin/jobs" className="w-full sm:w-auto">
                             <Btn.HeroSecondary className="w-full sm:w-auto">
                                 Go to jobs
                                 <ArrowRight className="w-4 h-4" />

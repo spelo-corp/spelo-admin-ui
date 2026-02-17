@@ -1,6 +1,7 @@
 // Job types from the API
 export type JobType =
     | "AUDIO_ALIGN"
+    | "YOUTUBE_ALIGN"
     | "VOCAB_ENRICH"
     | "VOCAB_EXTRACT"
     | "VOCAB_SCRIPT_MAP"
