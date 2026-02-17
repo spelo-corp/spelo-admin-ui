@@ -471,9 +471,19 @@ async function updateJobStatus(
 
 async function finalizeYouTubeJob(jobId: number) {
     return handle<{ success?: boolean; data?: any; message?: string }>(
-        await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/finalize`, {
+        await fetch(`${BASE_URL}/api/v1/youtube-jobs/${jobId}/finalize`, {
             method: "POST",
             headers: getAuthHeaders(),
+        })
+    );
+}
+
+async function updateYouTubeSentences(jobId: number, sentences: AudioSentence[]) {
+    return handle<{ success: boolean }>(
+        await fetch(`${BASE_URL}/api/v1/youtube-jobs/${jobId}/sentences`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(sentences),
         })
     );
 }
@@ -492,4 +502,5 @@ export const audioApi = {
     refineBoundaries,
     updateJobStatus,
     finalizeYouTubeJob,
+    updateYouTubeSentences,
 };

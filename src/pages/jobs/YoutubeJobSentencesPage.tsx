@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Loader2, Play, Save } from "lucide-react";
+import { Loader2, Play, Save, Trash2 } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { Btn } from "../../components/ui/Btn";
@@ -133,13 +133,28 @@ const YoutubeJobSentencesPage: React.FC = () => {
         setSaving(true);
         setError(null);
         try {
-            await api.updateAudioProcessingSentences(job.id, sentences);
+            await api.updateYouTubeSentences(job.id, sentences);
             setJob((prev) => (prev ? { ...prev, sentences } : prev));
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to save sentences.");
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleDeleteSentence = (index: number) => {
+        if (readOnly) return;
+        if (!window.confirm("Are you sure you want to delete this sentence?")) return;
+
+        setSentences((prev) => prev.filter((_, i) => i !== index));
+
+        // Adjust selection indexes
+        setSelectedSentenceIndexes((prev) =>
+            prev.filter(i => i !== index).map(i => i > index ? i - 1 : i)
+        );
+
+        if (activeSentence === index) setActiveSentence(null);
+        else if (activeSentence !== null && activeSentence > index) setActiveSentence(activeSentence - 1);
     };
 
     return (
@@ -299,6 +314,15 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                             className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm"
                                         />
                                     </label>
+
+                                    <button
+                                        onClick={() => handleDeleteSentence(index)}
+                                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors ml-auto"
+                                        title="Delete sentence"
+                                        disabled={readOnly}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
 
                                 <textarea
@@ -325,7 +349,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
