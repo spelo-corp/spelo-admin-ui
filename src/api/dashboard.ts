@@ -11,7 +11,9 @@ import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 async function getDashboardStats() {
     return handle<{ success: boolean; stats: DashboardStats }>(
-        await fetch(`${BASE_URL}/api/admin/dashboard/stats`)
+        await fetch(`${BASE_URL}/api/admin/dashboard/stats`, {
+            headers: getAuthHeaders(),
+        })
     );
 }
 

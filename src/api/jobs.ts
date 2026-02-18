@@ -57,7 +57,7 @@ async function createProcessingJob(payload: {
     return handle<{ success: boolean; job: ProcessingJob }>(
         await fetch(`${BASE_URL}/api/admin/processing-jobs`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         })
     );
@@ -67,13 +67,16 @@ async function extractSentences(jobId: number) {
     return handle<{ success: boolean }>(
         await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/extract`, {
             method: "POST",
+            headers: getAuthHeaders(),
         })
     );
 }
 
 async function getJobDetail(jobId: number) {
     return handle<{ success: boolean; job: ProcessingJobDetail }>(
-        await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}`)
+        await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}`, {
+            headers: getAuthHeaders(),
+        })
     );
 }
 
@@ -87,7 +90,7 @@ async function updateSentence(
             `${BASE_URL}/api/admin/processing-jobs/${jobId}/sentences/${index}`,
             {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload),
             }
         )
@@ -98,7 +101,7 @@ async function approveJob(jobId: number, adminUserId: number) {
     return handle<{ success: boolean; listening_lesson_id: number }>(
         await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/approve`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ admin_user_id: adminUserId }),
         })
     );
@@ -108,6 +111,7 @@ async function deleteJob(jobId: number) {
     return handle<{ success: boolean }>(
         await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}`, {
             method: "DELETE",
+            headers: getAuthHeaders(),
         })
     );
 }
@@ -130,7 +134,9 @@ async function getUploadProgress(taskId: string) {
         uploaded: number;
         total: number;
     }>(
-        await fetch(`${BASE_URL}/api/admin/upload-tasks/${taskId}/status`)
+        await fetch(`${BASE_URL}/api/admin/upload-tasks/${taskId}/status`, {
+            headers: getAuthHeaders(),
+        })
     );
 }
 
@@ -156,7 +162,7 @@ async function updateAllTimings(
     return handle<{ success: boolean }>(
         await fetch(`${BASE_URL}/api/admin/processing-jobs/${jobId}/timing/batch`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         })
     );

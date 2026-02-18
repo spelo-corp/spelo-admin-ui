@@ -15,6 +15,8 @@ import {
     Folder,
 } from "lucide-react";
 
+import { adminLogout } from "../../auth/adminAuth";
+
 const Sidebar: React.FC = () => {
     const base =
         "flex items-center gap-3 px-4 py-2.5 rounded-card text-[15px] font-medium transition";
@@ -23,6 +25,12 @@ const Sidebar: React.FC = () => {
         isActive
             ? `${base} bg-gradient-to-r from-brand to-brand-dark text-white shadow-card`
             : `${base} text-slate-600 hover:bg-white`;
+
+    const handleLogout = () => {
+        if (window.confirm("Are you sure you want to logout?")) {
+            adminLogout();
+        }
+    };
 
     return (
         <aside
@@ -119,7 +127,10 @@ const Sidebar: React.FC = () => {
                     <span>Help</span>
                 </button>
 
-                <button className={`${base} text-slate-600 hover:bg-white`}>
+                <button
+                    onClick={handleLogout}
+                    className={`${base} text-slate-600 hover:bg-white w-full text-left`}
+                >
                     <LogOut className="w-5 h-5" />
                     <span>Logout</span>
                 </button>

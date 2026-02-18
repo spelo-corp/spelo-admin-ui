@@ -5,6 +5,26 @@ import type {
     CollectionTerminologyDTO,
 } from "../types/collection";
 
+import { processImage, type ImageProcessingOptions } from "../utils/imageProcessing";
+
+async function uploadCollectionImage(
+    collectionId: number,
+    file: File,
+    options?: ImageProcessingOptions
+) {
+    const processedFile = await processImage(file, options || {});
+    const form = new FormData();
+    form.append("file", processedFile);
+
+    return handle<{ success: boolean; data?: any }>(
+        await fetch(`${BASE_URL}/api/v1/admin/collections/${collectionId}/image/upload`, {
+            method: "PATCH",
+            headers: getAuthHeaders({ contentType: null }),
+            body: form,
+        })
+    );
+}
+
 async function getCollections() {
     return handle<CollectionListResponse>(
         await fetch(`${BASE_URL}/api/v1/collections`, {
@@ -95,4 +115,5 @@ export const collectionsApi = {
     getCollectionTerminologies,
     addTerminologiesToCollection,
     deleteWordFromCollection,
+    uploadCollectionImage,
 };

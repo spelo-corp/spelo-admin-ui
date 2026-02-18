@@ -62,7 +62,7 @@ export async function adminLogin(payload: { username: string; password: string }
 
         const data = await response.json();
         const stored: StoredAuth = {
-            token: data.token,
+            token: data.access_token,
             username: payload.username,
             loggedInAt: Date.now(),
             expiresAt: data.expire_at || (Date.now() + 24 * 60 * 60 * 1000)

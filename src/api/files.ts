@@ -30,6 +30,7 @@ async function deleteAudioFile(id: number) {
     return handle<{ success: boolean }>(
         await fetch(`${BASE_URL}/api/admin/audio-files/${id}`, {
             method: "DELETE",
+            headers: getAuthHeaders(),
         })
     );
 }

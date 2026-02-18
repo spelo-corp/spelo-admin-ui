@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     CircleAlert,
     Folder,
+    ImagePlus,
     Plus,
     Search,
     Sparkles,
@@ -23,6 +24,9 @@ import {
     useDeleteCollection,
     useUpdateCollection,
 } from "../hooks/useCollections";
+import { processImage } from "../utils/imageProcessing";
+import { filesApi } from "../api/files";
+import { collectionsApi } from "../api/collections";
 
 const formatDate = (value?: string) => {
     if (!value) return null;
@@ -48,6 +52,13 @@ const CollectionsPage: React.FC = () => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [image, setImage] = useState("");
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePadding, setImagePadding] = useState(32);
+    const [targetSize, setTargetSize] = useState(512);
+    const [processedPreviewUrl, setProcessedPreviewUrl] = useState<string | null>(null);
+    const [imageUploading, setImageUploading] = useState(false);
+    const imageInputRef = useRef<HTMLInputElement>(null);
     const [price, setPrice] = useState<string>(""); // input as string to handle empty
     const [type, setType] = useState<"LIBRARY" | "USER">("LIBRARY");
 
@@ -59,6 +70,12 @@ const CollectionsPage: React.FC = () => {
         setName("");
         setDescription("");
         setImage("");
+        setImagePreviewUrl(null);
+        setImageFile(null);
+        setProcessedPreviewUrl(null);
+        setImagePadding(32);
+        setTargetSize(512);
+        setImageUploading(false);
         setPrice("");
         setType("LIBRARY");
         setEditingCollection(null);
@@ -75,10 +92,22 @@ const CollectionsPage: React.FC = () => {
         setName(collection.name);
         setDescription(collection.description || "");
         setImage(collection.image || "");
+        setImageFile(null);
+        setImagePreviewUrl(null);
+        setProcessedPreviewUrl(null);
+        setImagePadding(32);
+        setTargetSize(512);
         setPrice(collection.price !== undefined ? String(collection.price) : "");
         setType(collection.type === "USER" ? "USER" : "LIBRARY");
         setModalError(null);
         setModalOpen(true);
+
+        // Resolve existing image key to presigned URL for preview
+        if (collection.image) {
+            filesApi.getPresignedUrl(collection.image, "spelo-images").then((res) => {
+                if (res.success && res.url) setImagePreviewUrl(res.url);
+            }).catch(() => { });
+        }
     };
 
     const openDeleteModal = (collection: Collection) => {
@@ -93,6 +122,57 @@ const CollectionsPage: React.FC = () => {
         setDeleteTarget(null);
         setDeleteError(null);
     };
+
+    const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageFile(file);
+        // Clear remote preview if user picks a local file
+        setImagePreviewUrl(null);
+    };
+
+    // Effect to generate processed preview
+    useEffect(() => {
+        let active = true;
+
+        const generatePreview = async () => {
+            if (!imageFile) {
+                if (active) setProcessedPreviewUrl(null);
+                return;
+            }
+
+            try {
+                const processed = await processImage(imageFile, {
+                    targetSize: { width: targetSize, height: targetSize },
+                    padding: imagePadding,
+                    backgroundColor: "white",
+                });
+
+                const url = URL.createObjectURL(processed);
+
+                if (active) {
+                    setProcessedPreviewUrl(url);
+                } else {
+                    URL.revokeObjectURL(url);
+                }
+            } catch (e) {
+                console.error("Failed to process image preview", e);
+            }
+        };
+
+        generatePreview();
+
+        return () => {
+            active = false;
+        };
+    }, [imageFile, imagePadding, targetSize]);
+
+    // Clean up object URLs
+    useEffect(() => {
+        return () => {
+            if (processedPreviewUrl) URL.revokeObjectURL(processedPreviewUrl);
+        };
+    }, [processedPreviewUrl]);
 
     const handleSaveCollection = async () => {
         const trimmedName = name.trim();
@@ -113,10 +193,30 @@ const CollectionsPage: React.FC = () => {
 
         setModalError(null);
 
+        // Upload image logic using processImage options
+        let imageKey = image.trim() || undefined;
+        if (imageFile && editingCollection) {
+            try {
+                setImageUploading(true);
+                await collectionsApi.uploadCollectionImage(editingCollection.id, imageFile, {
+                    targetSize: { width: targetSize, height: targetSize },
+                    padding: imagePadding,
+                    backgroundColor: "white",
+                });
+                imageKey = undefined; // backend handles key update
+            } catch (e) {
+                setModalError(e instanceof Error ? e.message : "Failed to upload image.");
+                setImageUploading(false);
+                return;
+            } finally {
+                setImageUploading(false);
+            }
+        }
+
         const payload = {
             collection_name: trimmedName,
             description: description.trim() || undefined,
-            image: image.trim() || undefined,
+            image: imageKey,
             type: type,
             price: parsedPrice,
         };
@@ -128,7 +228,18 @@ const CollectionsPage: React.FC = () => {
                     data: payload,
                 });
             } else {
-                await createCollectionMutation.mutateAsync(payload);
+                const result = await createCollectionMutation.mutateAsync(payload);
+                if (imageFile && result?.data?.id) {
+                    try {
+                        await collectionsApi.uploadCollectionImage(result.data.id, imageFile, {
+                            targetSize: { width: targetSize, height: targetSize },
+                            padding: imagePadding,
+                            backgroundColor: "white",
+                        });
+                    } catch {
+                        // ignore
+                    }
+                }
             }
             setModalOpen(false);
             resetForm();
@@ -157,7 +268,7 @@ const CollectionsPage: React.FC = () => {
         );
     }, [collections, collectionSearch]);
 
-    const saving = createCollectionMutation.isPending || updateCollectionMutation.isPending;
+    const saving = createCollectionMutation.isPending || updateCollectionMutation.isPending || imageUploading;
     const deleting = deleteCollectionMutation.isPending;
 
     return (
@@ -284,9 +395,7 @@ const CollectionsPage: React.FC = () => {
                                                     {collection.name}
                                                 </h3>
                                             </div>
-                                            <div className="h-10 w-10 shrink-0 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
-                                                <Folder className="w-5 h-5" />
-                                            </div>
+                                            <CollectionThumbnail imageKey={collection.image} />
                                         </div>
 
                                         <p className="text-sm text-slate-500 line-clamp-2 h-10">
@@ -395,13 +504,97 @@ const CollectionsPage: React.FC = () => {
 
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Image URL
+                                    Image
                                 </label>
-                                <Input
-                                    value={image}
-                                    onChange={(e) => setImage(e.target.value)}
-                                    placeholder="https://..."
+                                <input
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleImageFileChange}
                                 />
+                                <div className="flex items-start gap-4">
+                                    <div className="flex-shrink-0">
+                                        {processedPreviewUrl ? (
+                                            <div className="space-y-1">
+                                                <img
+                                                    src={processedPreviewUrl}
+                                                    alt="Processed Preview"
+                                                    className="w-24 h-24 rounded-xl object-contain border border-slate-200 bg-slate-50"
+                                                />
+                                                <p className="text-[10px] text-center text-slate-400">Preview</p>
+                                            </div>
+                                        ) : imagePreviewUrl ? (
+                                            <img
+                                                src={imagePreviewUrl}
+                                                alt="Current"
+                                                className="w-24 h-24 rounded-xl object-cover border border-slate-200"
+                                            />
+                                        ) : (
+                                            <div className="w-24 h-24 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                                                <ImagePlus className="w-8 h-8" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => imageInputRef.current?.click()}
+                                                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition"
+                                            >
+                                                {imageFile || imagePreviewUrl ? "Change image" : "Upload image"}
+                                            </button>
+                                            {(imageFile || imagePreviewUrl) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImage("");
+                                                        setImageFile(null);
+                                                        setImagePreviewUrl(null);
+                                                        setProcessedPreviewUrl(null);
+                                                        if (imageInputRef.current) imageInputRef.current.value = "";
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg text-sm text-rose-500 hover:bg-rose-50 transition"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {imageFile && (
+                                            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                                                        Padding (px)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={imagePadding}
+                                                        onChange={(e) => setImagePadding(Number(e.target.value))}
+                                                        className="w-full text-xs px-2 py-1 rounded border border-slate-200"
+                                                        min={0}
+                                                        max={200}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                                                        Size (px)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={targetSize}
+                                                        onChange={(e) => setTargetSize(Number(e.target.value))}
+                                                        className="w-full text-xs px-2 py-1 rounded border border-slate-200"
+                                                        min={64}
+                                                        max={1024}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -517,10 +710,39 @@ const CollectionsPage: React.FC = () => {
                     </div>
                 </div>
             ) : null}
-
         </div>
     );
 };
+
+function CollectionThumbnail({ imageKey }: { imageKey?: string | null }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!imageKey) return;
+        let cancelled = false;
+        filesApi.getPresignedUrl(imageKey, "spelo-images").then((res) => {
+            if (!cancelled && res.success && res.url) setUrl(res.url);
+        }).catch(() => { });
+        return () => { cancelled = true; };
+    }, [imageKey]);
+
+    if (url) {
+        return (
+            <img
+                src={url}
+                alt=""
+                className="h-10 w-10 shrink-0 rounded-2xl object-cover"
+            />
+        );
+    }
+
+    return (
+        <div className="h-10 w-10 shrink-0 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+            <Folder className="w-5 h-5" />
+        </div>
+    );
+}
+
 
 export default CollectionsPage;
 
