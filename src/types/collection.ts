@@ -5,6 +5,7 @@ export interface CollectionListItemDTO {
     name: string;
     description?: string;
     image?: string;
+    bg_color?: string;
     type: "USER" | "SHARED" | "LIBRARY";
     price?: number;
     status: number;
@@ -20,6 +21,7 @@ export interface Collection {
     name: string;
     description?: string;
     image?: string;
+    bg_color?: string;
     type: "USER" | "SHARED" | "LIBRARY";
     price?: number;
     status: number;

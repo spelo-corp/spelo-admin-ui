@@ -145,7 +145,7 @@ const CollectionsPage: React.FC = () => {
                 const processed = await processImage(imageFile, {
                     targetSize: { width: targetSize, height: targetSize },
                     padding: imagePadding,
-                    backgroundColor: "white",
+                    backgroundColor: "transparent",
                 });
 
                 const url = URL.createObjectURL(processed);
@@ -203,7 +203,7 @@ const CollectionsPage: React.FC = () => {
                 await collectionsApi.uploadCollectionImage(editingCollection.id, imageFile, {
                     targetSize: { width: targetSize, height: targetSize },
                     padding: imagePadding,
-                    backgroundColor: "white",
+                    backgroundColor: "transparent",
                 });
 
                 imageKey = undefined;
@@ -239,7 +239,7 @@ const CollectionsPage: React.FC = () => {
                         await collectionsApi.uploadCollectionImage(newCollectionId, imageFile, {
                             targetSize: { width: targetSize, height: targetSize },
                             padding: imagePadding,
-                            backgroundColor: "white",
+                            backgroundColor: "transparent",
                         });
                     } catch {
                         // ignore secondary update errors, main creation succeeded
@@ -400,7 +400,7 @@ const CollectionsPage: React.FC = () => {
                                                     {collection.name}
                                                 </h3>
                                             </div>
-                                            <CollectionThumbnail imageKey={collection.image} />
+                                            <CollectionThumbnail imageKey={collection.image} bgColor={collection.bg_color} />
                                         </div>
 
                                         <p className="text-sm text-slate-500 line-clamp-2 h-10">
@@ -719,7 +719,7 @@ const CollectionsPage: React.FC = () => {
     );
 };
 
-function CollectionThumbnail({ imageKey }: { imageKey?: string | null }) {
+function CollectionThumbnail({ imageKey, bgColor }: { imageKey?: string | null; bgColor?: string | null }) {
     const [url, setUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -733,11 +733,16 @@ function CollectionThumbnail({ imageKey }: { imageKey?: string | null }) {
 
     if (url) {
         return (
-            <img
-                src={url}
-                alt=""
-                className="h-10 w-10 shrink-0 rounded-2xl object-cover"
-            />
+            <div
+                className="h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: bgColor || "#f1f5f9" }}
+            >
+                <img
+                    src={url}
+                    alt=""
+                    className="h-8 w-8 object-contain"
+                />
+            </div>
         );
     }
 

@@ -34,9 +34,11 @@ export async function processImage(
             canvas.width = targetWidth;
             canvas.height = targetHeight;
 
-            // Fill background
-            ctx.fillStyle = options.backgroundColor ?? "white"; // Or "transparent"
-            ctx.fillRect(0, 0, targetWidth, targetHeight);
+            // Fill background (skip for transparent — canvas is transparent by default)
+            if (options.backgroundColor !== "transparent") {
+                ctx.fillStyle = options.backgroundColor ?? "white";
+                ctx.fillRect(0, 0, targetWidth, targetHeight);
+            }
 
             // Calculate scaling to fit within padding
             const availableWidth = targetWidth - padding * 2;
@@ -55,11 +57,17 @@ export async function processImage(
 
             ctx.drawImage(img, x, y, drawWidth, drawHeight);
 
+            const isTransparent = options.backgroundColor === "transparent";
+            const outputType = isTransparent ? "image/png" : file.type;
+            const outputName = isTransparent
+                ? file.name.replace(/\.[^.]+$/, ".png")
+                : file.name;
+
             canvas.toBlob(
                 (blob) => {
                     if (blob) {
-                        const processedFile = new File([blob], file.name, {
-                            type: file.type,
+                        const processedFile = new File([blob], outputName, {
+                            type: outputType,
                             lastModified: Date.now(),
                         });
                         resolve(processedFile);
@@ -67,8 +75,8 @@ export async function processImage(
                         reject(new Error("Canvas to Blob conversion failed"));
                     }
                 },
-                file.type,
-                0.9 // Quality
+                outputType,
+                isTransparent ? undefined : 0.9
             );
         };
 
