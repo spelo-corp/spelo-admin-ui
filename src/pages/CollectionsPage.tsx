@@ -193,8 +193,10 @@ const CollectionsPage: React.FC = () => {
 
         setModalError(null);
 
-        // Upload image logic using processImage options
+        // Determine initial image key from text input (existing or manually entered)
         let imageKey = image.trim() || undefined;
+
+        // If editing and a new file is pending, upload it first to get the key
         if (imageFile && editingCollection) {
             try {
                 setImageUploading(true);
@@ -203,7 +205,8 @@ const CollectionsPage: React.FC = () => {
                     padding: imagePadding,
                     backgroundColor: "white",
                 });
-                imageKey = undefined; // backend handles key update
+
+                imageKey = undefined;
             } catch (e) {
                 setModalError(e instanceof Error ? e.message : "Failed to upload image.");
                 setImageUploading(false);
@@ -228,16 +231,18 @@ const CollectionsPage: React.FC = () => {
                     data: payload,
                 });
             } else {
+                // Create flow
                 const result = await createCollectionMutation.mutateAsync(payload);
                 if (imageFile && result?.data?.id) {
                     try {
-                        await collectionsApi.uploadCollectionImage(result.data.id, imageFile, {
+                        const newCollectionId = result.data.id;
+                        await collectionsApi.uploadCollectionImage(newCollectionId, imageFile, {
                             targetSize: { width: targetSize, height: targetSize },
                             padding: imagePadding,
                             backgroundColor: "white",
                         });
                     } catch {
-                        // ignore
+                        // ignore secondary update errors, main creation succeeded
                     }
                 }
             }
