@@ -106,6 +106,27 @@ async function deleteWordFromCollection(collectionId: number, wordId: number) {
     );
 }
 
+async function generateCollection(payload: {
+    collection_id?: number;
+    collection_name?: string;
+    prompt_hint?: string;
+    word_count?: number;
+    tts_provider?: string;
+    word_type_distribution?: {
+        word: number;
+        phrasal_verb?: number;
+        idiom?: number;
+    };
+}) {
+    return handle<{ job_id: number; message: string }>(
+        await fetch(`${BASE_URL}/api/v1/admin/collections/generate`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        })
+    );
+}
+
 export const collectionsApi = {
     getCollections,
     getLibraryCollections,
@@ -116,4 +137,5 @@ export const collectionsApi = {
     addTerminologiesToCollection,
     deleteWordFromCollection,
     uploadCollectionImage,
+    generateCollection,
 };

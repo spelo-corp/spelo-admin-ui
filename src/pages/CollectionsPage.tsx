@@ -4,6 +4,7 @@ import {
     CircleAlert,
     Folder,
     ImagePlus,
+    Loader2,
     Plus,
     Search,
     Sparkles,
@@ -23,6 +24,7 @@ import {
     useCreateCollection,
     useDeleteCollection,
     useUpdateCollection,
+    useGenerateCollection,
 } from "../hooks/useCollections";
 import { processImage } from "../utils/imageProcessing";
 import { filesApi } from "../api/files";
@@ -42,6 +44,7 @@ const CollectionsPage: React.FC = () => {
     const createCollectionMutation = useCreateCollection();
     const updateCollectionMutation = useUpdateCollection();
     const deleteCollectionMutation = useDeleteCollection();
+    const generateCollectionMutation = useGenerateCollection();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
@@ -66,6 +69,20 @@ const CollectionsPage: React.FC = () => {
     const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    // Generate modal state
+    const [generateOpen, setGenerateOpen] = useState(false);
+    const [generateTarget, setGenerateTarget] = useState<Collection | null>(null);
+    const [generateName, setGenerateName] = useState("");
+    const [generateHint, setGenerateHint] = useState("");
+    const [generateWordCount, setGenerateWordCount] = useState("20");
+    const [generateError, setGenerateError] = useState<string | null>(null);
+    const [generateSuccess, setGenerateSuccess] = useState<string | null>(null);
+
+    const [generatePhrasalVerbs, setGeneratePhrasalVerbs] = useState(false);
+    const [generatePhrasalVerbsPct, setGeneratePhrasalVerbsPct] = useState(20);
+    const [generateIdioms, setGenerateIdioms] = useState(false);
+    const [generateIdiomsPct, setGenerateIdiomsPct] = useState(10);
+
     const resetForm = () => {
         setName("");
         setDescription("");
@@ -85,6 +102,65 @@ const CollectionsPage: React.FC = () => {
     const openCreateModal = () => {
         resetForm();
         setModalOpen(true);
+    };
+
+    const openGenerateModal = (collection?: Collection) => {
+        setGenerateTarget(collection ?? null);
+        setGenerateName(collection ? "" : "");
+        setGenerateHint("");
+        setGenerateWordCount("20");
+        setGenerateError(null);
+        setGenerateSuccess(null);
+        setGeneratePhrasalVerbs(false);
+        setGeneratePhrasalVerbsPct(20);
+        setGenerateIdioms(false);
+        setGenerateIdiomsPct(10);
+        setGenerateOpen(true);
+    };
+
+    const handleGenerate = async () => {
+        setGenerateError(null);
+        setGenerateSuccess(null);
+
+        const wordCount = Math.max(1, Math.min(200, Number(generateWordCount) || 20));
+
+        if (!generateTarget && !generateName.trim()) {
+            setGenerateError("Collection name is required for a new collection.");
+            return;
+        }
+
+        try {
+            const payload: Record<string, unknown> = {
+                prompt_hint: generateHint.trim() || undefined,
+                word_count: wordCount,
+            };
+
+            const pvPct = generatePhrasalVerbs ? generatePhrasalVerbsPct : 0;
+            const idiomPct = generateIdioms ? generateIdiomsPct : 0;
+            const wordPct = 100 - pvPct - idiomPct;
+
+            if (pvPct > 0 || idiomPct > 0) {
+                payload.word_type_distribution = {
+                    word: wordPct,
+                    phrasal_verb: pvPct,
+                    idiom: idiomPct
+                };
+            }
+
+            if (generateTarget) {
+                payload.collection_id = generateTarget.id;
+            } else {
+                payload.collection_name = generateName.trim();
+            }
+
+            const res = await generateCollectionMutation.mutateAsync(payload as any);
+            const jobId = (res as any)?.job_id ?? (res as any)?.jobId;
+            setGenerateSuccess(
+                `Generation started! Job ID: ${jobId ?? "N/A"}. Words will appear once processing completes.`
+            );
+        } catch (e) {
+            setGenerateError(e instanceof Error ? e.message : "Failed to start generation.");
+        }
     };
 
     const openEditModal = (collection: Collection) => {
@@ -275,6 +351,7 @@ const CollectionsPage: React.FC = () => {
 
     const saving = createCollectionMutation.isPending || updateCollectionMutation.isPending || imageUploading;
     const deleting = deleteCollectionMutation.isPending;
+    const generating = generateCollectionMutation.isPending;
 
     return (
         <div className="space-y-8 px-8 py-6">
@@ -293,10 +370,16 @@ const CollectionsPage: React.FC = () => {
                 }
                 description="Manage public collections available in the library."
                 actions={
-                    <Btn.HeroPrimary onClick={openCreateModal}>
-                        <Plus className="w-4 h-4" />
-                        New Collection
-                    </Btn.HeroPrimary>
+                    <div className="flex items-center gap-2">
+                        <Btn.HeroPrimary onClick={() => openGenerateModal()}>
+                            <Sparkles className="w-4 h-4" />
+                            AI Generate
+                        </Btn.HeroPrimary>
+                        <Btn.HeroPrimary onClick={openCreateModal}>
+                            <Plus className="w-4 h-4" />
+                            New Collection
+                        </Btn.HeroPrimary>
+                    </div>
                 }
             />
 
@@ -431,6 +514,13 @@ const CollectionsPage: React.FC = () => {
                                                 className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
                                             >
                                                 <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => openGenerateModal(collection)}
+                                                title="Enrich with AI"
+                                                className="px-3 py-2 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 transition"
+                                            >
+                                                <Sparkles className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => openDeleteModal(collection)}
@@ -715,6 +805,228 @@ const CollectionsPage: React.FC = () => {
                     </div>
                 </div>
             ) : null}
+
+            {generateOpen && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-3">
+                    <div className="bg-white rounded-2xl shadow-shell w-full max-w-lg p-6 border border-slate-100 animate-slideIn">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                                        {generateTarget ? "Enrich" : "Generate"}
+                                    </p>
+                                    <h2 className="text-lg font-semibold text-slate-900">
+                                        {generateTarget
+                                            ? `Enrich "${generateTarget.name}"`
+                                            : "AI Generate Collection"}
+                                    </h2>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setGenerateOpen(false)}
+                                className="p-2 rounded-full hover:bg-slate-100 text-slate-500"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 text-sm">
+                            {generateError && (
+                                <div className="px-3 py-2 rounded-lg bg-rose-50 text-rose-700 border border-rose-100 text-xs">
+                                    {generateError}
+                                </div>
+                            )}
+                            {generateSuccess && (
+                                <div className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs">
+                                    {generateSuccess}
+                                </div>
+                            )}
+
+                            {!generateTarget && (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                                        Collection Name *
+                                    </label>
+                                    <Input
+                                        value={generateName}
+                                        onChange={(e) => setGenerateName(e.target.value)}
+                                        maxLength={255}
+                                        placeholder="e.g. Medical English"
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1">
+                                    Prompt Hint
+                                </label>
+                                <textarea
+                                    value={generateHint}
+                                    onChange={(e) => setGenerateHint(e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none min-h-[80px]"
+                                    placeholder="e.g. Focus on advanced medical terminology used in hospitals"
+                                    maxLength={2000}
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                    Optional hint to guide the AI. Leave empty to use the collection name as the topic.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1">
+                                    Total Word Count
+                                </label>
+                                <Input
+                                    type="number"
+                                    value={generateWordCount}
+                                    onChange={(e) => setGenerateWordCount(e.target.value)}
+                                    min={1}
+                                    max={200}
+                                    placeholder="20"
+                                />
+                            </div>
+
+                            {/* Word Types Configuration */}
+                            <div className="pt-2 border-t border-slate-100 mt-4">
+                                <label className="block text-xs font-medium text-slate-600 mb-3">
+                                    Word Types Distribution
+                                </label>
+
+                                <div className="space-y-4">
+                                    {/* Phrasal Verbs Toggle */}
+                                    <div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-slate-700">Include Phrasal Verbs</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setGeneratePhrasalVerbs(!generatePhrasalVerbs)}
+                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generatePhrasalVerbs ? 'bg-violet-600' : 'bg-slate-200'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generatePhrasalVerbs ? 'translate-x-4' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        {generatePhrasalVerbs && (
+                                            <div className="mt-2 flex items-center gap-3">
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="40"
+                                                    step="5"
+                                                    value={generatePhrasalVerbsPct}
+                                                    onChange={(e) => {
+                                                        const val = Number(e.target.value);
+                                                        const currentIdiom = generateIdioms ? generateIdiomsPct : 0;
+                                                        if (val + currentIdiom <= 50) {
+                                                            setGeneratePhrasalVerbsPct(val);
+                                                        }
+                                                    }}
+                                                    className="flex-1 accent-violet-600 h-1.5 rounded-full bg-slate-200 appearance-none outline-none"
+                                                />
+                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">{generatePhrasalVerbsPct}%</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Idioms Toggle */}
+                                    <div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-slate-700">Include Idioms</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setGenerateIdioms(!generateIdioms)}
+                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generateIdioms ? 'bg-violet-600' : 'bg-slate-200'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generateIdioms ? 'translate-x-4' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        {generateIdioms && (
+                                            <div className="mt-2 flex items-center gap-3">
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="40"
+                                                    step="5"
+                                                    value={generateIdiomsPct}
+                                                    onChange={(e) => {
+                                                        const val = Number(e.target.value);
+                                                        const currentPv = generatePhrasalVerbs ? generatePhrasalVerbsPct : 0;
+                                                        if (val + currentPv <= 50) {
+                                                            setGenerateIdiomsPct(val);
+                                                        }
+                                                    }}
+                                                    className="flex-1 accent-violet-600 h-1.5 rounded-full bg-slate-200 appearance-none outline-none"
+                                                />
+                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">{generateIdiomsPct}%</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Distribution Bar */}
+                                    <div className="pt-2">
+                                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                            <span>Single Words ({100 - (generatePhrasalVerbs ? generatePhrasalVerbsPct : 0) - (generateIdioms ? generateIdiomsPct : 0)}%)</span>
+                                            {generatePhrasalVerbs && <span>Phrasal Verbs ({generatePhrasalVerbsPct}%)</span>}
+                                            {generateIdioms && <span>Idioms ({generateIdiomsPct}%)</span>}
+                                        </div>
+                                        <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-slate-100">
+                                            <div
+                                                className="h-full bg-emerald-400 transition-all duration-300"
+                                                style={{ width: `${100 - (generatePhrasalVerbs ? generatePhrasalVerbsPct : 0) - (generateIdioms ? generateIdiomsPct : 0)}%` }}
+                                            />
+                                            {generatePhrasalVerbs && (
+                                                <div
+                                                    className="h-full bg-violet-400 transition-all duration-300"
+                                                    style={{ width: `${generatePhrasalVerbsPct}%` }}
+                                                />
+                                            )}
+                                            {generateIdioms && (
+                                                <div
+                                                    className="h-full bg-amber-400 transition-all duration-300"
+                                                    style={{ width: `${generateIdiomsPct}%` }}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {generateTarget && (
+                                <div className="rounded-xl bg-violet-50 border border-violet-100 px-3 py-2 text-xs text-violet-700">
+                                    <strong>Enriching:</strong> {generateTarget.total_words ?? 0} existing words will be excluded from generation.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-6">
+                            <Btn.Secondary
+                                onClick={() => setGenerateOpen(false)}
+                                disabled={generating}
+                            >
+                                {generateSuccess ? "Close" : "Cancel"}
+                            </Btn.Secondary>
+
+                            {!generateSuccess && (
+                                <Btn.Primary onClick={handleGenerate} disabled={generating}>
+                                    {generating ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Generating…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-4 h-4" />
+                                            {generateTarget ? "Enrich Collection" : "Generate Collection"}
+                                        </>
+                                    )}
+                                </Btn.Primary>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

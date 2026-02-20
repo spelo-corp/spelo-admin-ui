@@ -108,3 +108,25 @@ export function useCollectionTerminologies(collectionId?: number, enabled = fals
         },
     });
 }
+
+export function useGenerateCollection() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: {
+            collection_id?: number;
+            collection_name?: string;
+            prompt_hint?: string;
+            word_count?: number;
+            tts_provider?: string;
+            word_type_distribution?: {
+                word: number;
+                phrasal_verb?: number;
+                idiom?: number;
+            };
+        }) => api.generateCollection(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COLLECTIONS_QUERY_KEY });
+        },
+    });
+}
