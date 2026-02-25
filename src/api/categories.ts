@@ -1,12 +1,12 @@
-import { BASE_URL, handle, getAuthHeaders } from "./base";
-import type { Category, CategoryRequestDTO, CategoryListResponse } from "../types/category";
+import type { Category, CategoryListResponse, CategoryRequestDTO } from "../types/category";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 // Get all categories
 async function getCategories() {
     return handle<CategoryListResponse>(
         await fetch(`${BASE_URL}/api/v1/categories?parent_id=0`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -15,7 +15,7 @@ async function getCategoryById(id: number) {
     return handle<{ success: boolean; data: Category }>(
         await fetch(`${BASE_URL}/api/v1/categories/${id}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -26,7 +26,7 @@ async function createCategory(data: CategoryRequestDTO) {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(data),
-        })
+        }),
     );
 }
 
@@ -37,7 +37,7 @@ async function updateCategory(id: number, data: CategoryRequestDTO) {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(data),
-        })
+        }),
     );
 }
 
@@ -47,7 +47,7 @@ async function deleteCategory(id: number) {
         await fetch(`${BASE_URL}/api/v1/categories/${id}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -61,7 +61,7 @@ async function uploadCategoryImage(id: number, file: File) {
             method: "PATCH",
             headers: getAuthHeaders({ contentType: null }),
             body: formData,
-        })
+        }),
     );
 }
 

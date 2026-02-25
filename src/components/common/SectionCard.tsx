@@ -1,6 +1,6 @@
-import React from "react";
-import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import type React from "react";
+import type { ReactNode } from "react";
 
 type SectionCardTone = "default" | "soft";
 
@@ -53,4 +53,3 @@ const SectionCard: React.FC<SectionCardProps> = ({
 };
 
 export default SectionCard;
-

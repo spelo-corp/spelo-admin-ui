@@ -1,19 +1,20 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
 import {
-    Home,
-    Settings,
+    BookA,
     BookOpen,
     FileAudio2,
+    Folder,
+    Headphones,
+    HelpCircle,
+    Home,
+    Layers,
+    Library,
+    LogOut,
+    Settings,
     Users,
     Workflow,
-    HelpCircle,
-    LogOut,
-    Headphones,
-    BookA,
-    Layers,
-    Folder,
 } from "lucide-react";
+import type React from "react";
+import { NavLink } from "react-router-dom";
 
 import { adminLogout } from "../../auth/adminAuth";
 
@@ -52,12 +53,8 @@ const Sidebar: React.FC = () => {
                 </div>
 
                 <div>
-                    <div className="text-lg font-semibold text-slate-800">
-                        Spelo Admin
-                    </div>
-                    <div className="text-[11px] text-slate-400 tracking-wider">
-                        Dashboard
-                    </div>
+                    <div className="text-lg font-semibold text-slate-800">Spelo Admin</div>
+                    <div className="text-[11px] text-slate-400 tracking-wider">Dashboard</div>
                 </div>
             </div>
 
@@ -68,7 +65,6 @@ const Sidebar: React.FC = () => {
 
             {/* NAVIGATION */}
             <div className="flex flex-col gap-1">
-
                 <NavLink to="/admin" className={linkClass} end>
                     <Home className="w-5 h-5" />
                     <span>Dashboard</span>
@@ -94,6 +90,11 @@ const Sidebar: React.FC = () => {
                     <span>Collections</span>
                 </NavLink>
 
+                <NavLink to="/admin/books" className={linkClass}>
+                    <Library className="w-5 h-5" />
+                    <span>Books</span>
+                </NavLink>
+
                 <NavLink to="/admin/jobs" className={linkClass}>
                     <Workflow className="w-5 h-5" />
                     <span>Jobs</span>
@@ -108,7 +109,6 @@ const Sidebar: React.FC = () => {
                     <Users className="w-5 h-5" />
                     <span>Users</span>
                 </NavLink>
-
             </div>
 
             {/* GENERAL HEADER */}

@@ -1,23 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Search,
-    Plus,
     BookOpen,
     Edit3,
+    Loader2,
+    Plus,
+    Search,
+    Sparkles,
     Trash2,
     Volume2,
     Wand2,
-    Loader2,
-    Sparkles,
 } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client";
-import type { VocabWord } from "../types";
-
-import VocabModal, { type VocabFormData } from "../components/vocab/VocabModal";
-import VocabAutoCreateSection from "../components/vocab/VocabAutoCreateSection";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
+import VocabAutoCreateSection from "../components/vocab/VocabAutoCreateSection";
+import VocabModal, { type VocabFormData } from "../components/vocab/VocabModal";
+import type { VocabWord } from "../types";
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -96,7 +96,7 @@ const DictionaryPage: React.FC = () => {
 
     const activeLettersCount = useMemo(
         () => alphabet.filter((l) => (groupedWords[l] ?? []).length > 0).length,
-        [groupedWords]
+        [groupedWords],
     );
 
     const visibleLetters = useMemo(() => [selectedLetter], [selectedLetter]);
@@ -177,12 +177,13 @@ const DictionaryPage: React.FC = () => {
                                             key={l}
                                             onClick={() => setSelectedLetter(l)}
                                             disabled={!hasWords}
-                                            className={`rounded-md px-2 py-1 transition ${hasWords
-                                                ? isSelected
-                                                    ? "bg-brand/20 text-brand border border-brand/30"
-                                                    : "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
-                                                : "bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
-                                                }`}
+                                            className={`rounded-md px-2 py-1 transition ${
+                                                hasWords
+                                                    ? isSelected
+                                                        ? "bg-brand/20 text-brand border border-brand/30"
+                                                        : "bg-slate-50 text-slate-800 hover:bg-brand/10 hover:text-brand"
+                                                    : "bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
+                                            }`}
                                         >
                                             {l}
                                         </button>
@@ -255,12 +256,13 @@ const DictionaryPage: React.FC = () => {
                                                     key={l}
                                                     onClick={() => setSelectedLetter(l)}
                                                     disabled={!hasWords}
-                                                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${hasWords
-                                                        ? isSelected
-                                                            ? "bg-brand/20 text-brand"
-                                                            : "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
-                                                        : "bg-slate-100 text-slate-400"
-                                                        }`}
+                                                    className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                                                        hasWords
+                                                            ? isSelected
+                                                                ? "bg-brand/20 text-brand"
+                                                                : "bg-slate-200 text-slate-800 hover:bg-brand/20 hover:text-brand"
+                                                            : "bg-slate-100 text-slate-400"
+                                                    }`}
                                                 >
                                                     {l}
                                                 </button>
@@ -283,9 +285,12 @@ const DictionaryPage: React.FC = () => {
                                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                         <Search className="h-5 w-5" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-slate-800">No words yet</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800">
+                                        No words yet
+                                    </h3>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        Try a different search, or add a new word to kick things off.
+                                        Try a different search, or add a new word to kick things
+                                        off.
                                     </p>
                                     <div className="mt-4 flex items-center justify-center gap-3">
                                         <button
@@ -309,7 +314,11 @@ const DictionaryPage: React.FC = () => {
                                     const list = groupedWords[letter] ?? [];
 
                                     return (
-                                        <section key={letter} id={`section-${letter}`} className="scroll-mt-24">
+                                        <section
+                                            key={letter}
+                                            id={`section-${letter}`}
+                                            className="scroll-mt-24"
+                                        >
                                             <div className="mb-4 flex items-center gap-3">
                                                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                                     {letter}
@@ -353,16 +362,22 @@ const DictionaryPage: React.FC = () => {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    {w.pronunciations?.length > 0 && (
+                                                                    {w.pronunciations?.length >
+                                                                        0 && (
                                                                         <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                                                            {w.pronunciations.map((p) => p.ipa).filter(Boolean).join(" • ")}
+                                                                            {w.pronunciations
+                                                                                .map((p) => p.ipa)
+                                                                                .filter(Boolean)
+                                                                                .join(" • ")}
                                                                         </p>
                                                                     )}
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2">
                                                                     <button
-                                                                        onClick={() => openEditModal(w)}
+                                                                        onClick={() =>
+                                                                            openEditModal(w)
+                                                                        }
                                                                         className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:-translate-y-0.5 hover:border-brand hover:text-brand"
                                                                         title="Edit word"
                                                                     >
@@ -381,23 +396,28 @@ const DictionaryPage: React.FC = () => {
                                                                 {primarySense.definition || "N/A"}
                                                             </p>
                                                             <p className="mt-2 font-semibold text-brand">
-                                                                → {primarySense.translation || "N/A"}
+                                                                →{" "}
+                                                                {primarySense.translation || "N/A"}
                                                             </p>
                                                             <div className="mt-1 space-y-1">
-                                                                {primarySense.examples?.slice(0, 2).map((ex, i) => (
-                                                                    <div key={i}>
-                                                                        <p className="text-sm italic text-slate-500">
-                                                                            "{ex.sentence}"
-                                                                        </p>
-                                                                        {ex.translation && (
-                                                                            <p className="text-xs text-slate-400">
-                                                                                {ex.translation}
+                                                                {primarySense.examples
+                                                                    ?.slice(0, 2)
+                                                                    .map((ex, i) => (
+                                                                        <div key={i}>
+                                                                            <p className="text-sm italic text-slate-500">
+                                                                                "{ex.sentence}"
                                                                             </p>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                                            {ex.translation && (
+                                                                                <p className="text-xs text-slate-400">
+                                                                                    {ex.translation}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
                                                                 {!primarySense.examples?.length && (
-                                                                    <p className="text-sm italic text-slate-400">No examples</p>
+                                                                    <p className="text-sm italic text-slate-400">
+                                                                        No examples
+                                                                    </p>
                                                                 )}
                                                             </div>
 
@@ -406,9 +426,15 @@ const DictionaryPage: React.FC = () => {
                                                                     <button
                                                                         key={`${p.accent}-${idx}`}
                                                                         className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-brand hover:text-brand"
-                                                                        onClick={() => playAudio(p.audio)}
+                                                                        onClick={() =>
+                                                                            playAudio(p.audio)
+                                                                        }
                                                                         disabled={!p.audio}
-                                                                        title={!p.audio ? "No audio available" : ""}
+                                                                        title={
+                                                                            !p.audio
+                                                                                ? "No audio available"
+                                                                                : ""
+                                                                        }
                                                                     >
                                                                         <Volume2 className="h-4 w-4" />
                                                                         {p.accent || "Default"}
@@ -426,7 +452,7 @@ const DictionaryPage: React.FC = () => {
                         </div>
                     </main>
                 </div>
-            </div >
+            </div>
 
             <VocabAutoCreateSection
                 show={showAutoCreate}
@@ -461,7 +487,7 @@ const DictionaryPage: React.FC = () => {
                     }
                 }}
             />
-        </div >
+        </div>
     );
 };
 

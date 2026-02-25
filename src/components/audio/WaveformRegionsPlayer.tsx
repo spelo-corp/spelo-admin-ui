@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { AlertTriangle, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
-import { ZoomIn, ZoomOut, RefreshCw, AlertTriangle } from "lucide-react";
 
 const getErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
@@ -45,13 +46,13 @@ interface Props {
 }
 
 export const WaveformRegionsPlayer: React.FC<Props> = ({
-                                                           audioUrl,
-                                                           regions,
-                                                           onRegionUpdate,
-                                                           onReady,
-                                                           height = 80,
-                                                           editable = true,
-                                                       }) => {
+    audioUrl,
+    regions,
+    onRegionUpdate,
+    onReady,
+    height = 80,
+    editable = true,
+}) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const wsRef = useRef<WaveSurfer | null>(null);
     const regionsPluginRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null);
@@ -170,7 +171,6 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
                 }
                 internalRegionsRef.current.clear();
             };
-
         } catch (err: unknown) {
             console.error("Failed to initialize WaveSurfer:", err);
             setError(`Initialization failed: ${getErrorMessage(err)}`);
@@ -214,7 +214,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
         }
 
         const currentRegions = internalRegionsRef.current;
-        const newRegionIds = new Set(regions.map(r => r.id));
+        const newRegionIds = new Set(regions.map((r) => r.id));
 
         try {
             // Remove regions that are no longer in the props
@@ -226,7 +226,7 @@ export const WaveformRegionsPlayer: React.FC<Props> = ({
             }
 
             // Update or add regions
-            regions.forEach(regionConfig => {
+            regions.forEach((regionConfig) => {
                 const existingRegion = currentRegions.get(regionConfig.id);
 
                 if (existingRegion) {

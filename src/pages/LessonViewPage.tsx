@@ -1,10 +1,11 @@
 // src/pages/LessonViewPage.tsx
+
+import { AlertCircle, CheckCircle2, Languages, RefreshCcw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
-import type { Lesson, LessonDetail } from "../types";
-import { AlertCircle, CheckCircle2, RefreshCcw, Languages } from "lucide-react";
 import PageHeader from "../components/common/PageHeader";
+import type { Lesson, LessonDetail } from "../types";
 
 export interface LessonOutletContext {
     lessonDetail: LessonDetail | null;
@@ -36,9 +37,7 @@ const ConfirmResetModal: React.FC<ConfirmResetModalProps> = ({
     return (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-lg p-5 w-full max-w-md">
-                <h2 className="text-sm font-semibold text-slate-900 mb-2">
-                    {title}
-                </h2>
+                <h2 className="text-sm font-semibold text-slate-900 mb-2">{title}</h2>
                 <p className="text-xs text-slate-600 mb-4">{description}</p>
 
                 <div className="flex justify-end gap-2 text-xs">
@@ -66,8 +65,7 @@ const LessonViewPage: React.FC = () => {
     const { lessonId } = useParams();
     const location = useLocation();
 
-    const lessonFromState =
-        (location.state as { lesson?: Lesson } | undefined)?.lesson ?? null;
+    const lessonFromState = (location.state as { lesson?: Lesson } | undefined)?.lesson ?? null;
 
     const [lessonDetail, setLessonDetail] = useState<LessonDetail | null>(null);
     const [lessonMeta, setLessonMeta] = useState<Lesson | null>(lessonFromState);
@@ -98,17 +96,18 @@ const LessonViewPage: React.FC = () => {
                 setLessonDetail(res.lesson);
                 if (!lessonMeta && res.lesson) {
                     const lesson = res.lesson;
-                    setLessonMeta((prev) =>
-                        prev ?? {
-                            id: lesson.lesson_id,
-                            name: lesson.lesson_name,
-                            level: lesson.level ?? "A1",
-                            category_id: lesson.category_id ?? 0,
-                            description: lesson.description,
-                            status: lesson.status,
-                            image: lesson.image,
-                            gems: lesson.gems,
-                        }
+                    setLessonMeta(
+                        (prev) =>
+                            prev ?? {
+                                id: lesson.lesson_id,
+                                name: lesson.lesson_name,
+                                level: lesson.level ?? "A1",
+                                category_id: lesson.category_id ?? 0,
+                                description: lesson.description,
+                                status: lesson.status,
+                                image: lesson.image,
+                                gems: lesson.gems,
+                            },
                     );
                 }
             }
@@ -123,9 +122,7 @@ const LessonViewPage: React.FC = () => {
         try {
             const res = await api.getAllLessons();
             if (res.success) {
-                const found = res.lessons.find(
-                    (item) => item.id === Number(lessonId)
-                );
+                const found = res.lessons.find((item) => item.id === Number(lessonId));
                 if (found) {
                     setLessonMeta(found);
                 }
@@ -196,8 +193,7 @@ const LessonViewPage: React.FC = () => {
         }
     };
 
-    const headerTitle =
-        lessonMeta?.name ?? lessonDetail?.lesson_name ?? `Lesson #${lessonId}`;
+    const headerTitle = lessonMeta?.name ?? lessonDetail?.lesson_name ?? `Lesson #${lessonId}`;
     const levelLabel = lessonMeta?.level || "—";
     const categoryLabel = lessonMeta?.category_id
         ? `Category ${lessonMeta.category_id}`
@@ -233,7 +229,9 @@ const LessonViewPage: React.FC = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                             "
                         >
-                            <Languages className={`w-4 h-4 ${translating ? "animate-pulse" : ""}`} />
+                            <Languages
+                                className={`w-4 h-4 ${translating ? "animate-pulse" : ""}`}
+                            />
                             {translating ? "Translating..." : "Translate Lesson"}
                         </button>
                         <button
@@ -271,8 +269,9 @@ const LessonViewPage: React.FC = () => {
 
                     {status.type && (
                         <div
-                            className={`flex items-center gap-2 text-xs ${status.type === "success" ? "text-emerald-200" : "text-rose-200"
-                                }`}
+                            className={`flex items-center gap-2 text-xs ${
+                                status.type === "success" ? "text-emerald-200" : "text-rose-200"
+                            }`}
                         >
                             {status.type === "success" ? (
                                 <CheckCircle2 className="w-4 h-4" />
@@ -299,10 +298,11 @@ const LessonViewPage: React.FC = () => {
                                         px-4 py-2 text-sm font-medium
                                         rounded-t-xl
                                         transition-all
-                                        ${isActive
-                                        ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:bg-white"
-                                    }
+                                        ${
+                                            isActive
+                                                ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:bg-white"
+                                        }
                                     `
                                 }
                             >

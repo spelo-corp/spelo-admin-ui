@@ -1,25 +1,16 @@
 // src/pages/AudioReviewPage.tsx
-import React, { useEffect, useRef, useState, useMemo } from "react";
+
+import { ArrowLeft, CheckCircle2, Combine, Lock, Play, Plus, Scissors, Unlock } from "lucide-react";
+import type React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api } from "../api/client";
-import type { ProcessingJobDetail, Sentence } from "../types";
-
-import {
-    ArrowLeft,
-    Play,
-    CheckCircle2,
-    Lock,
-    Unlock,
-    Scissors,
-    Combine,
-    Plus,
-} from "lucide-react";
-
 import type WaveSurfer from "wavesurfer.js";
+import { api } from "../api/client";
 import { WaveformRegionsPlayer } from "../components/audio/WaveformRegionsPlayer";
-import { usePresignedAudioUrl } from "../hooks/usePresignedAudioUrl";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
+import { usePresignedAudioUrl } from "../hooks/usePresignedAudioUrl";
+import type { ProcessingJobDetail, Sentence } from "../types";
 
 interface UISentence extends Sentence {
     locked?: boolean;
@@ -31,7 +22,9 @@ const AudioReviewPage: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [approving, setApproving] = useState(false);
-    const [job, setJob] = useState<(ProcessingJobDetail & { sentences: UISentence[] }) | null>(null);
+    const [job, setJob] = useState<(ProcessingJobDetail & { sentences: UISentence[] }) | null>(
+        null,
+    );
 
     // For merge mode
     const [mergeSelection, setMergeSelection] = useState<number[]>([]);
@@ -39,7 +32,9 @@ const AudioReviewPage: React.FC = () => {
     const wsRef = useRef<WaveSurfer | null>(null);
 
     // Fetch presigned URL for the audio
-    const { url: presignedAudioUrl, loading: loadingAudioUrl } = usePresignedAudioUrl(job?.audio_url);
+    const { url: presignedAudioUrl, loading: loadingAudioUrl } = usePresignedAudioUrl(
+        job?.audio_url,
+    );
 
     // ---------------- LOAD JOB ----------------
     useEffect(() => {
@@ -81,9 +76,7 @@ const AudioReviewPage: React.FC = () => {
         await api.updateSentence(Number(jobId), index, {
             text: field === "text" ? value : job.sentences[index].text,
             translated_text:
-                field === "translated_text"
-                    ? value
-                    : job.sentences[index].translated_text,
+                field === "translated_text" ? value : job.sentences[index].translated_text,
         });
 
         setJob((prev) => {
@@ -268,9 +261,7 @@ const AudioReviewPage: React.FC = () => {
                 id: String(s.index),
                 start: s.start_time,
                 end: s.end_time,
-                color: s.locked
-                    ? "rgba(71,85,105,0.35)"
-                    : "rgba(14,165,233,0.22)",
+                color: s.locked ? "rgba(71,85,105,0.35)" : "rgba(14,165,233,0.22)",
             })) ?? [],
         [job],
     );
@@ -352,10 +343,7 @@ const AudioReviewPage: React.FC = () => {
                     const duration = s.end_time - s.start_time;
 
                     return (
-                        <div
-                            key={idx}
-                            className="border rounded-xl p-3 bg-slate-50 space-y-2"
-                        >
+                        <div key={idx} className="border rounded-xl p-3 bg-slate-50 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                                 <span className="font-medium">Sentence {idx + 1}</span>
                                 <span className="text-slate-500">
@@ -398,9 +386,11 @@ const AudioReviewPage: React.FC = () => {
                                     className={`
                                         px-3 py-1 border rounded-lg text-xs cursor-pointer
                                         transition-all duration-150 active:scale-[0.97]
-                                        ${mergeSelection.includes(idx)
-                                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
-                                            : "hover:bg-indigo-50 hover:border-indigo-200"}
+                                        ${
+                                            mergeSelection.includes(idx)
+                                                ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                                                : "hover:bg-indigo-50 hover:border-indigo-200"
+                                        }
                                         `}
                                 >
                                     Select
@@ -433,9 +423,7 @@ const AudioReviewPage: React.FC = () => {
                                     defaultValue={s.text}
                                     rows={2}
                                     className="border rounded-xl p-2 text-sm"
-                                    onBlur={(e) =>
-                                        updateSentence(idx, "text", e.target.value)
-                                    }
+                                    onBlur={(e) => updateSentence(idx, "text", e.target.value)}
                                 />
 
                                 <textarea

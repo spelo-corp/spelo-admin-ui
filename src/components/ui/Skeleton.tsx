@@ -1,4 +1,3 @@
-
 export const Skeleton = ({ className = "" }) => (
     <div
         className={`

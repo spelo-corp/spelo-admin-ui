@@ -1,26 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { BookOpen, CircleAlert, Layers, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { Lesson, LessonLevel } from "../types";
-import { useCategories } from "../hooks/useCategories";
-import LessonCard from "../components/lessons/LessonCard";
-import { CreateJobModal } from "../components/jobs/CreateJobModal";
-import { Btn } from "../components/ui/Btn";
 import PageHeader from "../components/common/PageHeader";
+import { CreateJobModal } from "../components/jobs/CreateJobModal";
+import LessonCard from "../components/lessons/LessonCard";
+import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input.tsx";
 import { Skeleton } from "../components/ui/Skeleton.tsx";
-import {
-    BookOpen,
-    CircleAlert,
-    Layers,
-    Plus,
-    Search,
-    Sparkles,
-    Trash2,
-    X,
-} from "lucide-react";
-
-
+import { useCategories } from "../hooks/useCategories";
+import type { Lesson, LessonLevel } from "../types";
 
 const LessonListPage: React.FC = () => {
     const navigate = useNavigate();
@@ -58,7 +48,7 @@ const LessonListPage: React.FC = () => {
 
     const defaultCategoryId = useMemo(
         () => (categories.length > 0 ? categories[0].id : 0),
-        [categories]
+        [categories],
     );
 
     const loadLessons = useCallback(async () => {
@@ -71,7 +61,7 @@ const LessonListPage: React.FC = () => {
             if (res.success) {
                 // Deduplicate lessons by ID to prevent duplicate entries
                 const uniqueLessons = Array.from(
-                    new Map(res.lessons.map((lesson) => [lesson.id, lesson])).values()
+                    new Map(res.lessons.map((lesson) => [lesson.id, lesson])).values(),
                 );
                 setLessons(uniqueLessons);
             }
@@ -215,15 +205,11 @@ const LessonListPage: React.FC = () => {
         });
     }, [lessons, search, levelFilter]);
 
-    const activeCount = useMemo(
-        () => lessons.filter((l) => l.status === 1).length,
-        [lessons]
-    );
+    const activeCount = useMemo(() => lessons.filter((l) => l.status === 1).length, [lessons]);
     const inactiveCount = lessons.length - activeCount;
 
     return (
         <div className="space-y-8 px-8 py-6">
-
             {/* HERO */}
             <PageHeader
                 badge={
@@ -307,9 +293,11 @@ const LessonListPage: React.FC = () => {
                                 onClick={() => setLevelFilter(lvl)}
                                 className={`
                                     px-3 py-1.5 rounded-full text-xs font-medium border transition
-                                    ${levelFilter === lvl
-                                        ? "bg-brand text-white border-brand shadow-sm"
-                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
+                                    ${
+                                        levelFilter === lvl
+                                            ? "bg-brand text-white border-brand shadow-sm"
+                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                    }
                                 `}
                             >
                                 {lvl === "ALL" ? "All levels" : lvl}
@@ -327,8 +315,12 @@ const LessonListPage: React.FC = () => {
                             <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Lessons</p>
-                            <p className="text-sm text-slate-600">{filteredLessons.length} showing</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                                Lessons
+                            </p>
+                            <p className="text-sm text-slate-600">
+                                {filteredLessons.length} showing
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -366,7 +358,9 @@ const LessonListPage: React.FC = () => {
                         </div>
                     ) : filteredLessons.length === 0 ? (
                         <div className="text-center py-10 space-y-2 text-sm text-slate-500">
-                            <p className="text-lg text-slate-700 font-semibold">No lessons match your filters.</p>
+                            <p className="text-lg text-slate-700 font-semibold">
+                                No lessons match your filters.
+                            </p>
                             <p>Try clearing the search or choosing another level.</p>
                         </div>
                     ) : (
@@ -376,13 +370,14 @@ const LessonListPage: React.FC = () => {
                                     key={lesson.id}
                                     lesson={lesson}
                                     onView={() =>
-                                        navigate(`/admin/lessons/${lesson.id}`, { state: { lesson } })
+                                        navigate(`/admin/lessons/${lesson.id}`, {
+                                            state: { lesson },
+                                        })
                                     }
                                     onAddAudio={() => {
                                         setJobModalLessonId(lesson.id);
                                         setJobModalOpen(true);
-                                    }
-                                    }
+                                    }}
                                     onEdit={() => openEditModal(lesson)}
                                     onDelete={() => openDeleteModal(lesson)}
                                 />
@@ -396,7 +391,6 @@ const LessonListPage: React.FC = () => {
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-3">
                     <div className="bg-white rounded-2xl shadow-shell w-full max-w-lg p-6 border border-slate-100 animate-slideIn">
-
                         {/* HEADER */}
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
@@ -562,7 +556,8 @@ const LessonListPage: React.FC = () => {
                                         {deleteTarget.name}
                                     </h2>
                                     <p className="mt-1 text-sm text-white/80">
-                                        This will soft-delete the lesson (set <span className="font-semibold">status = 0</span>).
+                                        This will soft-delete the lesson (set{" "}
+                                        <span className="font-semibold">status = 0</span>).
                                     </p>
                                 </div>
                                 <button
@@ -583,7 +578,8 @@ const LessonListPage: React.FC = () => {
                                     <div>
                                         <div className="font-semibold">Are you sure?</div>
                                         <div className="text-amber-800/80">
-                                            You can still access it as inactive, but it should no longer be counted as active content.
+                                            You can still access it as inactive, but it should no
+                                            longer be counted as active content.
                                         </div>
                                     </div>
                                 </div>

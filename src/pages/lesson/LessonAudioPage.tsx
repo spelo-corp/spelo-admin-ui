@@ -1,13 +1,27 @@
 // src/pages/lesson/LessonAudioPage.tsx
+
+import {
+    AlertCircle,
+    Check,
+    Loader2,
+    Music,
+    Pencil,
+    Play,
+    Save,
+    Scissors,
+    Square,
+    Upload,
+    X,
+    Youtube,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
-import { Pencil, X, Save, Loader2, Upload, Scissors, Check, AlertCircle, Play, Square, Music, Youtube } from "lucide-react";
-import type { LessonOutletContext } from "../LessonViewPage";
 import { api } from "../../api/client";
-import type { ListeningLessonDTO } from "../../types";
-import { WaveformRegionsPlayer } from "../../components/audio/WaveformRegionsPlayer";
 import { PresignedAudioPlayer } from "../../components/audio/PresignedAudioPlayer";
+import { WaveformRegionsPlayer } from "../../components/audio/WaveformRegionsPlayer";
 import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
+import type { ListeningLessonDTO } from "../../types";
+import type { LessonOutletContext } from "../LessonViewPage";
 
 const LessonAudioSkeleton = () => (
     <div className="grid grid-cols-2 gap-4">
@@ -44,7 +58,13 @@ interface EditModalProps {
     onSave: (data: any) => Promise<void>;
 }
 
-const EditSentenceModal: React.FC<EditModalProps> = ({ isOpen, sentence, lessonId, onClose, onSave }) => {
+const EditSentenceModal: React.FC<EditModalProps> = ({
+    isOpen,
+    sentence,
+    lessonId,
+    onClose,
+    onSave,
+}) => {
     const [originalScript, setOriginalScript] = useState(sentence.str_script || "");
     const [translatedScript, setTranslatedScript] = useState(sentence.translated_script || "");
     const [startTime, setStartTime] = useState(sentence.data?.start ?? 0);
@@ -80,7 +100,9 @@ const EditSentenceModal: React.FC<EditModalProps> = ({ isOpen, sentence, lessonI
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-slate-900">Edit Sentence #{sentence.id}</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Edit Sentence #{sentence.id}
+                    </h2>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-slate-100 rounded-lg"
@@ -186,7 +208,13 @@ interface AudioCutterModalProps {
     onSave: (data: any) => Promise<void>;
 }
 
-const AudioCutterModal: React.FC<AudioCutterModalProps> = ({ isOpen, sentence, lessonId, onClose, onSave }) => {
+const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
+    isOpen,
+    sentence,
+    lessonId,
+    onClose,
+    onSave,
+}) => {
     const [startTime, setStartTime] = useState(sentence.data?.start ?? 0);
     const [endTime, setEndTime] = useState(sentence.data?.end ?? 0);
     const [saving, setSaving] = useState(false);
@@ -322,7 +350,8 @@ const AudioCutterModal: React.FC<AudioCutterModalProps> = ({ isOpen, sentence, l
 
                     {/* Duration Display */}
                     <div className="text-sm text-slate-600">
-                        Duration: <span className="font-medium">{(endTime - startTime).toFixed(2)}s</span>
+                        Duration:{" "}
+                        <span className="font-medium">{(endTime - startTime).toFixed(2)}s</span>
                     </div>
                 </div>
 
@@ -392,9 +421,9 @@ const ReviewAudioModal: React.FC<ReviewAudioModalProps> = ({ isOpen, file, onClo
         const duration = ws.getDuration();
         setEndTime(duration);
 
-        ws.on('play', () => setIsPlaying(true));
-        ws.on('pause', () => setIsPlaying(false));
-        ws.on('finish', () => setIsPlaying(false));
+        ws.on("play", () => setIsPlaying(true));
+        ws.on("pause", () => setIsPlaying(false));
+        ws.on("finish", () => setIsPlaying(false));
     };
 
     const handleRegionUpdate = (_id: string, start: number, end: number) => {
@@ -444,7 +473,9 @@ const ReviewAudioModal: React.FC<ReviewAudioModalProps> = ({ isOpen, file, onClo
                 <div className="space-y-4">
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-slate-700">Preview: {file.name}</p>
+                            <p className="text-sm font-medium text-slate-700">
+                                Preview: {file.name}
+                            </p>
                             <button
                                 onClick={togglePlay}
                                 className="px-3 py-1.5 text-xs font-medium bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-700 flex items-center gap-1.5"
@@ -455,7 +486,8 @@ const ReviewAudioModal: React.FC<ReviewAudioModalProps> = ({ isOpen, file, onClo
                                     </>
                                 ) : (
                                     <>
-                                        <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-slate-600 border-b-[4px] border-b-transparent ml-0.5" /> Play Region
+                                        <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-slate-600 border-b-[4px] border-b-transparent ml-0.5" />{" "}
+                                        Play Region
                                     </>
                                 )}
                             </button>
@@ -516,7 +548,10 @@ const ReviewAudioModal: React.FC<ReviewAudioModalProps> = ({ isOpen, file, onClo
 
                     <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <p>Only the selected region ({startTime.toFixed(2)}s - {endTime.toFixed(2)}s) will be used for the lesson.</p>
+                        <p>
+                            Only the selected region ({startTime.toFixed(2)}s - {endTime.toFixed(2)}
+                            s) will be used for the lesson.
+                        </p>
                     </div>
                 </div>
 
@@ -576,9 +611,9 @@ const MainAudioEditor: React.FC<MainAudioEditorProps> = ({ audioUrl, lessonId, o
             setEndTime(duration);
         }
 
-        ws.on('play', () => setIsPlaying(true));
-        ws.on('pause', () => setIsPlaying(false));
-        ws.on('finish', () => setIsPlaying(false));
+        ws.on("play", () => setIsPlaying(true));
+        ws.on("pause", () => setIsPlaying(false));
+        ws.on("finish", () => setIsPlaying(false));
     };
 
     const handleRegionUpdate = (_id: string, start: number, end: number) => {
@@ -617,7 +652,9 @@ const MainAudioEditor: React.FC<MainAudioEditorProps> = ({ audioUrl, lessonId, o
             const result = await api.uploadLessonAudio(lessonId, file, startTime, endTime);
 
             if (result.success) {
-                setSuccess(`Audio trimmed successfully! Updated ${result.updatedCount} sentence(s).`);
+                setSuccess(
+                    `Audio trimmed successfully! Updated ${result.updatedCount} sentence(s).`,
+                );
                 await onUpdate();
                 setTimeout(() => setSuccess(null), 5000);
             } else {
@@ -636,7 +673,9 @@ const MainAudioEditor: React.FC<MainAudioEditorProps> = ({ audioUrl, lessonId, o
             <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-slate-500">
                     <Music className="w-5 h-5" />
-                    <span className="text-sm">No main audio available. Upload audio to get started.</span>
+                    <span className="text-sm">
+                        No main audio available. Upload audio to get started.
+                    </span>
                 </div>
             </div>
         );
@@ -741,7 +780,8 @@ const MainAudioEditor: React.FC<MainAudioEditorProps> = ({ audioUrl, lessonId, o
 
             {/* Duration */}
             <div className="text-xs text-slate-500">
-                Selected duration: <span className="font-medium">{(endTime - startTime).toFixed(2)}s</span>
+                Selected duration:{" "}
+                <span className="font-medium">{(endTime - startTime).toFixed(2)}s</span>
             </div>
 
             {/* Trim Button */}
@@ -801,7 +841,8 @@ const YouTubeSection: React.FC<YouTubeSectionProps> = ({ lessonId, onJobCreated 
     const videoIdMatch = youtubeUrl.match(
         /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
     );
-    const videoId = videoIdMatch?.[1] ?? (youtubeUrl.match(/^[a-zA-Z0-9_-]{11}$/) ? youtubeUrl : null);
+    const videoId =
+        videoIdMatch?.[1] ?? (youtubeUrl.match(/^[a-zA-Z0-9_-]{11}$/) ? youtubeUrl : null);
 
     const handleSubmit = async () => {
         if (!youtubeUrl.trim()) {
@@ -826,7 +867,9 @@ const YouTubeSection: React.FC<YouTubeSectionProps> = ({ lessonId, onJobCreated 
 
             const result = await api.createYouTubeLesson(lessonId, payload);
             if (result.success && result.data) {
-                setSuccess(`YouTube processing job #${result.data.id} created. Check the Jobs tab for progress.`);
+                setSuccess(
+                    `YouTube processing job #${result.data.id} created. Check the Jobs tab for progress.`,
+                );
                 onJobCreated();
             } else {
                 setError(result.message || "Failed to create YouTube job");
@@ -850,9 +893,7 @@ const YouTubeSection: React.FC<YouTubeSectionProps> = ({ lessonId, onJobCreated 
 
             {/* URL Input */}
             <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                    YouTube URL
-                </label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">YouTube URL</label>
                 <input
                     type="text"
                     value={youtubeUrl}
@@ -920,7 +961,10 @@ const YouTubeSection: React.FC<YouTubeSectionProps> = ({ lessonId, onJobCreated 
             {mode === "captions" && (
                 <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <p>Will extract subtitles from the YouTube video. Falls back to auto-transcribe if no captions are available.</p>
+                    <p>
+                        Will extract subtitles from the YouTube video. Falls back to auto-transcribe
+                        if no captions are available.
+                    </p>
                 </div>
             )}
 
@@ -1067,7 +1111,7 @@ const LessonAudioPage = () => {
 
             if (result.success) {
                 setUploadSuccess(
-                    `Audio updated successfully! Updated ${result.updatedCount} sentence(s).`
+                    `Audio updated successfully! Updated ${result.updatedCount} sentence(s).`,
                 );
 
                 // Refresh lesson detail
@@ -1110,7 +1154,8 @@ const LessonAudioPage = () => {
                                 Upload New Audio for Entire Lesson
                             </h3>
                             <p className="text-xs text-slate-600 mb-3">
-                                Upload an audio file. You will be able to review and cut the audio before updating.
+                                Upload an audio file. You will be able to review and cut the audio
+                                before updating.
                             </p>
 
                             <input
@@ -1170,7 +1215,10 @@ const LessonAudioPage = () => {
                                 .join(" ");
 
                         return (
-                            <div key={detail.id} className="bg-white border rounded-xl p-4 space-y-3 shadow-sm">
+                            <div
+                                key={detail.id}
+                                className="bg-white border rounded-xl p-4 space-y-3 shadow-sm"
+                            >
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <p className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -1190,7 +1238,9 @@ const LessonAudioPage = () => {
                                             title="Cut audio"
                                             disabled={!detail.data?.audio}
                                         >
-                                            <Scissors className={`w-4 h-4 ${detail.data?.audio ? 'text-blue-600' : 'text-slate-300'}`} />
+                                            <Scissors
+                                                className={`w-4 h-4 ${detail.data?.audio ? "text-blue-600" : "text-slate-300"}`}
+                                            />
                                         </button>
                                         <button
                                             onClick={() => setEditingSentence(detail)}
@@ -1211,7 +1261,8 @@ const LessonAudioPage = () => {
                                     <PresignedAudioPlayer src={detail.data?.audio} />
                                 )}
 
-                                {(detail.data?.start !== undefined || detail.data?.end !== undefined) && (
+                                {(detail.data?.start !== undefined ||
+                                    detail.data?.end !== undefined) && (
                                     <div className="text-xs text-slate-500">
                                         {detail.data?.start ?? "—"}s → {detail.data?.end ?? "—"}s
                                     </div>
@@ -1219,11 +1270,17 @@ const LessonAudioPage = () => {
 
                                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                                     <div className="p-3 rounded-lg bg-slate-50">
-                                        <p className="text-[11px] uppercase text-slate-500 mb-1">Transcript</p>
-                                        <p className="text-slate-800 leading-relaxed">{transcript || "—"}</p>
+                                        <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                            Transcript
+                                        </p>
+                                        <p className="text-slate-800 leading-relaxed">
+                                            {transcript || "—"}
+                                        </p>
                                     </div>
                                     <div className="p-3 rounded-lg bg-slate-50">
-                                        <p className="text-[11px] uppercase text-slate-500 mb-1">Translation</p>
+                                        <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                            Translation
+                                        </p>
                                         <p className="text-slate-800 leading-relaxed">
                                             {detail.translated_script || "—"}
                                         </p>
@@ -1232,7 +1289,9 @@ const LessonAudioPage = () => {
 
                                 {detail.new_words?.length ? (
                                     <div className="p-3 rounded-lg bg-slate-50 space-y-2">
-                                        <p className="text-[11px] uppercase text-slate-500">New Words</p>
+                                        <p className="text-[11px] uppercase text-slate-500">
+                                            New Words
+                                        </p>
                                         <div className="flex flex-wrap gap-2">
                                             {detail.new_words.map((word) => (
                                                 <span

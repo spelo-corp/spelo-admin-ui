@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import PageHeader from "../components/common/PageHeader";
 
 const UsersPage: React.FC = () => {

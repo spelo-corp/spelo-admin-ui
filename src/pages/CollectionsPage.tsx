@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
+    BookOpen,
     CircleAlert,
+    Edit,
     Folder,
     ImagePlus,
     Loader2,
@@ -9,26 +9,26 @@ import {
     Search,
     Sparkles,
     Trash2,
-    Edit,
-    BookOpen,
     X,
 } from "lucide-react";
-
+import type React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { collectionsApi } from "../api/collections";
+import { filesApi } from "../api/files";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
-import type { Collection } from "../types/collection";
 import {
-    useLibraryCollections,
     useCreateCollection,
     useDeleteCollection,
-    useUpdateCollection,
     useGenerateCollection,
+    useLibraryCollections,
+    useUpdateCollection,
 } from "../hooks/useCollections";
+import type { Collection } from "../types/collection";
 import { processImage } from "../utils/imageProcessing";
-import { filesApi } from "../api/files";
-import { collectionsApi } from "../api/collections";
 
 const formatDate = (value?: string) => {
     if (!value) return null;
@@ -143,7 +143,7 @@ const CollectionsPage: React.FC = () => {
                 payload.word_type_distribution = {
                     word: wordPct,
                     phrasal_verb: pvPct,
-                    idiom: idiomPct
+                    idiom: idiomPct,
                 };
             }
 
@@ -156,7 +156,7 @@ const CollectionsPage: React.FC = () => {
             const res = await generateCollectionMutation.mutateAsync(payload as any);
             const jobId = (res as any)?.job_id ?? (res as any)?.jobId;
             setGenerateSuccess(
-                `Generation started! Job ID: ${jobId ?? "N/A"}. Words will appear once processing completes.`
+                `Generation started! Job ID: ${jobId ?? "N/A"}. Words will appear once processing completes.`,
             );
         } catch (e) {
             setGenerateError(e instanceof Error ? e.message : "Failed to start generation.");
@@ -180,9 +180,12 @@ const CollectionsPage: React.FC = () => {
 
         // Resolve existing image key to presigned URL for preview
         if (collection.image) {
-            filesApi.getPresignedUrl(collection.image, "spelo-images").then((res) => {
-                if (res.success && res.url) setImagePreviewUrl(res.url);
-            }).catch(() => { });
+            filesApi
+                .getPresignedUrl(collection.image, "spelo-images")
+                .then((res) => {
+                    if (res.success && res.url) setImagePreviewUrl(res.url);
+                })
+                .catch(() => {});
         }
     };
 
@@ -344,12 +347,11 @@ const CollectionsPage: React.FC = () => {
     const filteredCollections = useMemo(() => {
         const term = collectionSearch.trim().toLowerCase();
         if (!term) return collections;
-        return collections.filter((collection) =>
-            collection.name.toLowerCase().includes(term)
-        );
+        return collections.filter((collection) => collection.name.toLowerCase().includes(term));
     }, [collections, collectionSearch]);
 
-    const saving = createCollectionMutation.isPending || updateCollectionMutation.isPending || imageUploading;
+    const saving =
+        createCollectionMutation.isPending || updateCollectionMutation.isPending || imageUploading;
     const deleting = deleteCollectionMutation.isPending;
     const generating = generateCollectionMutation.isPending;
 
@@ -406,8 +408,12 @@ const CollectionsPage: React.FC = () => {
                             <Folder className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Library</p>
-                            <p className="text-sm text-slate-600">{filteredCollections.length} showing</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                                Library
+                            </p>
+                            <p className="text-sm text-slate-600">
+                                {filteredCollections.length} showing
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -438,7 +444,9 @@ const CollectionsPage: React.FC = () => {
                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                 <Folder className="w-6 h-6" />
                             </div>
-                            <p className="font-medium text-slate-700">No library collections found.</p>
+                            <p className="font-medium text-slate-700">
+                                No library collections found.
+                            </p>
                             <p className="text-sm text-slate-500">
                                 Create a collection to make it available in the library.
                             </p>
@@ -451,13 +459,17 @@ const CollectionsPage: React.FC = () => {
                         </div>
                     ) : filteredCollections.length === 0 ? (
                         <div className="text-center py-10 space-y-2 text-sm text-slate-500">
-                            <p className="text-lg text-slate-700 font-semibold">No collections match your search.</p>
+                            <p className="text-lg text-slate-700 font-semibold">
+                                No collections match your search.
+                            </p>
                             <p>Try a different search term.</p>
                         </div>
                     ) : (
                         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                             {filteredCollections.map((collection) => {
-                                const updatedLabel = formatDate(collection.updated_at ?? collection.created_at);
+                                const updatedLabel = formatDate(
+                                    collection.updated_at ?? collection.created_at,
+                                );
                                 return (
                                     <div
                                         key={collection.id}
@@ -479,11 +491,17 @@ const CollectionsPage: React.FC = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <h3 className="font-semibold text-slate-800 line-clamp-1" title={collection.name}>
+                                                <h3
+                                                    className="font-semibold text-slate-800 line-clamp-1"
+                                                    title={collection.name}
+                                                >
                                                     {collection.name}
                                                 </h3>
                                             </div>
-                                            <CollectionThumbnail imageKey={collection.image} bgColor={collection.bg_color} />
+                                            <CollectionThumbnail
+                                                imageKey={collection.image}
+                                                bgColor={collection.bg_color}
+                                            />
                                         </div>
 
                                         <p className="text-sm text-slate-500 line-clamp-2 h-10">
@@ -493,17 +511,23 @@ const CollectionsPage: React.FC = () => {
                                         <div className="space-y-1 text-xs text-slate-500">
                                             <div className="flex items-center justify-between">
                                                 <span>Words</span>
-                                                <span className="font-medium text-slate-700">{collection.total_words ?? 0}</span>
+                                                <span className="font-medium text-slate-700">
+                                                    {collection.total_words ?? 0}
+                                                </span>
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span>Updated</span>
-                                                <span className="font-medium text-slate-700">{updatedLabel || "N/A"}</span>
+                                                <span className="font-medium text-slate-700">
+                                                    {updatedLabel || "N/A"}
+                                                </span>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-2 pt-2">
                                             <button
-                                                onClick={() => navigate(`/admin/collections/${collection.id}`)}
+                                                onClick={() =>
+                                                    navigate(`/admin/collections/${collection.id}`)
+                                                }
                                                 className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition inline-flex items-center justify-center gap-2"
                                             >
                                                 <BookOpen className="w-4 h-4" />
@@ -550,7 +574,9 @@ const CollectionsPage: React.FC = () => {
                                         {editingCollection ? "Edit" : "Create"}
                                     </p>
                                     <h2 className="text-lg font-semibold text-slate-900">
-                                        {editingCollection ? "Edit Collection" : "New Library Collection"}
+                                        {editingCollection
+                                            ? "Edit Collection"
+                                            : "New Library Collection"}
                                     </h2>
                                 </div>
                             </div>
@@ -617,7 +643,9 @@ const CollectionsPage: React.FC = () => {
                                                     alt="Processed Preview"
                                                     className="w-24 h-24 rounded-xl object-contain border border-slate-200 bg-slate-50"
                                                 />
-                                                <p className="text-[10px] text-center text-slate-400">Preview</p>
+                                                <p className="text-[10px] text-center text-slate-400">
+                                                    Preview
+                                                </p>
                                             </div>
                                         ) : imagePreviewUrl ? (
                                             <img
@@ -639,7 +667,9 @@ const CollectionsPage: React.FC = () => {
                                                 onClick={() => imageInputRef.current?.click()}
                                                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition"
                                             >
-                                                {imageFile || imagePreviewUrl ? "Change image" : "Upload image"}
+                                                {imageFile || imagePreviewUrl
+                                                    ? "Change image"
+                                                    : "Upload image"}
                                             </button>
                                             {(imageFile || imagePreviewUrl) && (
                                                 <button
@@ -649,7 +679,8 @@ const CollectionsPage: React.FC = () => {
                                                         setImageFile(null);
                                                         setImagePreviewUrl(null);
                                                         setProcessedPreviewUrl(null);
-                                                        if (imageInputRef.current) imageInputRef.current.value = "";
+                                                        if (imageInputRef.current)
+                                                            imageInputRef.current.value = "";
                                                     }}
                                                     className="px-2 py-1.5 rounded-lg text-sm text-rose-500 hover:bg-rose-50 transition"
                                                 >
@@ -667,7 +698,9 @@ const CollectionsPage: React.FC = () => {
                                                     <input
                                                         type="number"
                                                         value={imagePadding}
-                                                        onChange={(e) => setImagePadding(Number(e.target.value))}
+                                                        onChange={(e) =>
+                                                            setImagePadding(Number(e.target.value))
+                                                        }
                                                         className="w-full text-xs px-2 py-1 rounded border border-slate-200"
                                                         min={0}
                                                         max={200}
@@ -680,7 +713,9 @@ const CollectionsPage: React.FC = () => {
                                                     <input
                                                         type="number"
                                                         value={targetSize}
-                                                        onChange={(e) => setTargetSize(Number(e.target.value))}
+                                                        onChange={(e) =>
+                                                            setTargetSize(Number(e.target.value))
+                                                        }
                                                         className="w-full text-xs px-2 py-1 rounded border border-slate-200"
                                                         min={64}
                                                         max={1024}
@@ -699,7 +734,9 @@ const CollectionsPage: React.FC = () => {
                                     </label>
                                     <select
                                         value={type}
-                                        onChange={(e) => setType(e.target.value as "LIBRARY" | "USER")}
+                                        onChange={(e) =>
+                                            setType(e.target.value as "LIBRARY" | "USER")
+                                        }
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none bg-white"
                                     >
                                         <option value="LIBRARY">Library (Public)</option>
@@ -717,7 +754,9 @@ const CollectionsPage: React.FC = () => {
                                         placeholder="0 for free"
                                         min={0}
                                     />
-                                    <p className="text-[10px] text-slate-400 mt-1">Leave empty or 0 for free.</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        Leave empty or 0 for free.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -871,7 +910,8 @@ const CollectionsPage: React.FC = () => {
                                     maxLength={2000}
                                 />
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                    Optional hint to guide the AI. Leave empty to use the collection name as the topic.
+                                    Optional hint to guide the AI. Leave empty to use the collection
+                                    name as the topic.
                                 </p>
                             </div>
 
@@ -899,13 +939,19 @@ const CollectionsPage: React.FC = () => {
                                     {/* Phrasal Verbs Toggle */}
                                     <div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-700">Include Phrasal Verbs</span>
+                                            <span className="text-sm text-slate-700">
+                                                Include Phrasal Verbs
+                                            </span>
                                             <button
                                                 type="button"
-                                                onClick={() => setGeneratePhrasalVerbs(!generatePhrasalVerbs)}
-                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generatePhrasalVerbs ? 'bg-violet-600' : 'bg-slate-200'}`}
+                                                onClick={() =>
+                                                    setGeneratePhrasalVerbs(!generatePhrasalVerbs)
+                                                }
+                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generatePhrasalVerbs ? "bg-violet-600" : "bg-slate-200"}`}
                                             >
-                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generatePhrasalVerbs ? 'translate-x-4' : 'translate-x-1'}`} />
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generatePhrasalVerbs ? "translate-x-4" : "translate-x-1"}`}
+                                                />
                                             </button>
                                         </div>
                                         {generatePhrasalVerbs && (
@@ -918,14 +964,18 @@ const CollectionsPage: React.FC = () => {
                                                     value={generatePhrasalVerbsPct}
                                                     onChange={(e) => {
                                                         const val = Number(e.target.value);
-                                                        const currentIdiom = generateIdioms ? generateIdiomsPct : 0;
+                                                        const currentIdiom = generateIdioms
+                                                            ? generateIdiomsPct
+                                                            : 0;
                                                         if (val + currentIdiom <= 50) {
                                                             setGeneratePhrasalVerbsPct(val);
                                                         }
                                                     }}
                                                     className="flex-1 accent-violet-600 h-1.5 rounded-full bg-slate-200 appearance-none outline-none"
                                                 />
-                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">{generatePhrasalVerbsPct}%</span>
+                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">
+                                                    {generatePhrasalVerbsPct}%
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -933,13 +983,17 @@ const CollectionsPage: React.FC = () => {
                                     {/* Idioms Toggle */}
                                     <div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-700">Include Idioms</span>
+                                            <span className="text-sm text-slate-700">
+                                                Include Idioms
+                                            </span>
                                             <button
                                                 type="button"
                                                 onClick={() => setGenerateIdioms(!generateIdioms)}
-                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generateIdioms ? 'bg-violet-600' : 'bg-slate-200'}`}
+                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${generateIdioms ? "bg-violet-600" : "bg-slate-200"}`}
                                             >
-                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generateIdioms ? 'translate-x-4' : 'translate-x-1'}`} />
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generateIdioms ? "translate-x-4" : "translate-x-1"}`}
+                                                />
                                             </button>
                                         </div>
                                         {generateIdioms && (
@@ -952,14 +1006,18 @@ const CollectionsPage: React.FC = () => {
                                                     value={generateIdiomsPct}
                                                     onChange={(e) => {
                                                         const val = Number(e.target.value);
-                                                        const currentPv = generatePhrasalVerbs ? generatePhrasalVerbsPct : 0;
+                                                        const currentPv = generatePhrasalVerbs
+                                                            ? generatePhrasalVerbsPct
+                                                            : 0;
                                                         if (val + currentPv <= 50) {
                                                             setGenerateIdiomsPct(val);
                                                         }
                                                     }}
                                                     className="flex-1 accent-violet-600 h-1.5 rounded-full bg-slate-200 appearance-none outline-none"
                                                 />
-                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">{generateIdiomsPct}%</span>
+                                                <span className="text-xs font-medium text-slate-500 w-10 text-right">
+                                                    {generateIdiomsPct}%
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -967,14 +1025,30 @@ const CollectionsPage: React.FC = () => {
                                     {/* Distribution Bar */}
                                     <div className="pt-2">
                                         <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                            <span>Single Words ({100 - (generatePhrasalVerbs ? generatePhrasalVerbsPct : 0) - (generateIdioms ? generateIdiomsPct : 0)}%)</span>
-                                            {generatePhrasalVerbs && <span>Phrasal Verbs ({generatePhrasalVerbsPct}%)</span>}
-                                            {generateIdioms && <span>Idioms ({generateIdiomsPct}%)</span>}
+                                            <span>
+                                                Single Words (
+                                                {100 -
+                                                    (generatePhrasalVerbs
+                                                        ? generatePhrasalVerbsPct
+                                                        : 0) -
+                                                    (generateIdioms ? generateIdiomsPct : 0)}
+                                                %)
+                                            </span>
+                                            {generatePhrasalVerbs && (
+                                                <span>
+                                                    Phrasal Verbs ({generatePhrasalVerbsPct}%)
+                                                </span>
+                                            )}
+                                            {generateIdioms && (
+                                                <span>Idioms ({generateIdiomsPct}%)</span>
+                                            )}
                                         </div>
                                         <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-slate-100">
                                             <div
                                                 className="h-full bg-emerald-400 transition-all duration-300"
-                                                style={{ width: `${100 - (generatePhrasalVerbs ? generatePhrasalVerbsPct : 0) - (generateIdioms ? generateIdiomsPct : 0)}%` }}
+                                                style={{
+                                                    width: `${100 - (generatePhrasalVerbs ? generatePhrasalVerbsPct : 0) - (generateIdioms ? generateIdiomsPct : 0)}%`,
+                                                }}
                                             />
                                             {generatePhrasalVerbs && (
                                                 <div
@@ -995,7 +1069,8 @@ const CollectionsPage: React.FC = () => {
 
                             {generateTarget && (
                                 <div className="rounded-xl bg-violet-50 border border-violet-100 px-3 py-2 text-xs text-violet-700">
-                                    <strong>Enriching:</strong> {generateTarget.total_words ?? 0} existing words will be excluded from generation.
+                                    <strong>Enriching:</strong> {generateTarget.total_words ?? 0}{" "}
+                                    existing words will be excluded from generation.
                                 </div>
                             )}
                         </div>
@@ -1018,7 +1093,9 @@ const CollectionsPage: React.FC = () => {
                                     ) : (
                                         <>
                                             <Sparkles className="w-4 h-4" />
-                                            {generateTarget ? "Enrich Collection" : "Generate Collection"}
+                                            {generateTarget
+                                                ? "Enrich Collection"
+                                                : "Generate Collection"}
                                         </>
                                     )}
                                 </Btn.Primary>
@@ -1031,16 +1108,27 @@ const CollectionsPage: React.FC = () => {
     );
 };
 
-function CollectionThumbnail({ imageKey, bgColor }: { imageKey?: string | null; bgColor?: string | null }) {
+function CollectionThumbnail({
+    imageKey,
+    bgColor,
+}: {
+    imageKey?: string | null;
+    bgColor?: string | null;
+}) {
     const [url, setUrl] = useState<string | null>(null);
 
     useEffect(() => {
         if (!imageKey) return;
         let cancelled = false;
-        filesApi.getPresignedUrl(imageKey, "spelo-images").then((res) => {
-            if (!cancelled && res.success && res.url) setUrl(res.url);
-        }).catch(() => { });
-        return () => { cancelled = true; };
+        filesApi
+            .getPresignedUrl(imageKey, "spelo-images")
+            .then((res) => {
+                if (!cancelled && res.success && res.url) setUrl(res.url);
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
     }, [imageKey]);
 
     if (url) {
@@ -1049,11 +1137,7 @@ function CollectionThumbnail({ imageKey, bgColor }: { imageKey?: string | null; 
                 className="h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center"
                 style={{ backgroundColor: bgColor || "#f1f5f9" }}
             >
-                <img
-                    src={url}
-                    alt=""
-                    className="h-8 w-8 object-contain"
-                />
+                <img src={url} alt="" className="h-8 w-8 object-contain" />
             </div>
         );
     }
@@ -1065,6 +1149,4 @@ function CollectionThumbnail({ imageKey, bgColor }: { imageKey?: string | null; 
     );
 }
 
-
 export default CollectionsPage;
-

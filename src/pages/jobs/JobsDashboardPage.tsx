@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { FolderOpen, Loader2, PlusCircle, RefreshCcw, Search } from "lucide-react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCcw, PlusCircle, Search, Loader2, FolderOpen } from "lucide-react";
 import { api } from "../../api/client";
-import type { JobType } from "../../types/jobService";
-import { Input } from "../../components/ui/Input";
-import { Btn } from "../../components/ui/Btn";
 import PageHeader from "../../components/common/PageHeader";
+import { Btn } from "../../components/ui/Btn";
+import { Input } from "../../components/ui/Input";
+import type { JobType } from "../../types/jobService";
 
 type TypeFilter = "ALL" | JobType;
 
@@ -77,7 +78,7 @@ const JobsDashboardPage: React.FC = () => {
                     current_step: j.current_step ?? null,
                     created_at: j.created_at ?? "",
                     updated_at: j.updated_at ?? "",
-                }))
+                })),
             );
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load jobs.");
@@ -101,16 +102,18 @@ const JobsDashboardPage: React.FC = () => {
         return jobs.filter((job) => {
             const matchesType = typeFilter === "ALL" || job.job_type === typeFilter;
             const matchesSearch =
-                !term ||
-                String(job.id).includes(term) ||
-                job.job_type.toLowerCase().includes(term);
+                !term || String(job.id).includes(term) || job.job_type.toLowerCase().includes(term);
             return matchesType && matchesSearch;
         });
     }, [jobs, search, typeFilter]);
 
     const summaryStats = useMemo(() => {
-        const running = jobs.filter((j) => j.status === "RUNNING" || j.status === "PENDING" || j.status === "PROCESSING").length;
-        const completed = jobs.filter((j) => j.status === "COMPLETED" || j.status === "FINALIZED").length;
+        const running = jobs.filter(
+            (j) => j.status === "RUNNING" || j.status === "PENDING" || j.status === "PROCESSING",
+        ).length;
+        const completed = jobs.filter(
+            (j) => j.status === "COMPLETED" || j.status === "FINALIZED",
+        ).length;
         const failed = jobs.filter((j) => j.status === "FAILED").length;
         return [
             { label: "Total jobs", value: jobs.length },
@@ -147,7 +150,9 @@ const JobsDashboardPage: React.FC = () => {
                     actions={
                         <>
                             <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
-                                <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                                <RefreshCcw
+                                    className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                                />
                                 Refresh
                             </Btn.HeroSecondary>
 
@@ -166,7 +171,9 @@ const JobsDashboardPage: React.FC = () => {
                                 key={stat.label}
                                 className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 shadow-sm backdrop-blur"
                             >
-                                <div className="text-[11px] uppercase tracking-wide text-white/70">{stat.label}</div>
+                                <div className="text-[11px] uppercase tracking-wide text-white/70">
+                                    {stat.label}
+                                </div>
                                 <div className="text-2xl font-semibold">{stat.value}</div>
                             </div>
                         ))}
@@ -193,9 +200,11 @@ const JobsDashboardPage: React.FC = () => {
                                     onClick={() => setTypeFilter(type)}
                                     className={`
                                         px-3 py-1.5 rounded-full text-xs font-medium border
-                                        ${typeFilter === type
-                                            ? "bg-brand text-white border-brand"
-                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
+                                        ${
+                                            typeFilter === type
+                                                ? "bg-brand text-white border-brand"
+                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                        }
                                     `}
                                 >
                                     {type === "ALL" ? "All" : type.replace(/_/g, " ")}
@@ -245,24 +254,34 @@ const JobsDashboardPage: React.FC = () => {
                                 <tbody className="divide-y divide-slate-100">
                                     {filteredJobs.map((job) => {
                                         const link = getViewLink(job);
-                                        const colorClass = badgeColors[job.job_type] || "bg-slate-100 text-slate-700";
+                                        const colorClass =
+                                            badgeColors[job.job_type] ||
+                                            "bg-slate-100 text-slate-700";
                                         return (
                                             <tr key={job.id} className="hover:bg-slate-50/60">
                                                 <td className="px-5 py-3">
-                                                    <div className="font-semibold text-slate-900">#{job.id}</div>
+                                                    <div className="font-semibold text-slate-900">
+                                                        #{job.id}
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-3">
-                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}>
+                                                    <span
+                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}
+                                                    >
                                                         {job.job_type.replace(/_/g, " ")}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[job.status] || "bg-slate-100 text-slate-700"}`}>
+                                                    <span
+                                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[job.status] || "bg-slate-100 text-slate-700"}`}
+                                                    >
                                                         {job.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3 text-slate-700">
-                                                    {job.created_at ? new Date(job.created_at).toLocaleString() : "—"}
+                                                    {job.created_at
+                                                        ? new Date(job.created_at).toLocaleString()
+                                                        : "—"}
                                                 </td>
                                                 <td className="px-5 py-3 text-right">
                                                     {link ? (
@@ -273,7 +292,9 @@ const JobsDashboardPage: React.FC = () => {
                                                             View
                                                         </Link>
                                                     ) : (
-                                                        <span className="text-slate-400 text-xs">—</span>
+                                                        <span className="text-slate-400 text-xs">
+                                                            —
+                                                        </span>
                                                     )}
                                                 </td>
                                             </tr>

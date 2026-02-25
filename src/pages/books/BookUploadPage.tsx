@@ -2,18 +2,16 @@ import {
     AlertTriangle,
     ArrowLeft,
     CheckCircle2,
-    FileAudio,
+    FileText,
     Loader2,
     UploadCloud,
 } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import PageHeader from "../../components/common/PageHeader";
 import { Btn } from "../../components/ui/Btn";
-import { Input } from "../../components/ui/Input";
-import type { Lesson } from "../../types";
 
 const formatBytes = (bytes: number) => {
     if (!bytes) return "0 B";
@@ -23,40 +21,17 @@ const formatBytes = (bytes: number) => {
     return `${value.toFixed(1)} ${sizes[i]}`;
 };
 
-const AudioProcessingUploadPage: React.FC = () => {
+const BookUploadPage: React.FC = () => {
     const navigate = useNavigate();
 
-    const [lessons, setLessons] = useState<Lesson[]>([]);
-    const [loadingLessons, setLoadingLessons] = useState(true);
-
     const [file, setFile] = useState<File | null>(null);
-    const [duration, setDuration] = useState<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-
-    const [lessonId, setLessonId] = useState<string>("");
-    const [transcript, setTranscript] = useState("");
-    const [translatedScript, setTranslatedScript] = useState("");
-    const [type, setType] = useState("");
 
     const [error, setError] = useState<string | null>(null);
     const [successJobId, setSuccessJobId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await api.getAllLessons();
-                setLessons(res.lessons);
-            } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : "Failed to load lessons.");
-            } finally {
-                setLoadingLessons(false);
-            }
-        })();
-    }, []);
-
-    // Simulate a visible progress bar during submission
     useEffect(() => {
         if (!submitting) {
             setUploadProgress(0);
@@ -71,22 +46,14 @@ const AudioProcessingUploadPage: React.FC = () => {
         return () => window.clearInterval(timer);
     }, [submitting]);
 
-    const transcriptCount = useMemo(() => transcript.trim().length, [transcript]);
-
     const handleFile = (selected: File | null) => {
         if (!selected) return;
+        if (selected.type !== "application/pdf") {
+            setError("Only PDF files are supported.");
+            return;
+        }
+        setError(null);
         setFile(selected);
-        setDuration(null);
-
-        // Try to read duration for preview
-        const audio = new Audio();
-        const url = URL.createObjectURL(selected);
-        audio.src = url;
-        audio.onloadedmetadata = () => {
-            setDuration(audio.duration);
-            URL.revokeObjectURL(url);
-        };
-        audio.onerror = () => URL.revokeObjectURL(url);
     };
 
     const handleDrop = (event: React.DragEvent<HTMLLabelElement>) => {
@@ -100,32 +67,20 @@ const AudioProcessingUploadPage: React.FC = () => {
         setError(null);
         setSuccessJobId(null);
 
-        if (!file || !lessonId || !transcript.trim()) {
-            setError("Lesson, transcript, and audio file are required.");
+        if (!file) {
+            setError("Please select a PDF file to upload.");
             return;
         }
 
         setSubmitting(true);
         try {
-            const res = await api.submitAudioProcessingJob({
-                file,
-                transcript: transcript.trim(),
-                lessonId: Number(lessonId),
-                translatedScript: translatedScript.trim() || undefined,
-                type: type ? Number(type) : undefined,
-            });
-
-            const jobId = (res as { jobId?: number }).jobId ?? null;
-
+            const res = await api.uploadBook(file);
             setUploadProgress(100);
-            setSuccessJobId(jobId);
+            setSuccessJobId(res.jobId);
 
-            if (jobId) {
-                // small delay to let users see the success state
-                setTimeout(() => navigate(`/admin/jobs/audio/jobs/${jobId}`), 350);
-            }
+            setTimeout(() => navigate("/admin/books"), 1200);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to submit audio for processing.");
+            setError(err instanceof Error ? err.message : "Failed to upload book for processing.");
         } finally {
             setSubmitting(false);
         }
@@ -136,44 +91,22 @@ const AudioProcessingUploadPage: React.FC = () => {
             <PageHeader
                 badge={
                     <Link
-                        to="/admin/jobs/audio"
+                        to="/admin/books"
                         className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 border border-white/15 hover:bg-white/15"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Back to dashboard
+                        Back to Book Library
                     </Link>
                 }
-                title="Upload Lesson Audio"
-                description="Attach audio, provide the transcript, and start processing."
+                title="Upload Book"
+                description="Upload a PDF to start the book ingestion pipeline."
             />
 
             <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
-                    {/* Lesson selection */}
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900">Lesson</h2>
-                            {loadingLessons && (
-                                <span className="text-xs text-slate-500">Loading lessons…</span>
-                            )}
-                        </div>
-                        <select
-                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                            value={lessonId}
-                            onChange={(e) => setLessonId(e.target.value)}
-                        >
-                            <option value="">Select a lesson</option>
-                            {lessons.map((lesson) => (
-                                <option key={lesson.id} value={lesson.id}>
-                                    {lesson.name} (ID {lesson.id})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Audio input */}
+                    {/* PDF input */}
                     <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-4">
-                        <h2 className="text-lg font-semibold text-slate-900">Audio file</h2>
+                        <h2 className="text-lg font-semibold text-slate-900">PDF file</h2>
 
                         <label
                             onDragOver={(e) => {
@@ -189,85 +122,39 @@ const AudioProcessingUploadPage: React.FC = () => {
                         >
                             <input
                                 type="file"
-                                accept="audio/*"
+                                accept="application/pdf"
                                 className="hidden"
                                 onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
                             />
                             <UploadCloud className="w-8 h-8 text-slate-500 mx-auto mb-3" />
                             <p className="text-sm text-slate-700">
-                                Drag & drop your audio file here or click to browse
+                                Drag & drop your PDF file here or click to browse
                             </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Supported: MP3, WAV, M4A, AAC up to 100 MB
-                            </p>
+                            <p className="text-xs text-slate-500 mt-1">Only PDF files supported</p>
                         </label>
 
                         {file && (
                             <div className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-slate-50">
                                 <div className="w-10 h-10 rounded-full bg-brand-soft text-brand flex items-center justify-center">
-                                    <FileAudio className="w-5 h-5" />
+                                    <FileText className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="font-medium text-slate-900 text-sm">
                                         {file.name}
                                     </div>
                                     <div className="text-xs text-slate-500">
-                                        {formatBytes(file.size)} • {file.type || "audio"}
-                                    </div>
-                                    <div className="text-xs text-slate-500">
-                                        Duration:{" "}
-                                        {duration ? `${duration.toFixed(1)}s` : "Loading…"}
+                                        {formatBytes(file.size)} · PDF
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setFile(null);
-                                        setDuration(null);
-                                    }}
+                                    type="button"
+                                    onClick={() => setFile(null)}
                                     className="text-xs text-rose-600 hover:underline"
                                 >
                                     Remove
                                 </button>
                             </div>
                         )}
-                    </div>
-
-                    {/* Transcript */}
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900">Transcript</h2>
-                            <span className="text-xs text-slate-500">{transcriptCount} chars</span>
-                        </div>
-                        <textarea
-                            className="w-full border border-slate-200 rounded-xl p-3 text-sm min-h-[140px]"
-                            placeholder="Paste or type the transcript here…"
-                            value={transcript}
-                            onChange={(e) => setTranscript(e.target.value)}
-                        />
-
-                        <label className="block text-xs font-medium text-slate-600">
-                            Translated transcript (optional)
-                        </label>
-                        <textarea
-                            className="w-full border border-slate-200 rounded-xl p-3 text-sm min-h-[100px]"
-                            placeholder="Translated transcript for the audio (optional)…"
-                            value={translatedScript}
-                            onChange={(e) => setTranslatedScript(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Meta */}
-                    <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
-                        <label className="block text-xs font-medium text-slate-600">
-                            Audio type (optional)
-                        </label>
-                        <Input
-                            value={type}
-                            onChange={(e) => setType(e.target.value)}
-                            placeholder="e.g. 1 for lesson audio"
-                            type="number"
-                            className="rounded-xl"
-                        />
                     </div>
                 </div>
 
@@ -276,9 +163,9 @@ const AudioProcessingUploadPage: React.FC = () => {
                     <div className="bg-white rounded-card shadow-card border border-slate-100 p-5 space-y-3">
                         <h3 className="text-base font-semibold text-slate-900">Upload summary</h3>
                         <ul className="text-sm text-slate-600 space-y-1">
-                            <li>• Lesson is required.</li>
-                            <li>• Transcript is required for processing.</li>
-                            <li>• Audio file formats: MP3, WAV, M4A, AAC.</li>
+                            <li>• Upload a PDF book file.</li>
+                            <li>• The AI service will extract chapters and sentences.</li>
+                            <li>• Processing happens asynchronously in the background.</li>
                         </ul>
 
                         {error && (
@@ -291,7 +178,7 @@ const AudioProcessingUploadPage: React.FC = () => {
                         {successJobId && (
                             <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg">
                                 <CheckCircle2 className="w-4 h-4" />
-                                Submitted! Job ID {successJobId}
+                                Uploaded! Job ID {successJobId}. Redirecting…
                             </div>
                         )}
 
@@ -318,18 +205,18 @@ const AudioProcessingUploadPage: React.FC = () => {
                             {submitting ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    Submitting…
+                                    Uploading…
                                 </>
                             ) : (
                                 <>
                                     <UploadCloud className="w-4 h-4" />
-                                    Submit for Processing
+                                    Upload and Process
                                 </>
                             )}
                         </Btn.Primary>
 
                         <Link
-                            to="/admin/jobs/audio"
+                            to="/admin/books"
                             className="block text-center text-xs text-slate-500 hover:text-slate-700"
                         >
                             Cancel and go back
@@ -341,4 +228,4 @@ const AudioProcessingUploadPage: React.FC = () => {
     );
 };
 
-export default AudioProcessingUploadPage;
+export default BookUploadPage;

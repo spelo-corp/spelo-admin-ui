@@ -3,7 +3,7 @@ import React from "react";
 /**
  * Test component to verify error boundary functionality.
  * This component intentionally throws an error when rendered.
- * 
+ *
  * Usage: Import and add to a route to test error boundaries.
  * Example: <Route path="/error-test" element={<ErrorTest />} />
  */

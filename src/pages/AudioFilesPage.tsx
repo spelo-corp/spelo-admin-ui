@@ -1,19 +1,11 @@
-import React, { useEffect, useState } from "react";
+import { FileAudio2, Loader2, Music, Play, Plus, Search, Trash2 } from "lucide-react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { AudioFile } from "../types";
-
-import {
-    FileAudio2,
-    Search,
-    Play,
-    Trash2,
-    Plus,
-    Music,
-    Loader2,
-} from "lucide-react";
-import { Input } from "../components/ui/Input.tsx";
-import { Btn } from "../components/ui/Btn.tsx";
 import PageHeader from "../components/common/PageHeader";
+import { Btn } from "../components/ui/Btn.tsx";
+import { Input } from "../components/ui/Input.tsx";
+import type { AudioFile } from "../types";
 
 const AudioFilesPage: React.FC = () => {
     const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
@@ -40,7 +32,7 @@ const AudioFilesPage: React.FC = () => {
     }, []);
 
     const filtered = audioFiles.filter((f) =>
-        f.file_name.toLowerCase().includes(search.toLowerCase())
+        f.file_name.toLowerCase().includes(search.toLowerCase()),
     );
 
     const handleUpload = async () => {
@@ -115,9 +107,7 @@ const AudioFilesPage: React.FC = () => {
                                         <div className="font-medium text-slate-900 text-sm">
                                             {file.file_name}
                                         </div>
-                                        <div className="text-xs text-slate-500">
-                                            ID #{file.id}
-                                        </div>
+                                        <div className="text-xs text-slate-500">ID #{file.id}</div>
                                     </div>
                                 </div>
 
@@ -154,7 +144,6 @@ const AudioFilesPage: React.FC = () => {
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
                     <div className="bg-white rounded-card shadow-shell w-full max-w-md p-6">
-
                         {/* Modal Header */}
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-slate-900">
@@ -197,11 +186,8 @@ const AudioFilesPage: React.FC = () => {
                             <Btn.Secondary onClick={() => setModalOpen(false)}>
                                 Cancel
                             </Btn.Secondary>
-                            <Btn.Primary onClick={handleUpload}>
-                                Upload
-                            </Btn.Primary>
+                            <Btn.Primary onClick={handleUpload}>Upload</Btn.Primary>
                         </div>
-
                     </div>
                 </div>
             )}

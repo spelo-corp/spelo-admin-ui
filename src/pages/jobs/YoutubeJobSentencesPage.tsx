@@ -1,11 +1,12 @@
-import React, { useRef, useState, useEffect } from "react";
 import { Loader2, Play, Save, Trash2 } from "lucide-react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
-import { Btn } from "../../components/ui/Btn";
-import type { YoutubeJobOutletContext } from "./YoutubeJobPage";
 import { YouTubePlayer, type YouTubePlayerRef } from "../../components/common/YouTubePlayer";
+import { Btn } from "../../components/ui/Btn";
 import type { AudioSentence } from "../../types/audioProcessing";
+import type { YoutubeJobOutletContext } from "./YoutubeJobPage";
 
 const formatSeconds = (value: number) => {
     const minutes = Math.floor(value / 60);
@@ -39,7 +40,9 @@ const YoutubeJobSentencesPage: React.FC = () => {
                 }
 
                 // Update active sentence highlight
-                const idx = sentences.findIndex((s) => currentTime >= s.start && currentTime <= s.end);
+                const idx = sentences.findIndex(
+                    (s) => currentTime >= s.start && currentTime <= s.end,
+                );
                 setActiveSentence(idx === -1 ? null : idx);
             }
         }, 200);
@@ -80,7 +83,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
 
         const sortedIndexes = [...new Set(selectedSentenceIndexes)].sort((a, b) => a - b);
         const areConsecutive = sortedIndexes.every((idx, i) =>
-            i === 0 ? true : idx === sortedIndexes[i - 1] + 1
+            i === 0 ? true : idx === sortedIndexes[i - 1] + 1,
         );
 
         if (!areConsecutive) {
@@ -88,9 +91,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
             return;
         }
 
-        const selectedSentences = sortedIndexes
-            .map((idx) => sentences[idx])
-            .filter(Boolean);
+        const selectedSentences = sortedIndexes.map((idx) => sentences[idx]).filter(Boolean);
 
         if (selectedSentences.length < 2) {
             setError("Selected sentences are not available to merge.");
@@ -150,11 +151,12 @@ const YoutubeJobSentencesPage: React.FC = () => {
 
         // Adjust selection indexes
         setSelectedSentenceIndexes((prev) =>
-            prev.filter(i => i !== index).map(i => i > index ? i - 1 : i)
+            prev.filter((i) => i !== index).map((i) => (i > index ? i - 1 : i)),
         );
 
         if (activeSentence === index) setActiveSentence(null);
-        else if (activeSentence !== null && activeSentence > index) setActiveSentence(activeSentence - 1);
+        else if (activeSentence !== null && activeSentence > index)
+            setActiveSentence(activeSentence - 1);
     };
 
     return (
@@ -236,11 +238,13 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                 key={`${sentence.start}-${index}`}
                                 className={`
                                     border rounded-xl p-3 space-y-2
-                                    ${isActive
-                                        ? "border-brand bg-brand-soft/60"
-                                        : isSelected
-                                            ? "border-sky-200 bg-sky-50"
-                                            : "border-slate-200 bg-slate-50"}
+                                    ${
+                                        isActive
+                                            ? "border-brand bg-brand-soft/60"
+                                            : isSelected
+                                              ? "border-sky-200 bg-sky-50"
+                                              : "border-slate-200 bg-slate-50"
+                                    }
                                 `}
                             >
                                 <div className="flex items-center justify-between text-xs">
@@ -260,8 +264,8 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                         </span>
                                     </div>
                                     <span className="text-slate-500">
-                                        {formatSeconds(sentence.start)} → {formatSeconds(sentence.end)} •{" "}
-                                        {duration.toFixed(2)}s
+                                        {formatSeconds(sentence.start)} →{" "}
+                                        {formatSeconds(sentence.end)} • {duration.toFixed(2)}s
                                     </span>
                                 </div>
 
@@ -344,12 +348,13 @@ const YoutubeJobSentencesPage: React.FC = () => {
 
                     {sentences.length === 0 && (
                         <div className="text-center text-slate-500 py-10">
-                            No sentences available yet. If the job is still processing, try refreshing.
+                            No sentences available yet. If the job is still processing, try
+                            refreshing.
                         </div>
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 

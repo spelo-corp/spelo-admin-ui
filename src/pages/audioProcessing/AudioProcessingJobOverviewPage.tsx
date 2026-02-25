@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
 import { Clock } from "lucide-react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
-import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
 import { PresignedAudioPlayer } from "../../components/audio/PresignedAudioPlayer";
-import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
+import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
 import type { JobServiceStatus } from "../../types/jobService";
+import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
 
 function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null {
     const upper = status.toUpperCase();
@@ -24,7 +25,8 @@ function mapAudioStatusToServiceStatus(status: string): JobServiceStatus | null 
 }
 
 const AudioProcessingJobOverviewPage: React.FC = () => {
-    const { job, sentences, readOnly, reloadJob } = useOutletContext<AudioProcessingJobOutletContext>();
+    const { job, sentences, readOnly, reloadJob } =
+        useOutletContext<AudioProcessingJobOutletContext>();
 
     const [overrideStatus, setOverrideStatus] = useState<JobServiceStatus>("RUNNING");
     const [overrideReason, setOverrideReason] = useState("");
@@ -75,7 +77,7 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
             { label: "Created", value: new Date(job.createdAt).toLocaleString() },
             { label: "Updated", value: new Date(job.updatedAt).toLocaleString() },
         ],
-        [job]
+        [job],
     );
 
     return (
@@ -85,7 +87,9 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-lg font-semibold text-slate-900">Audio</h2>
-                            <p className="text-xs text-slate-500">Preview playback to check boundaries.</p>
+                            <p className="text-xs text-slate-500">
+                                Preview playback to check boundaries.
+                            </p>
                         </div>
                         {job.audioUrl ? (
                             <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
@@ -99,7 +103,10 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                     </div>
 
                     {job.audioUrl ? (
-                        <PresignedAudioPlayer src={job.audioUrl} className="rounded-xl overflow-hidden" />
+                        <PresignedAudioPlayer
+                            src={job.audioUrl}
+                            className="rounded-xl overflow-hidden"
+                        />
                     ) : (
                         <div className="text-sm text-slate-600 flex items-center gap-2">
                             <Clock className="w-4 h-4" />
@@ -131,14 +138,18 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                         {job.currentStep && (
                             <div className="flex items-center justify-between">
                                 <span>Current step</span>
-                                <span className="font-semibold text-slate-900">{job.currentStep}</span>
+                                <span className="font-semibold text-slate-900">
+                                    {job.currentStep}
+                                </span>
                             </div>
                         )}
                         {job.progressPercent != null && (
                             <div className="space-y-1">
                                 <div className="flex items-center justify-between">
                                     <span>Progress</span>
-                                    <span className="font-semibold text-slate-900">{job.progressPercent}%</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {job.progressPercent}%
+                                    </span>
                                 </div>
                                 <div className="w-full bg-slate-100 rounded-full h-1.5">
                                     <div
@@ -179,7 +190,9 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                             <select
                                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm disabled:opacity-60"
                                 value={overrideStatus}
-                                onChange={(e) => setOverrideStatus(e.target.value as JobServiceStatus)}
+                                onChange={(e) =>
+                                    setOverrideStatus(e.target.value as JobServiceStatus)
+                                }
                                 disabled={readOnly || overrideLoading}
                             >
                                 <option value="PENDING">PENDING</option>
@@ -206,10 +219,11 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
                             </button>
                             {overrideNotice.type ? (
                                 <div
-                                    className={`text-sm px-3 py-2 rounded-xl border ${overrideNotice.type === "success"
-                                        ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-                                        : "text-rose-700 bg-rose-50 border-rose-100"
-                                        }`}
+                                    className={`text-sm px-3 py-2 rounded-xl border ${
+                                        overrideNotice.type === "success"
+                                            ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+                                            : "text-rose-700 bg-rose-50 border-rose-100"
+                                    }`}
                                 >
                                     {overrideNotice.message}
                                 </div>

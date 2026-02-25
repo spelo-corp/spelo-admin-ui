@@ -1,11 +1,12 @@
-import { dashboardApi } from "./dashboard";
-import { jobsApi } from "./jobs";
-import { lessonsApi } from "./lessons";
-import { filesApi } from "./files";
 import { audioApi } from "./audioProcessing";
-import { vocabApi } from "./vocab";
+import { booksApi } from "./books";
 import { categoriesApi } from "./categories";
 import { collectionsApi } from "./collections";
+import { dashboardApi } from "./dashboard";
+import { filesApi } from "./files";
+import { jobsApi } from "./jobs";
+import { lessonsApi } from "./lessons";
+import { vocabApi } from "./vocab";
 
 export const api = {
     ...dashboardApi,
@@ -16,6 +17,7 @@ export const api = {
     ...vocabApi,
     ...categoriesApi,
     ...collectionsApi,
+    ...booksApi,
 };
 
 export {
@@ -27,4 +29,5 @@ export {
     vocabApi,
     categoriesApi,
     collectionsApi,
+    booksApi,
 };

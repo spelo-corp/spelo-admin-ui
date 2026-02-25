@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { useNavigate } from "react-router-dom";
 import { adminLogout, getAdminUsername } from "../../auth/adminAuth";
 
@@ -16,9 +16,9 @@ const Header: React.FC = () => {
             {/* Left: Search Bar */}
             <div className="flex items-center gap-3 w-[40%]">
                 <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-            🔍
-          </span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+                        🔍
+                    </span>
                     <input
                         placeholder="Search lesson, audio, users..."
                         className="
@@ -31,10 +31,12 @@ const Header: React.FC = () => {
                 </div>
 
                 {/* Shortcut indicator */}
-                <div className="
+                <div
+                    className="
           px-2 py-1 rounded-full bg-white border border-slate-200
           text-xs text-slate-500
-        ">
+        "
+                >
                     ⌘K
                 </div>
             </div>

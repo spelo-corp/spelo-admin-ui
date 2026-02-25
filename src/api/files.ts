@@ -7,7 +7,7 @@ async function getAudioFiles() {
     return handle<{ success: boolean; files: AudioFile[] }>(
         await fetch(`${BASE_URL}/api/admin/audio-files`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -22,7 +22,7 @@ async function uploadAudioFile(payload: {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -31,7 +31,7 @@ async function deleteAudioFile(id: number) {
         await fetch(`${BASE_URL}/api/admin/audio-files/${id}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -91,7 +91,12 @@ async function getPresignedUrl(filename: string, bucket: string = AUDIO_BUCKET) 
         headers: getAuthHeaders(),
     });
 
-    const response = await handle<{ success: boolean; data: string; message?: string; code?: number }>(res);
+    const response = await handle<{
+        success: boolean;
+        data: string;
+        message?: string;
+        code?: number;
+    }>(res);
 
     return {
         success: response.success,
@@ -107,7 +112,7 @@ async function getPresignedUrl(filename: string, bucket: string = AUDIO_BUCKET) 
 function extractFilenameFromUrl(url: string): string | null {
     try {
         const urlObj = new URL(url);
-        const pathParts = urlObj.pathname.split('/');
+        const pathParts = urlObj.pathname.split("/");
         return pathParts[pathParts.length - 1] || null;
     } catch {
         return null;
@@ -171,11 +176,15 @@ async function replaceFile(bucketName: string, objectName: string, file: File) {
             method: "POST",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
-        })
+        }),
     );
 }
 
-async function trimAudio(bucketName: string, objectName: string, segments: { start: number; end: number }[]) {
+async function trimAudio(
+    bucketName: string,
+    objectName: string,
+    segments: { start: number; end: number }[],
+) {
     return handle<{ success: boolean; data?: any }>(
         await fetch(`${BASE_URL}/api/v1/file/audio/trim`, {
             method: "POST",
@@ -185,7 +194,7 @@ async function trimAudio(bucketName: string, objectName: string, segments: { sta
                 object_name: objectName,
                 segments,
             }),
-        })
+        }),
     );
 }
 

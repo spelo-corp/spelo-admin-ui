@@ -1,22 +1,28 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "../hooks/useCategories";
-import type { Category } from "../types/category";
-import { Btn } from "../components/ui/Btn";
-import PageHeader from "../components/common/PageHeader";
-import { Input } from "../components/ui/Input.tsx";
-import { Skeleton } from "../components/ui/Skeleton.tsx";
 import {
-    Layers,
+    BookOpen,
     CircleAlert,
+    Edit,
+    Layers,
     Plus,
     Search,
     Sparkles,
     Trash2,
     X,
-    Edit,
-    BookOpen,
 } from "lucide-react";
+import type React from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import PageHeader from "../components/common/PageHeader";
+import { Btn } from "../components/ui/Btn";
+import { Input } from "../components/ui/Input.tsx";
+import { Skeleton } from "../components/ui/Skeleton.tsx";
+import {
+    useCategories,
+    useCreateCategory,
+    useDeleteCategory,
+    useUpdateCategory,
+} from "../hooks/useCategories";
+import type { Category } from "../types/category";
 
 const CategoryManagementPage: React.FC = () => {
     const navigate = useNavigate();
@@ -140,7 +146,7 @@ const CategoryManagementPage: React.FC = () => {
 
     const activeCount = useMemo(
         () => categories.filter((c) => c.status === 1).length,
-        [categories]
+        [categories],
     );
     const inactiveCount = categories.length - activeCount;
 
@@ -149,7 +155,6 @@ const CategoryManagementPage: React.FC = () => {
 
     return (
         <div className="space-y-8 px-8 py-6">
-
             {/* HERO */}
             <PageHeader
                 badge={
@@ -210,8 +215,12 @@ const CategoryManagementPage: React.FC = () => {
                             <Layers className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Categories</p>
-                            <p className="text-sm text-slate-600">{filteredCategories.length} showing</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                                Categories
+                            </p>
+                            <p className="text-sm text-slate-600">
+                                {filteredCategories.length} showing
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -249,7 +258,9 @@ const CategoryManagementPage: React.FC = () => {
                         </div>
                     ) : filteredCategories.length === 0 ? (
                         <div className="text-center py-10 space-y-2 text-sm text-slate-500">
-                            <p className="text-lg text-slate-700 font-semibold">No categories match your search.</p>
+                            <p className="text-lg text-slate-700 font-semibold">
+                                No categories match your search.
+                            </p>
                             <p>Try a different search term.</p>
                         </div>
                     ) : (
@@ -272,7 +283,9 @@ const CategoryManagementPage: React.FC = () => {
 
                                     {/* Info */}
                                     <div>
-                                        <h3 className="font-semibold text-slate-800 mb-1">{category.name}</h3>
+                                        <h3 className="font-semibold text-slate-800 mb-1">
+                                            {category.name}
+                                        </h3>
                                         {category.description && (
                                             <p className="text-sm text-slate-500 line-clamp-2">
                                                 {category.description}
@@ -296,7 +309,9 @@ const CategoryManagementPage: React.FC = () => {
                                     {/* Actions */}
                                     <div className="flex gap-2 pt-2">
                                         <button
-                                            onClick={() => navigate(`/admin/lessons?category=${category.id}`)}
+                                            onClick={() =>
+                                                navigate(`/admin/lessons?category=${category.id}`)
+                                            }
                                             className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition"
                                         >
                                             View Lessons
@@ -325,7 +340,6 @@ const CategoryManagementPage: React.FC = () => {
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-3">
                     <div className="bg-white rounded-2xl shadow-shell w-full max-w-lg p-6 border border-slate-100 animate-slideIn">
-
                         {/* HEADER */}
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
@@ -454,7 +468,8 @@ const CategoryManagementPage: React.FC = () => {
                                         {deleteTarget.name}
                                     </h2>
                                     <p className="mt-1 text-sm text-white/80">
-                                        This will soft-delete the category (set <span className="font-semibold">status = 0</span>).
+                                        This will soft-delete the category (set{" "}
+                                        <span className="font-semibold">status = 0</span>).
                                     </p>
                                 </div>
                                 <button
@@ -475,7 +490,8 @@ const CategoryManagementPage: React.FC = () => {
                                     <div>
                                         <div className="font-semibold">Are you sure?</div>
                                         <div className="text-amber-800/80">
-                                            This category has {deleteTarget.lesson_count ?? 0} lessons associated with it.
+                                            This category has {deleteTarget.lesson_count ?? 0}{" "}
+                                            lessons associated with it.
                                         </div>
                                     </div>
                                 </div>

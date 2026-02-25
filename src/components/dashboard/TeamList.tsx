@@ -1,4 +1,3 @@
-
 const mockTeam = [
     { name: "John Carter", role: "Engineer", pct: 78 },
     { name: "Lisa Tran", role: "Moderator", pct: 92 },
@@ -17,10 +16,7 @@ const TeamList = () => {
 
             <div className="flex flex-col gap-4">
                 {mockTeam.map((user) => (
-                    <div
-                        key={user.name}
-                        className="flex items-center justify-between text-sm"
-                    >
+                    <div key={user.name} className="flex items-center justify-between text-sm">
                         <div>
                             <div className="font-medium text-slate-800">{user.name}</div>
                             <div className="text-slate-400 text-xs">{user.role}</div>

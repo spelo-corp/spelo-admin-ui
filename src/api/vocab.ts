@@ -11,11 +11,10 @@ import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 function mapJobDetailToVocabJob(payload: any): VocabJob {
     const root = (payload?.data ?? payload ?? {}) as Record<string, any>;
-    const detail = (
-        root.detail && typeof root.detail === "object"
-            ? root.detail
-            : root
-    ) as Record<string, any>;
+    const detail = (root.detail && typeof root.detail === "object" ? root.detail : root) as Record<
+        string,
+        any
+    >;
     const itemsRaw = Array.isArray(detail.items) ? detail.items : [];
 
     return {
@@ -57,7 +56,7 @@ async function getVocab(params?: { q?: string; page?: number; size?: number }) {
         await fetch(`${BASE_URL}/api/v1/vocab?${query.toString()}`, {
             method: "GET",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -66,13 +65,13 @@ async function getVocabById(id: number) {
         await fetch(`${BASE_URL}/api/v1/vocab/${id}`, {
             method: "GET",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
 async function getVocabByIds(ids: number[]) {
     const query = new URLSearchParams();
-    ids.forEach(id => query.append("ids", String(id)));
+    ids.forEach((id) => query.append("ids", String(id)));
 
     await fetch(`${BASE_URL}/api/v1/vocab/ids?${query.toString()}`, {
         method: "GET",
@@ -92,7 +91,7 @@ async function createVocab(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -102,7 +101,7 @@ async function updateVocab(id: number, payload: any) {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -112,7 +111,7 @@ async function autoCreateVocab(payload: AutoCreateVocabRequest) {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -120,7 +119,7 @@ async function getVocabJob(id: number) {
     const res = await handle<{ success?: boolean; data?: any } | any>(
         await fetch(`${BASE_URL}/api/v1/jobs/${id}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     const mapped = mapJobDetailToVocabJob(res);
@@ -135,10 +134,13 @@ async function extractVocabFromLesson(lessonId: number, payload?: ExtractVocabFr
     query.set("skipStopWords", String(skipStopWords));
 
     return handle<{ success: boolean; data: ExtractVocabFromLessonResponse; message?: string }>(
-        await fetch(`${BASE_URL}/api/v1/admin/vocab/extract-from-lesson/${lessonId}?${query.toString()}`, {
-            method: "POST",
-            headers: getAuthHeaders(),
-        })
+        await fetch(
+            `${BASE_URL}/api/v1/admin/vocab/extract-from-lesson/${lessonId}?${query.toString()}`,
+            {
+                method: "POST",
+                headers: getAuthHeaders(),
+            },
+        ),
     );
 }
 
@@ -151,7 +153,7 @@ async function mapVocabScriptForLesson(lessonId: number, payload?: MapVocabScrip
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
-        })
+        }),
     );
 }
 

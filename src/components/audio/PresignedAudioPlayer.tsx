@@ -1,6 +1,7 @@
 // src/components/audio/PresignedAudioPlayer.tsx
-import React from "react";
+
 import { Loader2 } from "lucide-react";
+import type React from "react";
 import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 
 interface Props {
@@ -15,11 +16,7 @@ export const PresignedAudioPlayer: React.FC<Props> = ({ src, className = "" }) =
     const { url, loading } = usePresignedAudioUrl(src);
 
     if (!src) {
-        return (
-            <div className="text-xs text-slate-500 italic">
-                No audio attached.
-            </div>
-        );
+        return <div className="text-xs text-slate-500 italic">No audio attached.</div>;
     }
 
     if (loading) {
@@ -32,18 +29,8 @@ export const PresignedAudioPlayer: React.FC<Props> = ({ src, className = "" }) =
     }
 
     if (!url) {
-        return (
-            <div className="text-xs text-rose-500 italic">
-                Failed to load audio.
-            </div>
-        );
+        return <div className="text-xs text-rose-500 italic">Failed to load audio.</div>;
     }
 
-    return (
-        <audio
-            controls
-            src={url}
-            className={`w-full rounded-lg bg-slate-50 ${className}`}
-        />
-    );
+    return <audio controls src={url} className={`w-full rounded-lg bg-slate-50 ${className}`} />;
 };

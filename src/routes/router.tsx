@@ -1,39 +1,39 @@
 // src/routes/routes.tsx
-import { Routes, Route, Navigate } from "react-router-dom";
-
-import AdminLayout from "../components/layout/AdminLayout";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAdminAuth } from "../auth/RequireAdminAuth";
 import { RouteErrorBoundary } from "../components/common/RouteErrorBoundary";
-
-import DashboardPage from "../pages/DashboardPage";
-import ProcessingJobsPage from "../pages/ProcessingJobsPage";
+import AdminLayout from "../components/layout/AdminLayout";
+import AdminLoginPage from "../pages/AdminLoginPage";
+import AudioFilesPage from "../pages/AudioFilesPage";
 import AudioReviewPage from "../pages/AudioReviewPage";
 import AudioProcessingDashboardPage from "../pages/audioProcessing/AudioProcessingDashboardPage";
-import AudioProcessingUploadPage from "../pages/audioProcessing/AudioProcessingUploadPage";
-import AudioProcessingJobPage from "../pages/audioProcessing/AudioProcessingJobPage";
-import AudioProcessingJobOverviewPage from "../pages/audioProcessing/AudioProcessingJobOverviewPage";
-import AudioProcessingJobTranscriptPage from "../pages/audioProcessing/AudioProcessingJobTranscriptPage";
-import AudioProcessingJobSentencesPage from "../pages/audioProcessing/AudioProcessingJobSentencesPage";
 import AudioProcessingJobAudioEditPage from "../pages/audioProcessing/AudioProcessingJobAudioEditPage";
-import JobsDashboardPage from "../pages/jobs/JobsDashboardPage";
-import YoutubeJobPage from "../pages/jobs/YoutubeJobPage";
-import YoutubeJobOverviewPage from "../pages/jobs/YoutubeJobOverviewPage";
-import YoutubeJobSentencesPage from "../pages/jobs/YoutubeJobSentencesPage";
-import LessonListPage from "../pages/LessonListPage";
-import AudioFilesPage from "../pages/AudioFilesPage";
-import UsersPage from "../pages/UsersPage";
-
-import LessonViewPage from "../pages/LessonViewPage";
-import LessonInfoPage from "../pages/lesson/LessonInfoPage";
-import LessonAudioPage from "../pages/lesson/LessonAudioPage";
-import LessonJobsPage from "../pages/lesson/LessonJobsPage";
-import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
-import LessonVocabPage from "../pages/lesson/LessonVocabPage";
-import DictionaryPage from "../pages/DictionaryPage.tsx";
-import AdminLoginPage from "../pages/AdminLoginPage";
+import AudioProcessingJobOverviewPage from "../pages/audioProcessing/AudioProcessingJobOverviewPage";
+import AudioProcessingJobPage from "../pages/audioProcessing/AudioProcessingJobPage";
+import AudioProcessingJobSentencesPage from "../pages/audioProcessing/AudioProcessingJobSentencesPage";
+import AudioProcessingJobTranscriptPage from "../pages/audioProcessing/AudioProcessingJobTranscriptPage";
+import AudioProcessingUploadPage from "../pages/audioProcessing/AudioProcessingUploadPage";
+import BookDetailPage from "../pages/books/BookDetailPage";
+import BookListPage from "../pages/books/BookListPage";
+import BookUploadPage from "../pages/books/BookUploadPage";
 import CategoryManagementPage from "../pages/CategoryManagementPage";
 import CollectionsPage from "../pages/CollectionsPage";
 import CollectionWordsPage from "../pages/CollectionWordsPage";
+import DashboardPage from "../pages/DashboardPage";
+import DictionaryPage from "../pages/DictionaryPage.tsx";
+import JobsDashboardPage from "../pages/jobs/JobsDashboardPage";
+import YoutubeJobOverviewPage from "../pages/jobs/YoutubeJobOverviewPage";
+import YoutubeJobPage from "../pages/jobs/YoutubeJobPage";
+import YoutubeJobSentencesPage from "../pages/jobs/YoutubeJobSentencesPage";
+import LessonListPage from "../pages/LessonListPage";
+import LessonViewPage from "../pages/LessonViewPage";
+import LessonAudioPage from "../pages/lesson/LessonAudioPage";
+import LessonExercisesPage from "../pages/lesson/LessonExercisesPage";
+import LessonInfoPage from "../pages/lesson/LessonInfoPage";
+import LessonJobsPage from "../pages/lesson/LessonJobsPage";
+import LessonVocabPage from "../pages/lesson/LessonVocabPage";
+import ProcessingJobsPage from "../pages/ProcessingJobsPage";
+import UsersPage from "../pages/UsersPage";
 
 export const AppRoutes = () => {
     return (
@@ -82,7 +82,10 @@ export const AppRoutes = () => {
                     <Route path="sentences" element={<AudioProcessingJobSentencesPage />} />
                     <Route path="audio" element={<AudioProcessingJobAudioEditPage />} />
                 </Route>
-                <Route path="jobs/audio/jobs/:jobId/review" element={<AudioProcessingJobPage mode="review" />}>
+                <Route
+                    path="jobs/audio/jobs/:jobId/review"
+                    element={<AudioProcessingJobPage mode="review" />}
+                >
                     <Route index element={<Navigate to="overview" replace />} />
                     <Route path="overview" element={<AudioProcessingJobOverviewPage />} />
                     <Route path="transcript" element={<AudioProcessingJobTranscriptPage />} />
@@ -98,9 +101,30 @@ export const AppRoutes = () => {
                 </Route>
 
                 {/* Redirects for old audio-processing URLs */}
-                <Route path="audio-processing" element={<Navigate to="/admin/jobs/audio" replace />} />
-                <Route path="audio-processing/upload" element={<Navigate to="/admin/jobs/audio/upload" replace />} />
-                <Route path="audio-processing/jobs/:jobId/*" element={<AudioProcessingRedirect />} />
+                <Route
+                    path="audio-processing"
+                    element={<Navigate to="/admin/jobs/audio" replace />}
+                />
+                <Route
+                    path="audio-processing/upload"
+                    element={<Navigate to="/admin/jobs/audio/upload" replace />}
+                />
+                <Route
+                    path="audio-processing/jobs/:jobId/*"
+                    element={<AudioProcessingRedirect />}
+                />
+
+                {/* Books */}
+                <Route
+                    path="books"
+                    element={
+                        <RouteErrorBoundary routeName="Books">
+                            <BookListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route path="books/upload" element={<BookUploadPage />} />
+                <Route path="books/:sourceId" element={<BookDetailPage />} />
 
                 <Route
                     path="lessons"

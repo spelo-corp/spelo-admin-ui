@@ -1,14 +1,10 @@
-
 export interface ImageProcessingOptions {
     targetSize?: { width: number; height: number };
     padding?: number;
     backgroundColor?: string;
 }
 
-export async function processImage(
-    file: File,
-    options: ImageProcessingOptions
-): Promise<File> {
+export async function processImage(file: File, options: ImageProcessingOptions): Promise<File> {
     if (!options.targetSize && !options.padding) {
         return file;
     }
@@ -44,10 +40,7 @@ export async function processImage(
             const availableWidth = targetWidth - padding * 2;
             const availableHeight = targetHeight - padding * 2;
 
-            const scale = Math.min(
-                availableWidth / img.width,
-                availableHeight / img.height
-            );
+            const scale = Math.min(availableWidth / img.width, availableHeight / img.height);
 
             const drawWidth = img.width * scale;
             const drawHeight = img.height * scale;
@@ -59,9 +52,7 @@ export async function processImage(
 
             const isTransparent = options.backgroundColor === "transparent";
             const outputType = isTransparent ? "image/png" : file.type;
-            const outputName = isTransparent
-                ? file.name.replace(/\.[^.]+$/, ".png")
-                : file.name;
+            const outputName = isTransparent ? file.name.replace(/\.[^.]+$/, ".png") : file.name;
 
             canvas.toBlob(
                 (blob) => {
@@ -76,7 +67,7 @@ export async function processImage(
                     }
                 },
                 outputType,
-                isTransparent ? undefined : 0.9
+                isTransparent ? undefined : 0.9,
             );
         };
 

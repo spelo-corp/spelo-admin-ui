@@ -1,9 +1,4 @@
-export type VocabJobStatus =
-    | "PENDING"
-    | "RUNNING"
-    | "PARTIAL"
-    | "COMPLETED"
-    | "FAILED";
+export type VocabJobStatus = "PENDING" | "RUNNING" | "PARTIAL" | "COMPLETED" | "FAILED";
 
 export type VocabJobItemStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
 

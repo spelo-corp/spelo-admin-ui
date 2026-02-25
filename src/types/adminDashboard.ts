@@ -1,5 +1,5 @@
-import type { JobListItemDTO } from "./jobService";
 import type { Lesson } from "../types";
+import type { JobListItemDTO } from "./jobService";
 
 export type DashboardRange = "24h" | "7d" | "30d";
 export type DashboardBucket = "hour" | "day";

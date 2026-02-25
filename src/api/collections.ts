@@ -1,16 +1,15 @@
-import { BASE_URL, getAuthHeaders, handle } from "./base";
 import type {
     CollectionListResponse,
     CollectionRequestDTO,
     CollectionTerminologyDTO,
 } from "../types/collection";
-
-import { processImage, type ImageProcessingOptions } from "../utils/imageProcessing";
+import { type ImageProcessingOptions, processImage } from "../utils/imageProcessing";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 async function uploadCollectionImage(
     collectionId: number,
     file: File,
-    options?: ImageProcessingOptions
+    options?: ImageProcessingOptions,
 ) {
     const processedFile = await processImage(file, options || {});
     const form = new FormData();
@@ -21,7 +20,7 @@ async function uploadCollectionImage(
             method: "PATCH",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
-        })
+        }),
     );
 }
 
@@ -30,7 +29,7 @@ async function getCollections() {
         await fetch(`${BASE_URL}/api/v1/collections`, {
             method: "GET",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -40,7 +39,7 @@ async function getLibraryCollections(page = 0, size = 20) {
         await fetch(`${BASE_URL}/api/v1/collections/library?${query.toString()}`, {
             method: "GET",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -50,7 +49,7 @@ async function createCollection(payload: CollectionRequestDTO) {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -60,7 +59,7 @@ async function updateCollection(collectionId: number, payload: CollectionRequest
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -69,7 +68,7 @@ async function deleteCollection(collectionId: number) {
         await fetch(`${BASE_URL}/api/v1/collections/${collectionId}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -79,7 +78,7 @@ async function getCollectionTerminologies(collectionId: number) {
         await fetch(`${BASE_URL}/api/v1/collections/terminologies?${query.toString()}`, {
             method: "GET",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -89,7 +88,7 @@ async function addTerminologiesToCollection(payload: CollectionTerminologyDTO[])
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 
@@ -102,7 +101,7 @@ async function deleteWordFromCollection(collectionId: number, wordId: number) {
         await fetch(`${BASE_URL}/api/v1/collections/word?${query.toString()}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -123,7 +122,7 @@ async function generateCollection(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 }
 

@@ -1,8 +1,3 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
-import StatsCard from "../components/common/StatsCard";
-import { Link } from "react-router-dom";
-import { Btn } from "../components/ui/Btn";
 import {
     Activity,
     AlertCircle,
@@ -21,9 +16,15 @@ import {
     TrendingUp,
     Users,
 } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api/client";
 import PageHeader from "../components/common/PageHeader";
 import SectionCard from "../components/common/SectionCard";
+import StatsCard from "../components/common/StatsCard";
 import Sparkline from "../components/dashboard/Sparkline";
+import { Btn } from "../components/ui/Btn";
 import { Skeleton } from "../components/ui/Skeleton";
 import type {
     AdminDashboardActivityItem,
@@ -40,8 +41,12 @@ const DashboardPage: React.FC = () => {
     const [overview, setOverview] = useState<AdminDashboardOverviewResponse["data"] | null>(null);
     const [alerts, setAlerts] = useState<AdminDashboardAlertsResponse["data"] | null>(null);
     const [activity, setActivity] = useState<AdminDashboardActivityItem[]>([]);
-    const [recentLessons, setRecentLessons] = useState<AdminDashboardRecentLessonsResponse["data"]>([]);
-    const [recentAudioFiles, setRecentAudioFiles] = useState<AdminDashboardRecentAudioFilesResponse["data"]>([]);
+    const [recentLessons, setRecentLessons] = useState<AdminDashboardRecentLessonsResponse["data"]>(
+        [],
+    );
+    const [recentAudioFiles, setRecentAudioFiles] = useState<
+        AdminDashboardRecentAudioFilesResponse["data"]
+    >([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
@@ -50,19 +55,14 @@ const DashboardPage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const [
-                overviewRes,
-                alertsRes,
-                activityRes,
-                recentLessonsRes,
-                recentAudioRes,
-            ] = await Promise.all([
-                api.getAdminDashboardOverview(range),
-                api.getAdminDashboardAlerts({ stuck_minutes: 30, limit: 10 }),
-                api.getAdminDashboardActivity({ limit: 5 }),
-                api.getAdminDashboardRecentLessons({ limit: 5 }),
-                api.getAdminDashboardRecentAudioFiles({ limit: 5 }),
-            ]);
+            const [overviewRes, alertsRes, activityRes, recentLessonsRes, recentAudioRes] =
+                await Promise.all([
+                    api.getAdminDashboardOverview(range),
+                    api.getAdminDashboardAlerts({ stuck_minutes: 30, limit: 10 }),
+                    api.getAdminDashboardActivity({ limit: 5 }),
+                    api.getAdminDashboardRecentLessons({ limit: 5 }),
+                    api.getAdminDashboardRecentAudioFiles({ limit: 5 }),
+                ]);
 
             setOverview(overviewRes.data);
             setAlerts(alertsRes.data);
@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
                 style: "percent",
                 maximumFractionDigits: 1,
             }),
-        []
+        [],
     );
     const dtFmt = useMemo(
         () =>
@@ -111,7 +111,7 @@ const DashboardPage: React.FC = () => {
                 hour: "2-digit",
                 minute: "2-digit",
             }),
-        []
+        [],
     );
 
     const kpis = overview?.kpis;
@@ -199,28 +199,28 @@ const DashboardPage: React.FC = () => {
     const recentSeries = useMemo(() => (series ?? []).slice(-14), [series]);
     const jobsCreatedSeries = useMemo(
         () => recentSeries.map((s) => s.jobs_created ?? 0),
-        [recentSeries]
+        [recentSeries],
     );
     const jobsCompletedSeries = useMemo(
         () => recentSeries.map((s) => s.jobs_completed ?? 0),
-        [recentSeries]
+        [recentSeries],
     );
     const jobsFailedSeries = useMemo(
         () => recentSeries.map((s) => s.jobs_failed ?? 0),
-        [recentSeries]
+        [recentSeries],
     );
 
     const jobsCreatedTotal = useMemo(
         () => jobsCreatedSeries.reduce((a, b) => a + b, 0),
-        [jobsCreatedSeries]
+        [jobsCreatedSeries],
     );
     const jobsCompletedTotal = useMemo(
         () => jobsCompletedSeries.reduce((a, b) => a + b, 0),
-        [jobsCompletedSeries]
+        [jobsCompletedSeries],
     );
     const jobsFailedTotal = useMemo(
         () => jobsFailedSeries.reduce((a, b) => a + b, 0),
-        [jobsFailedSeries]
+        [jobsFailedSeries],
     );
 
     return (
@@ -251,7 +251,9 @@ const DashboardPage: React.FC = () => {
                             ) : null}
 
                             <Btn.HeroSecondary onClick={loadDashboard} disabled={loading}>
-                                <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                                <RefreshCcw
+                                    className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                                />
                                 Refresh
                             </Btn.HeroSecondary>
 
@@ -274,13 +276,19 @@ const DashboardPage: React.FC = () => {
                                     aria-pressed={range === value}
                                     className={`
                                         px-4 py-2 rounded-full text-sm font-semibold border transition
-                                        ${range === value
-                                            ? "bg-white text-slate-900 border-white shadow-lg shadow-black/10"
-                                            : "bg-white/10 text-white border-white/25 hover:bg-white/20"}
+                                        ${
+                                            range === value
+                                                ? "bg-white text-slate-900 border-white shadow-lg shadow-black/10"
+                                                : "bg-white/10 text-white border-white/25 hover:bg-white/20"
+                                        }
                                         disabled:opacity-60
                                     `}
                                 >
-                                    {value === "24h" ? "Last 24h" : value === "7d" ? "Last 7d" : "Last 30d"}
+                                    {value === "24h"
+                                        ? "Last 24h"
+                                        : value === "7d"
+                                          ? "Last 7d"
+                                          : "Last 30d"}
                                 </button>
                             ))}
                         </div>
@@ -304,42 +312,44 @@ const DashboardPage: React.FC = () => {
 
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                    {loading ? (
-                        Array.from({ length: 8 }).map((_, idx) => (
-                            <div
-                                key={idx}
-                                className="bg-white rounded-card shadow-card border border-slate-100 p-4"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <Skeleton className="h-12 w-12 rounded-2xl" />
-                                    <div className="flex-1 space-y-2">
-                                        <Skeleton className="h-5 w-24 rounded-full" />
-                                        <Skeleton className="h-4 w-32 rounded-full" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        cards.map((card) => (
-                            <Link
-                                key={card.label}
-                                to={card.href}
-                                className="block hover:-translate-y-0.5 transition-transform"
-                            >
-                                <StatsCard
-                                    label={card.label}
-                                    value={card.value}
-                                    hint={card.hint}
-                                    icon={card.icon}
-                                    tone={card.tone}
-                                />
-                            </Link>
-                        ))
-                    )}
+                    {loading
+                        ? Array.from({ length: 8 }).map((_, idx) => (
+                              <div
+                                  key={idx}
+                                  className="bg-white rounded-card shadow-card border border-slate-100 p-4"
+                              >
+                                  <div className="flex items-center gap-4">
+                                      <Skeleton className="h-12 w-12 rounded-2xl" />
+                                      <div className="flex-1 space-y-2">
+                                          <Skeleton className="h-5 w-24 rounded-full" />
+                                          <Skeleton className="h-4 w-32 rounded-full" />
+                                      </div>
+                                  </div>
+                              </div>
+                          ))
+                        : cards.map((card) => (
+                              <Link
+                                  key={card.label}
+                                  to={card.href}
+                                  className="block hover:-translate-y-0.5 transition-transform"
+                              >
+                                  <StatsCard
+                                      label={card.label}
+                                      value={card.value}
+                                      hint={card.hint}
+                                      icon={card.icon}
+                                      tone={card.tone}
+                                  />
+                              </Link>
+                          ))}
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                    <SectionCard title="Quick Actions" icon={ListChecks} bodyClassName="p-5 space-y-2">
+                    <SectionCard
+                        title="Quick Actions"
+                        icon={ListChecks}
+                        bodyClassName="p-5 space-y-2"
+                    >
                         <Link
                             to="/admin/lessons"
                             className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2 hover:bg-slate-50"
@@ -411,11 +421,13 @@ const DashboardPage: React.FC = () => {
                         ) : !alerts ? (
                             <div className="text-center text-slate-500 text-sm">No data.</div>
                         ) : (
-                            ([
-                                { label: "Stuck (RUNNING)", items: alerts.stuck_jobs ?? [] },
-                                { label: "Failed", items: alerts.failed_jobs ?? [] },
-                                { label: "Partial", items: alerts.partial_jobs ?? [] },
-                            ] as const).map((section) => (
+                            (
+                                [
+                                    { label: "Stuck (RUNNING)", items: alerts.stuck_jobs ?? [] },
+                                    { label: "Failed", items: alerts.failed_jobs ?? [] },
+                                    { label: "Partial", items: alerts.partial_jobs ?? [] },
+                                ] as const
+                            ).map((section) => (
                                 <div key={section.label} className="space-y-2">
                                     <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                                         {section.label} ({section.items.length})
@@ -433,7 +445,10 @@ const DashboardPage: React.FC = () => {
                                                                 #{job.id} · {job.job_type}
                                                             </div>
                                                             <div className="text-xs text-slate-500">
-                                                                Updated {dtFmt.format(new Date(job.updated_at))}
+                                                                Updated{" "}
+                                                                {dtFmt.format(
+                                                                    new Date(job.updated_at),
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <span
@@ -480,12 +495,15 @@ const DashboardPage: React.FC = () => {
                                         className="border border-slate-100 rounded-xl px-3 py-2 hover:bg-slate-50"
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <div className="text-sm text-slate-800">{item.message}</div>
+                                            <div className="text-sm text-slate-800">
+                                                {item.message}
+                                            </div>
                                             <div className="text-xs text-slate-500 whitespace-nowrap">
                                                 {dtFmt.format(new Date(item.created_at))}
                                             </div>
                                         </div>
-                                        {item.entity?.kind === "LESSON" && typeof item.entity.id === "number" ? (
+                                        {item.entity?.kind === "LESSON" &&
+                                        typeof item.entity.id === "number" ? (
                                             <Link
                                                 to={`/admin/lessons/${item.entity.id}`}
                                                 className="text-xs text-brand hover:underline"
@@ -493,7 +511,8 @@ const DashboardPage: React.FC = () => {
                                                 View lesson →
                                             </Link>
                                         ) : null}
-                                        {item.entity?.kind === "JOB" && typeof item.entity.id === "number" ? (
+                                        {item.entity?.kind === "JOB" &&
+                                        typeof item.entity.id === "number" ? (
                                             <Link
                                                 to={`/admin/jobs/audio/jobs/${item.entity.id}`}
                                                 className="text-xs text-brand hover:underline"
@@ -525,20 +544,34 @@ const DashboardPage: React.FC = () => {
                                 <Skeleton className="h-10 w-full rounded-xl" />
                             </div>
                         ) : recentSeries.length < 2 ? (
-                            <div className="text-center text-slate-500 text-sm">Not enough data to render a trend.</div>
+                            <div className="text-center text-slate-500 text-sm">
+                                Not enough data to render a trend.
+                            </div>
                         ) : (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="min-w-0">
-                                        <div className="text-sm font-semibold text-slate-900">Created</div>
-                                        <div className="text-xs text-slate-500">{fmt.format(jobsCreatedTotal)} total</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            Created
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {fmt.format(jobsCreatedTotal)} total
+                                        </div>
                                     </div>
-                                    <Sparkline data={jobsCreatedSeries} strokeClassName="stroke-brand" ariaLabel="Jobs created" />
+                                    <Sparkline
+                                        data={jobsCreatedSeries}
+                                        strokeClassName="stroke-brand"
+                                        ariaLabel="Jobs created"
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="min-w-0">
-                                        <div className="text-sm font-semibold text-slate-900">Completed</div>
-                                        <div className="text-xs text-slate-500">{fmt.format(jobsCompletedTotal)} total</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            Completed
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {fmt.format(jobsCompletedTotal)} total
+                                        </div>
                                     </div>
                                     <Sparkline
                                         data={jobsCompletedSeries}
@@ -548,10 +581,18 @@ const DashboardPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="min-w-0">
-                                        <div className="text-sm font-semibold text-slate-900">Failed</div>
-                                        <div className="text-xs text-slate-500">{fmt.format(jobsFailedTotal)} total</div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            Failed
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {fmt.format(jobsFailedTotal)} total
+                                        </div>
                                     </div>
-                                    <Sparkline data={jobsFailedSeries} strokeClassName="stroke-rose-600" ariaLabel="Jobs failed" />
+                                    <Sparkline
+                                        data={jobsFailedSeries}
+                                        strokeClassName="stroke-rose-600"
+                                        ariaLabel="Jobs failed"
+                                    />
                                 </div>
                             </div>
                         )}
@@ -565,22 +606,31 @@ const DashboardPage: React.FC = () => {
                                 <Skeleton className="h-14 w-full rounded-xl" />
                             </div>
                         ) : !overview?.jobs_by_type?.length ? (
-                            <div className="text-center text-slate-500 text-sm">No job type data.</div>
+                            <div className="text-center text-slate-500 text-sm">
+                                No job type data.
+                            </div>
                         ) : (
                             <div className="space-y-3">
                                 {overview.jobs_by_type.slice(0, 6).map((row) => {
                                     const total = Math.max(0, row.total ?? 0);
                                     const completed = Math.max(0, row.completed ?? 0);
-                                    const completionPct = total ? Math.round((completed / total) * 100) : 0;
+                                    const completionPct = total
+                                        ? Math.round((completed / total) * 100)
+                                        : 0;
                                     return (
-                                        <div key={row.job_type} className="rounded-xl border border-slate-100 p-3">
+                                        <div
+                                            key={row.job_type}
+                                            className="rounded-xl border border-slate-100 p-3"
+                                        >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <div className="text-sm font-semibold text-slate-900 truncate">
                                                         {row.job_type}
                                                     </div>
                                                     <div className="text-xs text-slate-500">
-                                                        {fmt.format(total)} total · {fmt.format(row.running ?? 0)} running · {fmt.format(row.pending ?? 0)} pending
+                                                        {fmt.format(total)} total ·{" "}
+                                                        {fmt.format(row.running ?? 0)} running ·{" "}
+                                                        {fmt.format(row.pending ?? 0)} pending
                                                     </div>
                                                 </div>
                                                 <div className="text-xs font-semibold text-slate-700 whitespace-nowrap">
@@ -588,7 +638,10 @@ const DashboardPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
-                                                <div className="h-full bg-emerald-500" style={{ width: `${completionPct}%` }} />
+                                                <div
+                                                    className="h-full bg-emerald-500"
+                                                    style={{ width: `${completionPct}%` }}
+                                                />
                                             </div>
                                             <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                                 <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
@@ -614,7 +667,10 @@ const DashboardPage: React.FC = () => {
                         title="Recent Lessons"
                         icon={BookOpen}
                         action={
-                            <Link to="/admin/lessons" className="text-sm text-brand hover:underline">
+                            <Link
+                                to="/admin/lessons"
+                                className="text-sm text-brand hover:underline"
+                            >
                                 View all →
                             </Link>
                         }
@@ -626,7 +682,9 @@ const DashboardPage: React.FC = () => {
                                 <Skeleton className="h-12 w-full rounded-xl" />
                             </div>
                         ) : recentLessons.length === 0 ? (
-                            <div className="text-center text-slate-500 text-sm">No recent lessons.</div>
+                            <div className="text-center text-slate-500 text-sm">
+                                No recent lessons.
+                            </div>
                         ) : (
                             <div className="space-y-2">
                                 {recentLessons.slice(0, 6).map((lesson) => (
@@ -638,14 +696,20 @@ const DashboardPage: React.FC = () => {
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-slate-900 truncate">
-                                                    {lesson.name} <span className="text-slate-400">#{lesson.id}</span>
+                                                    {lesson.name}{" "}
+                                                    <span className="text-slate-400">
+                                                        #{lesson.id}
+                                                    </span>
                                                 </div>
                                                 <div className="text-xs text-slate-500">
-                                                    Level {lesson.level} · Category {lesson.category_id}
+                                                    Level {lesson.level} · Category{" "}
+                                                    {lesson.category_id}
                                                 </div>
                                             </div>
                                             <div className="text-xs text-slate-500 whitespace-nowrap">
-                                                {lesson.created_at ? dtFmt.format(new Date(lesson.created_at)) : "—"}
+                                                {lesson.created_at
+                                                    ? dtFmt.format(new Date(lesson.created_at))
+                                                    : "—"}
                                             </div>
                                         </div>
                                     </Link>
@@ -658,7 +722,10 @@ const DashboardPage: React.FC = () => {
                         title="Recent Audio Uploads"
                         icon={FileAudio2}
                         action={
-                            <Link to="/admin/audio-files" className="text-sm text-brand hover:underline">
+                            <Link
+                                to="/admin/audio-files"
+                                className="text-sm text-brand hover:underline"
+                            >
                                 View audio →
                             </Link>
                         }
@@ -670,7 +737,9 @@ const DashboardPage: React.FC = () => {
                                 <Skeleton className="h-12 w-full rounded-xl" />
                             </div>
                         ) : recentAudioFiles.length === 0 ? (
-                            <div className="text-center text-slate-500 text-sm">No recent uploads.</div>
+                            <div className="text-center text-slate-500 text-sm">
+                                No recent uploads.
+                            </div>
                         ) : (
                             <div className="space-y-2">
                                 {recentAudioFiles.slice(0, 6).map((item) => (
@@ -685,7 +754,9 @@ const DashboardPage: React.FC = () => {
                                                     Listening #{item.id} · Lesson #{item.lesson_id}
                                                 </div>
                                                 <div className="text-xs text-slate-500">
-                                                    {item.audio ? "Audio attached" : "Audio pending"}
+                                                    {item.audio
+                                                        ? "Audio attached"
+                                                        : "Audio pending"}
                                                 </div>
                                             </div>
                                             <div className="text-xs text-slate-500 whitespace-nowrap">
@@ -710,7 +781,8 @@ const DashboardPage: React.FC = () => {
                     <div>
                         <div className="text-lg font-semibold">Keep content flowing</div>
                         <div className="text-sm text-white/80">
-                            Create lessons, upload audio, and review processing jobs without leaving your rhythm.
+                            Create lessons, upload audio, and review processing jobs without leaving
+                            your rhythm.
                         </div>
                     </div>
 

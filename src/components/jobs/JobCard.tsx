@@ -1,19 +1,20 @@
 // src/components/jobs/JobCard.tsx
-import React from "react";
-import type { ProcessingJob } from "../../types";
-import { Link, useNavigate } from "react-router-dom";
+
 import {
+    AlertTriangle,
+    CheckCircle2,
+    Clock,
     FileAudio,
-    Trash2,
+    ListChecks,
     Pencil,
     PlayCircle,
-    CheckCircle2,
-    AlertTriangle,
-    Clock,
-    Workflow,
-    ListChecks,
+    Trash2,
     VideoIcon,
+    Workflow,
 } from "lucide-react";
+import type React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import type { ProcessingJob } from "../../types";
 
 interface JobCardProps {
     job: ProcessingJob;
@@ -177,8 +178,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
 
                 {/* Completed */}
                 {currentStatus === "completed" && (
-                    <div className="flex-1 px-3 py-2 rounded-full bg-emerald-50 text-emerald-700
-                                    flex items-center justify-center gap-1 text-xs">
+                    <div
+                        className="flex-1 px-3 py-2 rounded-full bg-emerald-50 text-emerald-700
+                                    flex items-center justify-center gap-1 text-xs"
+                    >
                         <CheckCircle2 className="w-4 h-4" /> Completed
                     </div>
                 )}

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import type React from "react";
+import { useEffect, useRef } from "react";
 import WaveSurfer from "wavesurfer.js";
 
 interface Props {
@@ -7,10 +8,7 @@ interface Props {
     onReady?: (ws: WaveSurfer) => void;
 }
 
-export const WaveformPlayer: React.FC<Props> = ({audioUrl,
-                                                    height = 80,
-                                                    onReady
-                                                }) => {
+export const WaveformPlayer: React.FC<Props> = ({ audioUrl, height = 80, onReady }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
 

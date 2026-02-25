@@ -1,15 +1,15 @@
-import React from "react";
-import type { Lesson } from "../../types";
 import {
+    Award,
+    CheckCircle,
+    CircleSlash,
     Eye,
     FileAudio2,
     Pencil,
-    CheckCircle,
-    CircleSlash,
-    Trash2,
     Sparkles,
-    Award,
+    Trash2,
 } from "lucide-react";
+import type React from "react";
+import type { Lesson } from "../../types";
 
 interface LessonCardProps {
     lesson: Lesson;
@@ -58,7 +58,9 @@ const LessonCard: React.FC<LessonCardProps> = ({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                     </>
                 ) : (
-                    <div className={`w-full h-full ${getLevelColor(lesson.level)} relative overflow-hidden`}>
+                    <div
+                        className={`w-full h-full ${getLevelColor(lesson.level)} relative overflow-hidden`}
+                    >
                         {/* Subtle pattern overlay */}
                         <div className="absolute inset-0 opacity-30">
                             <div className="absolute top-4 right-4 w-16 h-16 rounded-full bg-white/40" />
@@ -73,9 +75,10 @@ const LessonCard: React.FC<LessonCardProps> = ({
                         className={`
                             inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
                             text-xs font-semibold backdrop-blur-md border
-                            ${isActive
-                                ? "bg-emerald-500/90 text-white border-emerald-300/50 shadow-lg shadow-emerald-500/25"
-                                : "bg-slate-800/80 text-slate-200 border-slate-600/50"
+                            ${
+                                isActive
+                                    ? "bg-emerald-500/90 text-white border-emerald-300/50 shadow-lg shadow-emerald-500/25"
+                                    : "bg-slate-800/80 text-slate-200 border-slate-600/50"
                             }
                         `}
                     >

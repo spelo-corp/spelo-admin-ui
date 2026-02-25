@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-    X,
-    Loader2,
-    Sparkles,
-    CheckCircle2,
     AlertCircle,
+    CheckCircle2,
     Clock,
-    RefreshCcw,
     ListPlus,
+    Loader2,
+    RefreshCcw,
+    Sparkles,
+    X,
 } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import type { VocabJob, VocabJobItem } from "../../types/vocabJob";
 
@@ -43,12 +44,19 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
     const [error, setError] = useState<string | null>(null);
 
     const wordsCount = useMemo(
-        () => inputWords.split("\n").map((w) => w.trim()).filter(Boolean).length,
-        [inputWords]
+        () =>
+            inputWords
+                .split("\n")
+                .map((w) => w.trim())
+                .filter(Boolean).length,
+        [inputWords],
     );
 
     const submitWords = async () => {
-        const words = inputWords.split("\n").map((w) => w.trim()).filter(Boolean);
+        const words = inputWords
+            .split("\n")
+            .map((w) => w.trim())
+            .filter(Boolean);
         if (words.length === 0) return;
 
         setLoading(true);
@@ -67,22 +75,19 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
         setLoading(false);
     };
 
-    const fetchJobStatus = useCallback(
-        async (id: number) => {
-            try {
-                const res = await api.getVocabJob(id);
-                if (res.success) {
-                    const jobData = res.data;
-                    setJob(jobData);
-                    return ["COMPLETED", "FAILED", "PARTIAL"].includes(jobData.status);
-                }
-            } catch {
-                setError("Failed to fetch job status");
+    const fetchJobStatus = useCallback(async (id: number) => {
+        try {
+            const res = await api.getVocabJob(id);
+            if (res.success) {
+                const jobData = res.data;
+                setJob(jobData);
+                return ["COMPLETED", "FAILED", "PARTIAL"].includes(jobData.status);
             }
-            return false;
-        },
-        []
-    );
+        } catch {
+            setError("Failed to fetch job status");
+        }
+        return false;
+    }, []);
 
     useEffect(() => {
         if (!jobId) return;
@@ -99,9 +104,7 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
     if (!show) return null;
 
     const progress =
-        job && job.total_words > 0
-            ? Math.floor((job.completed_words / job.total_words) * 100)
-            : 0;
+        job && job.total_words > 0 ? Math.floor((job.completed_words / job.total_words) * 100) : 0;
 
     const resetFlow = () => {
         setJobId(null);
@@ -113,7 +116,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
     const renderItemStatus = (status: VocabJobItem["status"]) => {
         if (status === "RUNNING") {
             return (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.RUNNING}`}>
+                <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.RUNNING}`}
+                >
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Running
                 </span>
@@ -122,7 +127,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
 
         if (status === "SUCCESS") {
             return (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.SUCCESS}`}>
+                <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.SUCCESS}`}
+                >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Created
                 </span>
@@ -131,7 +138,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
 
         if (status === "FAILED") {
             return (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.FAILED}`}>
+                <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.FAILED}`}
+                >
                     <AlertCircle className="h-3.5 w-3.5" />
                     Failed
                 </span>
@@ -139,7 +148,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
         }
 
         return (
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.PENDING}`}>
+            <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles.PENDING}`}
+            >
                 <Clock className="h-3.5 w-3.5" />
                 Pending
             </span>
@@ -159,10 +170,10 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
             status === "COMPLETED"
                 ? CheckCircle2
                 : status === "FAILED"
-                    ? AlertCircle
-                    : status === "RUNNING"
-                        ? Loader2
-                        : Clock;
+                  ? AlertCircle
+                  : status === "RUNNING"
+                    ? Loader2
+                    : Clock;
 
         return (
             <span
@@ -183,9 +194,12 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                         <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
                             AI assistant
                         </p>
-                        <h2 className="text-2xl font-semibold text-slate-900">Auto Create Vocabulary</h2>
+                        <h2 className="text-2xl font-semibold text-slate-900">
+                            Auto Create Vocabulary
+                        </h2>
                         <p className="text-sm text-slate-500">
-                            Paste a list of words. We will generate pronunciations, translations, and examples.
+                            Paste a list of words. We will generate pronunciations, translations,
+                            and examples.
                         </p>
                     </div>
                     <button
@@ -251,7 +265,11 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                             disabled={loading || inputWords.trim() === ""}
                             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                            {loading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <Sparkles className="h-5 w-5" />
+                            )}
                             {loading ? "Starting..." : "Start auto create"}
                         </button>
                     </div>
@@ -261,7 +279,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Job</p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                                    Job
+                                </p>
                                 <h3 className="text-lg font-semibold text-slate-900">#{jobId}</h3>
                             </div>
                             {job?.status && renderJobBadge(job.status)}
@@ -269,7 +289,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
 
                         <div className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-card">
                             <div className="mb-3 flex items-center justify-between">
-                                <span className="text-sm font-semibold text-slate-800">Progress</span>
+                                <span className="text-sm font-semibold text-slate-800">
+                                    Progress
+                                </span>
                                 <div className="flex items-center gap-2 text-xs text-slate-500">
                                     <span>
                                         {job?.completed_words ?? 0}/{job?.total_words ?? 0} words
@@ -286,10 +308,17 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                                 />
                             </div>
                             <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                <span>Started: {job?.created_at ? new Date(job.created_at).toLocaleString() : "--"}</span>
+                                <span>
+                                    Started:{" "}
+                                    {job?.created_at
+                                        ? new Date(job.created_at).toLocaleString()
+                                        : "--"}
+                                </span>
                                 <span>
                                     {job?.status === "COMPLETED" ? "Completed" : "Updating"}:{" "}
-                                    {job?.updated_at ? new Date(job.updated_at).toLocaleTimeString() : "--"}
+                                    {job?.updated_at
+                                        ? new Date(job.updated_at).toLocaleTimeString()
+                                        : "--"}
                                 </span>
                             </div>
                         </div>
@@ -312,7 +341,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                                 }}
                                 className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand"
                             >
-                                <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                <RefreshCcw
+                                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                                />
                                 Refresh
                             </button>
                         </div>
@@ -332,12 +363,16 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="text-sm font-semibold text-slate-900">{item.word}</p>
+                                            <p className="text-sm font-semibold text-slate-900">
+                                                {item.word}
+                                            </p>
                                             <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
                                                 {item.status}
                                             </p>
                                             {item.error_message && (
-                                                <p className="mt-1 text-[12px] text-rose-600">{item.error_message}</p>
+                                                <p className="mt-1 text-[12px] text-rose-600">
+                                                    {item.error_message}
+                                                </p>
                                             )}
                                         </div>
                                         {renderItemStatus(item.status)}
@@ -348,7 +383,9 @@ const VocabAutoCreateSection: React.FC<Props> = ({ show, onClose }) => {
 
                         {job?.status === "COMPLETED" && (
                             <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
-                                <p className="text-sm font-semibold text-emerald-700">All words created!</p>
+                                <p className="text-sm font-semibold text-emerald-700">
+                                    All words created!
+                                </p>
                                 <div className="mt-2 flex items-center justify-center gap-3">
                                     <button
                                         onClick={resetFlow}

@@ -21,7 +21,8 @@ const normalizeCollection = (dto: CollectionListItemDTO | Record<string, any>): 
         status: Number(raw.status ?? 1),
         created_at: raw.created_at ?? raw.createdAt ?? undefined,
         updated_at: raw.updated_at ?? raw.updatedAt ?? undefined,
-        total_words: raw.total_words ?? raw.totalWords ?? raw.word_count ?? raw.wordCount ?? undefined,
+        total_words:
+            raw.total_words ?? raw.totalWords ?? raw.word_count ?? raw.wordCount ?? undefined,
     };
 };
 
@@ -89,7 +90,8 @@ export function useAddTerminologiesToCollection() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (payload: CollectionTerminologyDTO[]) => api.addTerminologiesToCollection(payload),
+        mutationFn: (payload: CollectionTerminologyDTO[]) =>
+            api.addTerminologiesToCollection(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: COLLECTIONS_QUERY_KEY });
             queryClient.invalidateQueries({ queryKey: ["collections", "terminologies"] });

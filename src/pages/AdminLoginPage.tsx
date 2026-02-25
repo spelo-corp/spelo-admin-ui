@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Input } from "../components/ui/Input";
-import { Btn } from "../components/ui/Btn";
 import { adminLogin, isAdminLoggedIn } from "../auth/adminAuth";
+import { Btn } from "../components/ui/Btn";
+import { Input } from "../components/ui/Input";
 
 type LocationState = {
     from?: { pathname?: string; search?: string };
@@ -70,7 +71,9 @@ const AdminLoginPage: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="mt-5 space-y-3">
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-700">Username or Email</label>
+                        <label className="text-xs font-semibold text-slate-700">
+                            Username or Email
+                        </label>
                         <Input
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -107,7 +110,8 @@ const AdminLoginPage: React.FC = () => {
                     </Btn.Primary>
 
                     <div className="text-xs text-slate-500">
-                        Default credentials: <span className="font-semibold text-slate-700">admin / admin</span>
+                        Default credentials:{" "}
+                        <span className="font-semibold text-slate-700">admin / admin</span>
                     </div>
                 </form>
             </div>
@@ -116,4 +120,3 @@ const AdminLoginPage: React.FC = () => {
 };
 
 export default AdminLoginPage;
-

@@ -1,33 +1,29 @@
-import {
-    BASE_URL,
-    getAuthHeaders,
-    handle,
-} from "./base";
 import type {
     Lesson,
     LessonDetail,
     LessonNewWord,
     ListeningAnswerDTO,
-    ListeningLessonDTO,
     ListeningLessonData,
+    ListeningLessonDTO,
     ListeningLessonScript,
     VocabWord,
 } from "../types";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 type LessonListPayload =
     | Lesson[]
     | {
-        content?: Lesson[];
-        pageNumber?: number;
-        page?: number;
-        pageSize?: number;
-        size?: number;
-        totalElements?: number;
-        total?: number;
-        totalPages?: number;
-        last?: boolean;
-        lessons?: Lesson[];
-    };
+          content?: Lesson[];
+          pageNumber?: number;
+          page?: number;
+          pageSize?: number;
+          size?: number;
+          totalElements?: number;
+          total?: number;
+          totalPages?: number;
+          last?: boolean;
+          lessons?: Lesson[];
+      };
 
 async function getLessons(params?: {
     categoryId?: number;
@@ -51,11 +47,10 @@ async function getLessons(params?: {
     }>(
         await fetch(`${BASE_URL}/api/v1/lessons${qs ? `?${qs}` : ""}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
-    const payload: LessonListPayload =
-        response.data ?? response.lessons ?? [];
+    const payload: LessonListPayload = response.data ?? response.lessons ?? [];
     const success =
         (response as { success?: boolean }).success ??
         (response.status ? response.status === "success" : true);
@@ -86,7 +81,7 @@ async function getLessons(params?: {
 
     const lessons = Array.isArray(payload)
         ? payload
-        : (payload as { lessons?: Lesson[] }).lessons ?? [];
+        : ((payload as { lessons?: Lesson[] }).lessons ?? []);
 
     return {
         success,
@@ -120,10 +115,7 @@ async function getAllLessons(params?: {
         return { success: true, lessons: first.lessons };
     }
 
-    const remainingPages = Array.from(
-        { length: first.totalPages - 1 },
-        (_, index) => index + 2
-    );
+    const remainingPages = Array.from({ length: first.totalPages - 1 }, (_, index) => index + 2);
 
     const pageResponses = await Promise.all(
         remainingPages.map((page) =>
@@ -132,15 +124,15 @@ async function getAllLessons(params?: {
                 level: params?.level,
                 page,
                 size: pageSize,
-            })
-        )
+            }),
+        ),
     );
 
     const combinedLessons = [first, ...pageResponses].flatMap((res) =>
-        res.success ? res.lessons : []
+        res.success ? res.lessons : [],
     );
     const uniqueLessons = Array.from(
-        new Map(combinedLessons.map((lesson) => [lesson.id, lesson])).values()
+        new Map(combinedLessons.map((lesson) => [lesson.id, lesson])).values(),
     );
 
     return {
@@ -163,7 +155,7 @@ async function createLesson(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -182,7 +174,7 @@ async function updateLesson(
         image?: string | null;
         gems?: number;
         description?: string | null;
-    }
+    },
 ) {
     const response = await handle<{
         success?: boolean;
@@ -195,7 +187,7 @@ async function updateLesson(
             method: "PATCH",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -217,7 +209,7 @@ async function deleteLesson(lessonId: number) {
         await fetch(`${BASE_URL}/api/v1/lessons/${lessonId}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -239,7 +231,7 @@ async function updateLessonImage(lessonId: number, image: string) {
             method: "PATCH",
             headers: getAuthHeaders(),
             body: JSON.stringify({ image }),
-        })
+        }),
     );
 
     const success =
@@ -266,7 +258,7 @@ async function uploadLessonImage(lessonId: number, file: File) {
             method: "PATCH",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
-        })
+        }),
     );
 
     const success = (response as { success?: boolean }).success ?? true;
@@ -281,7 +273,7 @@ async function resetUserLessonProgress(lessonId: number) {
         await fetch(`${BASE_URL}/api/v1/user_lessons/reset_progress?lesson_id=${lessonId}`, {
             method: "PUT",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -298,7 +290,7 @@ async function getLessonDetail(lessonId: number, params?: { page?: number; size?
     const response = await handle<{ status?: string; data?: LessonDetail }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening?${query.toString()}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -320,7 +312,7 @@ async function createListeningLesson(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -338,14 +330,14 @@ async function updateListeningLesson(
         translated_script: string;
         data: ListeningLessonData;
         type: number;
-    }
+    },
 ) {
     const response = await handle<{ status?: string; data?: ListeningLessonDTO }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening/${listeningLessonId}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -360,7 +352,7 @@ async function checkListeningAnswer(payload: { listening_lesson_id: number; answ
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -373,7 +365,7 @@ async function getNotCompletedListeningLessons(lessonId: number) {
     const response = await handle<{ status?: string; data?: ListeningLessonDTO[] }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening/not_completed?lesson_id=${lessonId}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -387,8 +379,8 @@ async function getWordDefinition(listeningLessonIds: number[]) {
         new Set(
             (listeningLessonIds ?? [])
                 .map((id) => Number(id))
-                .filter((id) => Number.isFinite(id) && id > 0)
-        )
+                .filter((id) => Number.isFinite(id) && id > 0),
+        ),
     );
 
     if (ids.length === 0) {
@@ -403,10 +395,17 @@ async function getWordDefinition(listeningLessonIds: number[]) {
         const query = new URLSearchParams();
         chunk.forEach((id) => query.append("listening_lesson_ids", String(id)));
 
-        const response = await handle<{ status?: string; success?: boolean; data?: Record<string, VocabWord[]> }>(
-            await fetch(`${BASE_URL}/api/v1/lessons/listening/word_definition?${query.toString()}`, {
-                headers: getAuthHeaders(),
-            })
+        const response = await handle<{
+            status?: string;
+            success?: boolean;
+            data?: Record<string, VocabWord[]>;
+        }>(
+            await fetch(
+                `${BASE_URL}/api/v1/lessons/listening/word_definition?${query.toString()}`,
+                {
+                    headers: getAuthHeaders(),
+                },
+            ),
         );
 
         const payload = response.data ?? {};
@@ -425,7 +424,7 @@ async function getListeningLessonNewWords(listeningLessonId: number) {
     const response = await handle<{ code?: number; data?: LessonNewWord[]; message?: string }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening/${listeningLessonId}/new_words`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -439,7 +438,7 @@ async function getListeningLessonNewWordsBySentenceId(sentenceId: number) {
     const response = await handle<{ code?: number; data?: LessonNewWord[]; message?: string }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening/new_words?sentence_id=${sentenceId}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -459,7 +458,7 @@ async function createListeningLessonNewWord(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -478,7 +477,7 @@ async function bulkCreateListeningLessonNewWords(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -490,14 +489,14 @@ async function bulkCreateListeningLessonNewWords(payload: {
 
 async function updateListeningLessonNewWord(
     id: number,
-    payload: { word?: string; word_id?: number | null }
+    payload: { word?: string; word_id?: number | null },
 ) {
     const response = await handle<{ code?: number; data?: LessonNewWord; message?: string }>(
         await fetch(`${BASE_URL}/api/v1/lessons/listening/new_words/${id}`, {
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
-        })
+        }),
     );
 
     return {
@@ -512,7 +511,7 @@ async function deleteListeningLessonNewWord(id: number) {
         await fetch(`${BASE_URL}/api/v1/lessons/listening/new_words/${id}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -526,7 +525,7 @@ async function deleteListeningLessonNewWords(listeningLessonId: number) {
         await fetch(`${BASE_URL}/api/v1/lessons/listening/${listeningLessonId}/new_words`, {
             method: "DELETE",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -540,7 +539,7 @@ async function translateLesson(lessonId: number) {
         await fetch(`${BASE_URL}/api/v1/lessons/${lessonId}/translate`, {
             method: "POST",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return {
@@ -549,7 +548,12 @@ async function translateLesson(lessonId: number) {
     };
 }
 
-async function uploadLessonAudio(lessonId: number, file: File, startTime?: number, endTime?: number) {
+async function uploadLessonAudio(
+    lessonId: number,
+    file: File,
+    startTime?: number,
+    endTime?: number,
+) {
     const form = new FormData();
     form.append("file", file);
     if (startTime !== undefined) form.append("startTime", String(startTime));
@@ -565,7 +569,7 @@ async function uploadLessonAudio(lessonId: number, file: File, startTime?: numbe
             method: "POST",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
-        })
+        }),
     );
 
     const success = (response as { success?: boolean }).success ?? true;
@@ -595,14 +599,11 @@ async function createYouTubeLesson(
     if (payload.startTime != null) body.startTime = payload.startTime;
     if (payload.endTime != null) body.endTime = payload.endTime;
 
-    const res = await fetch(
-        `${BASE_URL}/api/v1/admin/lessons/${lessonId}/youtube`,
-        {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify(body),
-        },
-    );
+    const res = await fetch(`${BASE_URL}/api/v1/admin/lessons/${lessonId}/youtube`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+    });
     return handle<{
         success: boolean;
         data?: { id: number; status: string; progressPercent: number; currentStep: string };
@@ -611,13 +612,10 @@ async function createYouTubeLesson(
 }
 
 async function finalizeYouTubeJob(jobId: number) {
-    const res = await fetch(
-        `${BASE_URL}/api/v1/youtube-jobs/${jobId}/finalize`,
-        {
-            method: "POST",
-            headers: getAuthHeaders(),
-        },
-    );
+    const res = await fetch(`${BASE_URL}/api/v1/youtube-jobs/${jobId}/finalize`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+    });
     return handle<{ success: boolean; message?: string }>(res);
 }
 

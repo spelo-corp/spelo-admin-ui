@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-
-import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const UploadProgressPage: React.FC = () => {
     const { taskId } = useParams();
@@ -47,10 +47,7 @@ const UploadProgressPage: React.FC = () => {
 
     return (
         <div className="max-w-xl mx-auto mt-20 bg-white shadow-lg rounded-2xl p-8 text-center">
-
-            <h1 className="text-2xl font-semibold text-slate-800 mb-6">
-                Uploading Audio Files…
-            </h1>
+            <h1 className="text-2xl font-semibold text-slate-800 mb-6">Uploading Audio Files…</h1>
 
             {/* PROGRESS BAR */}
             <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden mb-3">
@@ -68,9 +65,7 @@ const UploadProgressPage: React.FC = () => {
             )}
 
             {/* MESSAGE */}
-            <p className="text-sm text-slate-500 mb-4">
-                {message || "Preparing upload…"}
-            </p>
+            <p className="text-sm text-slate-500 mb-4">{message || "Preparing upload…"}</p>
 
             {/* STATUS FEEDBACK */}
             {status === "failed" && (
@@ -87,9 +82,7 @@ const UploadProgressPage: React.FC = () => {
                 </div>
             )}
 
-            {!done && (
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mt-4" />
-            )}
+            {!done && <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mt-4" />}
         </div>
     );
 };

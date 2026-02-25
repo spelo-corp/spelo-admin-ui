@@ -1,5 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { BookOpen, CheckCircle2, Loader2, Pencil, Plus, Sparkles, X } from "lucide-react";
+import type React from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Btn } from "../ui/Btn";
 import { Input } from "../ui/Input";
 
@@ -19,13 +20,7 @@ interface VocabModalProps {
     onSubmit: (data: VocabFormData) => void | Promise<void>;
 }
 
-const VocabModal: React.FC<VocabModalProps> = ({
-    show,
-    mode,
-    initialData,
-    onClose,
-    onSubmit,
-}) => {
+const VocabModal: React.FC<VocabModalProps> = ({ show, mode, initialData, onClose, onSubmit }) => {
     const titleId = useId();
     const descriptionId = useId();
     const wordRef = useRef<HTMLInputElement | null>(null);
@@ -38,7 +33,7 @@ const VocabModal: React.FC<VocabModalProps> = ({
             translation: "",
             example: "",
         }),
-        []
+        [],
     );
 
     const [form, setForm] = useState<VocabFormData>(emptyForm);
@@ -133,7 +128,10 @@ const VocabModal: React.FC<VocabModalProps> = ({
                                     <Sparkles className="h-3.5 w-3.5" />
                                     Dictionary
                                 </div>
-                                <h2 id={titleId} className="mt-3 text-2xl font-semibold tracking-tight">
+                                <h2
+                                    id={titleId}
+                                    className="mt-3 text-2xl font-semibold tracking-tight"
+                                >
                                     <span className="inline-flex items-center gap-2">
                                         <Icon className="h-5 w-5" />
                                         {title}
@@ -216,7 +214,9 @@ const VocabModal: React.FC<VocabModalProps> = ({
                                     </label>
                                     <Input
                                         value={form.translation}
-                                        onChange={(e) => handleChange("translation", e.target.value)}
+                                        onChange={(e) =>
+                                            handleChange("translation", e.target.value)
+                                        }
                                         placeholder="cuộc hẹn, bảo hiểm…"
                                         className="rounded-2xl px-4 py-2.5 text-slate-800 focus:ring-brand/20"
                                     />
@@ -232,7 +232,9 @@ const VocabModal: React.FC<VocabModalProps> = ({
                                     <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-inner shadow-slate-100 transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
                                         <textarea
                                             value={form.definition}
-                                            onChange={(e) => handleChange("definition", e.target.value)}
+                                            onChange={(e) =>
+                                                handleChange("definition", e.target.value)
+                                            }
                                             placeholder="A meeting arranged for a particular time…"
                                             className="h-24 w-full resize-none bg-transparent text-sm text-slate-800 outline-none"
                                         />
@@ -258,7 +260,11 @@ const VocabModal: React.FC<VocabModalProps> = ({
                                 <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
                                     <span className="inline-flex items-center gap-1">
                                         <BookOpen className="h-3.5 w-3.5" />
-                                        Press <span className="font-semibold text-slate-700">Ctrl/⌘ + Enter</span> to save
+                                        Press{" "}
+                                        <span className="font-semibold text-slate-700">
+                                            Ctrl/⌘ + Enter
+                                        </span>{" "}
+                                        to save
                                     </span>
                                     <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
                                         {form.example.trim().length} chars

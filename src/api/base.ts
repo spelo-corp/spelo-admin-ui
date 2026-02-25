@@ -22,8 +22,7 @@ async function handle<T>(res: Response): Promise<T> {
         const text = await res.text();
         throw new Error(text || res.statusText);
     }
-    return await res.json() as Promise<T>;
+    return (await res.json()) as Promise<T>;
 }
 
 export { BASE_URL, getAuthHeaders, handle };
-

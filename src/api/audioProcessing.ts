@@ -1,7 +1,7 @@
-import { BASE_URL, getAuthHeaders, handle } from "./base";
-import { filesApi } from "./files";
 import type { AudioJob, AudioSentence } from "../types/audioProcessing";
 import type { JobListItemDTO, JobServiceStatus } from "../types/jobService";
+import { BASE_URL, getAuthHeaders, handle } from "./base";
+import { filesApi } from "./files";
 
 type RawJob = {
     id: number;
@@ -120,8 +120,8 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
     const resultData = resultWrapper?.data ?? resultWrapper ?? null;
 
     const merged = {
-        ...(input as Record<string, any> | null ?? {}),
-        ...(resultData as Record<string, any> | null ?? {}),
+        ...((input as Record<string, any> | null) ?? {}),
+        ...((resultData as Record<string, any> | null) ?? {}),
     };
 
     const createdAt = raw.createdAt ?? raw.created_at ?? "";
@@ -131,9 +131,7 @@ function mapRawJobToAudioJob(raw: RawJob): AudioJob | null {
     const lessonId = merged.lessonId ?? merged.lesson_id ?? 0;
 
     const bucketName = merged.bucketName ?? merged.bucket_name ?? undefined;
-    const objectName = normalizeObjectName(
-        merged.objectName ?? merged.object_name ?? ""
-    );
+    const objectName = normalizeObjectName(merged.objectName ?? merged.object_name ?? "");
     const resolvedAudioUrl =
         merged.audioUrl ??
         merged.audio_url ??
@@ -170,19 +168,15 @@ function mapSingleJob(job: any): AudioJob {
         root.detail && typeof root.detail === "object"
             ? root.detail
             : root.data && typeof root.data === "object"
-                ? root.data
-                : root
+              ? root.data
+              : root
     ) as Record<string, any>;
-    const lessonId =
-        detail.lessonId ??
-        detail.lesson_id ??
-        root.lessonId ??
-        root.lesson_id ??
-        0;
+    const lessonId = detail.lessonId ?? detail.lesson_id ?? root.lessonId ?? root.lesson_id ?? 0;
 
-    const bucketName = detail.bucketName ?? detail.bucket_name ?? root.bucketName ?? root.bucket_name ?? undefined;
+    const bucketName =
+        detail.bucketName ?? detail.bucket_name ?? root.bucketName ?? root.bucket_name ?? undefined;
     const objectName = normalizeObjectName(
-        detail.objectName ?? detail.object_name ?? root.objectName ?? root.object_name ?? ""
+        detail.objectName ?? detail.object_name ?? root.objectName ?? root.object_name ?? "",
     );
     const resolvedAudioUrl =
         detail.audioUrl ??
@@ -197,16 +191,43 @@ function mapSingleJob(job: any): AudioJob {
         lessonId,
         lessonName: detail.lessonName ?? detail.lesson_name ?? root.lessonName ?? root.lesson_name,
         transcript: detail.transcript ?? root.transcript ?? "",
-        translatedScript: detail.translatedScript ?? detail.translated_script ?? root.translatedScript,
+        translatedScript:
+            detail.translatedScript ?? detail.translated_script ?? root.translatedScript,
         type: detail.type ?? detail.lessonType ?? detail.lesson_type ?? root.type,
         audioUrl: resolvedAudioUrl,
         sentences: detail.sentences ?? root.sentences ?? [],
-        progressPercent: root.progressPercent ?? root.progress_percent ?? detail.progressPercent ?? detail.progress_percent ?? null,
-        currentStep: root.currentStep ?? root.current_step ?? detail.currentStep ?? detail.current_step ?? null,
-        totalItems: root.totalItems ?? root.total_items ?? detail.totalItems ?? detail.total_items ?? null,
-        completedItems: root.completedItems ?? root.completed_items ?? detail.completedItems ?? detail.completed_items ?? null,
-        failedItems: root.failedItems ?? root.failed_items ?? detail.failedItems ?? detail.failed_items ?? null,
-        createdAt: root.createdAt ?? root.created_at ?? detail.createdAt ?? detail.created_at ?? new Date().toISOString(),
+        progressPercent:
+            root.progressPercent ??
+            root.progress_percent ??
+            detail.progressPercent ??
+            detail.progress_percent ??
+            null,
+        currentStep:
+            root.currentStep ??
+            root.current_step ??
+            detail.currentStep ??
+            detail.current_step ??
+            null,
+        totalItems:
+            root.totalItems ?? root.total_items ?? detail.totalItems ?? detail.total_items ?? null,
+        completedItems:
+            root.completedItems ??
+            root.completed_items ??
+            detail.completedItems ??
+            detail.completed_items ??
+            null,
+        failedItems:
+            root.failedItems ??
+            root.failed_items ??
+            detail.failedItems ??
+            detail.failed_items ??
+            null,
+        createdAt:
+            root.createdAt ??
+            root.created_at ??
+            detail.createdAt ??
+            detail.created_at ??
+            new Date().toISOString(),
         updatedAt:
             root.updatedAt ??
             root.updated_at ??
@@ -215,9 +236,20 @@ function mapSingleJob(job: any): AudioJob {
             root.createdAt ??
             root.created_at ??
             new Date().toISOString(),
-        finalizedAt: detail.finalizedAt ?? detail.finalized_at ?? root.completedAt ?? root.completed_at ?? undefined,
-        youtubeVideoId: detail.youtubeVideoId ?? detail.youtube_video_id ?? root.youtubeVideoId ?? root.youtube_video_id ?? undefined,
-        startTime: detail.startTime ?? detail.start_time ?? root.startTime ?? root.start_time ?? undefined,
+        finalizedAt:
+            detail.finalizedAt ??
+            detail.finalized_at ??
+            root.completedAt ??
+            root.completed_at ??
+            undefined,
+        youtubeVideoId:
+            detail.youtubeVideoId ??
+            detail.youtube_video_id ??
+            root.youtubeVideoId ??
+            root.youtube_video_id ??
+            undefined,
+        startTime:
+            detail.startTime ?? detail.start_time ?? root.startTime ?? root.start_time ?? undefined,
         endTime: detail.endTime ?? detail.end_time ?? root.endTime ?? root.end_time ?? undefined,
         jobType: root.jobType ?? root.job_type ?? detail.jobType ?? detail.job_type ?? undefined,
     };
@@ -256,7 +288,7 @@ async function createAudioProcessingJob(payload: {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
-        })
+        }),
     );
 }
 
@@ -267,7 +299,7 @@ async function updateAudioProcessingJob(
         transcript?: string;
         lessonId?: number;
         bucketName?: string;
-    }
+    },
 ) {
     const body: Record<string, unknown> = {};
     if (payload.objectName) body.objectName = payload.objectName;
@@ -280,14 +312,11 @@ async function updateAudioProcessingJob(
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
-        })
+        }),
     );
 }
 
-async function uploadAudioProcessingTranscript(payload: {
-    jobId: number;
-    transcript: string;
-}) {
+async function uploadAudioProcessingTranscript(payload: { jobId: number; transcript: string }) {
     return updateAudioProcessingJob(payload.jobId, { transcript: payload.transcript });
 }
 
@@ -342,7 +371,7 @@ async function getAudioProcessingJobs(params?: {
     const response = await handle<any>(
         await fetch(`${BASE_URL}/api/v1/jobs?${query.toString()}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     // Handle paginated response
@@ -366,9 +395,7 @@ async function getAudioProcessingJobs(params?: {
 
     // Fallback for non-paginated responses (backward compatibility)
     const payload = Array.isArray(data) ? data : (data.jobs ?? []);
-    const jobs = (payload as RawJob[])
-        .map(mapRawJobToAudioJob)
-        .filter(Boolean) as AudioJob[];
+    const jobs = (payload as RawJob[]).map(mapRawJobToAudioJob).filter(Boolean) as AudioJob[];
 
     return {
         content: jobs,
@@ -384,7 +411,7 @@ async function getAudioProcessingJob(jobId: number) {
     const res = await handle<{ success?: boolean; data?: any } | any>(
         await fetch(`${BASE_URL}/api/v1/jobs/${jobId}`, {
             headers: getAuthHeaders(),
-        })
+        }),
     );
 
     return mapSingleJob(res);
@@ -396,7 +423,7 @@ async function updateAudioProcessingSentences(jobId: number, sentences: AudioSen
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ sentences }),
-        })
+        }),
     );
 }
 
@@ -409,7 +436,7 @@ async function replaceAudioForJob(jobId: number, file: File) {
             method: "PUT",
             headers: getAuthHeaders({ contentType: null }),
             body: form,
-        })
+        }),
     );
 }
 
@@ -419,7 +446,7 @@ async function editAudioJob(jobId: number, segments: { start: number; end: numbe
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify({ segments }),
-        })
+        }),
     );
 }
 
@@ -428,7 +455,7 @@ async function submitExistingAudioProcessingJob(jobId: number) {
         await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/process`, {
             method: "POST",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -437,7 +464,7 @@ async function finalizeAudioProcessingJob(jobId: number) {
         await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/finalize`, {
             method: "POST",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -446,14 +473,14 @@ async function refineBoundaries(jobId: number) {
         await fetch(`${BASE_URL}/api/v1/audio-jobs/${jobId}/refine-boundaries`, {
             method: "POST",
             headers: getAuthHeaders(),
-        })
+        }),
     );
     return mapSingleJob(res);
 }
 
 async function updateJobStatus(
     jobId: number,
-    payload: { status: JobServiceStatus; reason?: string }
+    payload: { status: JobServiceStatus; reason?: string },
 ) {
     const body: Record<string, unknown> = { status: payload.status };
     if (payload.reason !== undefined) body.reason = payload.reason;
@@ -463,7 +490,7 @@ async function updateJobStatus(
             method: "PATCH",
             headers: getAuthHeaders(),
             body: JSON.stringify(body),
-        })
+        }),
     );
 
     return (res as { data?: JobListItemDTO }).data ?? (res as JobListItemDTO);
@@ -474,7 +501,7 @@ async function finalizeYouTubeJob(jobId: number) {
         await fetch(`${BASE_URL}/api/v1/youtube-jobs/${jobId}/finalize`, {
             method: "POST",
             headers: getAuthHeaders(),
-        })
+        }),
     );
 }
 
@@ -484,7 +511,7 @@ async function updateYouTubeSentences(jobId: number, sentences: AudioSentence[])
             method: "PUT",
             headers: getAuthHeaders(),
             body: JSON.stringify(sentences),
-        })
+        }),
     );
 }
 

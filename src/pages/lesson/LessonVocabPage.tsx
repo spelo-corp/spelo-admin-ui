@@ -1,13 +1,18 @@
 // src/pages/lesson/LessonVocabPage.tsx
+
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCcw, Save, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCcw, Save, Sparkles } from "lucide-react";
 import { api } from "../../api/client";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
-import type { LessonOutletContext } from "../LessonViewPage";
-import type { ExtractVocabFromLessonResponse, MapVocabScriptResponse, VocabJob } from "../../types/vocabJob";
 import type { ListeningLessonDTO, VocabWord } from "../../types";
+import type {
+    ExtractVocabFromLessonResponse,
+    MapVocabScriptResponse,
+    VocabJob,
+} from "../../types/vocabJob";
+import type { LessonOutletContext } from "../LessonViewPage";
 
 interface WordCandidate {
     key: string;
@@ -127,17 +132,10 @@ const LessonVocabPage = () => {
 
         const normalizedJobId = extractResult.job_id ?? extractResult.jobId ?? null;
         const extractedTotal =
-            extractResult.extracted_words_total ??
-            extractResult.extractedWordsTotal ??
-            0;
-        const newTotal =
-            extractResult.new_words_total ??
-            extractResult.newWordsTotal ??
-            0;
+            extractResult.extracted_words_total ?? extractResult.extractedWordsTotal ?? 0;
+        const newTotal = extractResult.new_words_total ?? extractResult.newWordsTotal ?? 0;
         const existingTotal =
-            extractResult.existing_words_total ??
-            extractResult.existingWordsTotal ??
-            0;
+            extractResult.existing_words_total ?? extractResult.existingWordsTotal ?? 0;
         const newWords = extractResult.new_words ?? extractResult.newWords ?? [];
         const existingWords = extractResult.existing_words ?? extractResult.existingWords ?? [];
 
@@ -153,7 +151,7 @@ const LessonVocabPage = () => {
 
     const availableListeningLessonIds = useMemo(
         () => lessonDetail?.lesson_details?.map((item) => item.id) ?? [],
-        [lessonDetail]
+        [lessonDetail],
     );
     const listeningLessons = lessonDetail?.lesson_details ?? [];
 
@@ -210,11 +208,13 @@ const LessonVocabPage = () => {
             }
 
             setExtractResult(res.data);
-            const nextJobId = (res.data.job_id ?? res.data.jobId) ?? null;
+            const nextJobId = res.data.job_id ?? res.data.jobId ?? null;
             setJobId(nextJobId);
             if (nextJobId) setJobTitle("Vocab Enrichment Job");
         } catch (err: unknown) {
-            setExtractError(err instanceof Error ? err.message : "Failed to extract vocab from lesson.");
+            setExtractError(
+                err instanceof Error ? err.message : "Failed to extract vocab from lesson.",
+            );
         } finally {
             setExtracting(false);
         }
@@ -226,9 +226,7 @@ const LessonVocabPage = () => {
             jobId: mapResult.job_id ?? mapResult.jobId ?? null,
             totalLessons: mapResult.total_lessons ?? mapResult.totalLessons ?? null,
             listeningLessonIds:
-                mapResult.listening_lesson_ids ??
-                mapResult.listeningLessonIds ??
-                [],
+                mapResult.listening_lesson_ids ?? mapResult.listeningLessonIds ?? [],
         };
     }, [mapResult]);
 
@@ -247,7 +245,7 @@ const LessonVocabPage = () => {
         try {
             const res = await api.mapVocabScriptForLesson(
                 numericLessonId,
-                parsedMapIds.length ? { listening_lesson_ids: parsedMapIds } : undefined
+                parsedMapIds.length ? { listening_lesson_ids: parsedMapIds } : undefined,
             );
 
             if (!res.success) {
@@ -261,7 +259,9 @@ const LessonVocabPage = () => {
             setJobId(nextJobId);
             if (nextJobId) setJobTitle("Vocab Script Map Job");
         } catch (err: unknown) {
-            setMapError(err instanceof Error ? err.message : "Failed to map script tokens to vocab IDs.");
+            setMapError(
+                err instanceof Error ? err.message : "Failed to map script tokens to vocab IDs.",
+            );
         } finally {
             setMapping(false);
         }
@@ -308,14 +308,16 @@ const LessonVocabPage = () => {
     const getWordDef = (w: VocabWord) => {
         // map new structure to old interface if needed, or just return the primary sense
         const sense = w.senses?.[0];
-        return sense ? {
-            meaning: {
-                definition: sense.definition,
-                translation: sense.translation,
-                example: sense.examples?.[0]?.sentence
-            },
-            pronunciations: w.pronunciations
-        } : undefined;
+        return sense
+            ? {
+                  meaning: {
+                      definition: sense.definition,
+                      translation: sense.translation,
+                      example: sense.examples?.[0]?.sentence,
+                  },
+                  pronunciations: w.pronunciations,
+              }
+            : undefined;
     };
 
     const handleLoadWords = async () => {
@@ -415,8 +417,7 @@ const LessonVocabPage = () => {
         if (!job) return { total: 0, completed: 0, failed: 0 };
         const anyJob = job as unknown as Record<string, unknown>;
 
-        const total =
-            Number(anyJob.total_words ?? anyJob.total_items ?? anyJob.total ?? 0) || 0;
+        const total = Number(anyJob.total_words ?? anyJob.total_items ?? anyJob.total ?? 0) || 0;
         const completed =
             Number(anyJob.completed_words ?? anyJob.completed_items ?? anyJob.completed ?? 0) || 0;
         const failed =
@@ -433,7 +434,9 @@ const LessonVocabPage = () => {
                 byId.set(w.id, w);
             }
         });
-        return Array.from(byId.values()).sort((a, b) => (a.lemma || "").localeCompare(b.lemma || ""));
+        return Array.from(byId.values()).sort((a, b) =>
+            (a.lemma || "").localeCompare(b.lemma || ""),
+        );
     }, [wordsByLessonId]);
 
     const filteredWords = useMemo(() => {
@@ -443,9 +446,7 @@ const LessonVocabPage = () => {
     }, [uniqueWords, wordSearch]);
 
     const progress =
-        jobTotals.total > 0
-            ? Math.floor((jobTotals.completed / jobTotals.total) * 100)
-            : 0;
+        jobTotals.total > 0 ? Math.floor((jobTotals.completed / jobTotals.total) * 100) : 0;
 
     const jobStatusClass = (() => {
         if (!job) return "bg-slate-100 text-slate-700 border-slate-200";
@@ -463,7 +464,8 @@ const LessonVocabPage = () => {
                     <div className="space-y-1">
                         <h2 className="text-lg font-semibold text-slate-900">Vocabulary</h2>
                         <p className="text-slate-600 text-sm">
-                            Extract vocabulary from transcripts in <span className="font-semibold">{headerTitle}</span>.
+                            Extract vocabulary from transcripts in{" "}
+                            <span className="font-semibold">{headerTitle}</span>.
                         </p>
                     </div>
 
@@ -503,16 +505,28 @@ const LessonVocabPage = () => {
                     <div className="space-y-3">
                         <div className="grid grid-cols-3 gap-3">
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-slate-500">Extracted</div>
-                                <div className="text-xl font-semibold text-slate-900">{normalized.extractedTotal}</div>
+                                <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                                    Extracted
+                                </div>
+                                <div className="text-xl font-semibold text-slate-900">
+                                    {normalized.extractedTotal}
+                                </div>
                             </div>
                             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-emerald-700">New</div>
-                                <div className="text-xl font-semibold text-emerald-700">{normalized.newTotal}</div>
+                                <div className="text-[11px] uppercase tracking-wide text-emerald-700">
+                                    New
+                                </div>
+                                <div className="text-xl font-semibold text-emerald-700">
+                                    {normalized.newTotal}
+                                </div>
                             </div>
                             <div className="rounded-xl border border-slate-200 bg-white p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-slate-500">Existing</div>
-                                <div className="text-xl font-semibold text-slate-900">{normalized.existingTotal}</div>
+                                <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                                    Existing
+                                </div>
+                                <div className="text-xl font-semibold text-slate-900">
+                                    {normalized.existingTotal}
+                                </div>
                             </div>
                         </div>
 
@@ -560,7 +574,8 @@ const LessonVocabPage = () => {
 
                         {normalized.jobId ? (
                             <div className="text-sm text-slate-600">
-                                Vocab enrichment job queued: <span className="font-semibold">#{normalized.jobId}</span>
+                                Vocab enrichment job queued:{" "}
+                                <span className="font-semibold">#{normalized.jobId}</span>
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg">
@@ -575,9 +590,12 @@ const LessonVocabPage = () => {
             <div className="p-4 bg-white border rounded-xl space-y-4">
                 <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                        <h3 className="text-base font-semibold text-slate-900">Map Script Tokens</h3>
+                        <h3 className="text-base font-semibold text-slate-900">
+                            Map Script Tokens
+                        </h3>
                         <p className="text-slate-600 text-sm">
-                            Rebuild `listening_lessons.script` by mapping transcript tokens to existing vocab IDs.
+                            Rebuild `listening_lessons.script` by mapping transcript tokens to
+                            existing vocab IDs.
                         </p>
                     </div>
 
@@ -623,21 +641,25 @@ const LessonVocabPage = () => {
                                                     prev
                                                         .split(/[,\s]+/)
                                                         .map((raw) => Number(raw))
-                                                        .filter((n) => Number.isFinite(n) && n > 0)
+                                                        .filter((n) => Number.isFinite(n) && n > 0),
                                                 );
                                                 if (current.has(id)) {
                                                     current.delete(id);
                                                 } else {
                                                     current.add(id);
                                                 }
-                                                return Array.from(current).sort((a, b) => a - b).join(", ");
+                                                return Array.from(current)
+                                                    .sort((a, b) => a - b)
+                                                    .join(", ");
                                             });
                                         }}
                                         className={`
                                             px-3 py-1 rounded-full text-xs font-semibold border transition
-                                            ${selected
-                                                ? "bg-brand text-white border-brand"
-                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
+                                            ${
+                                                selected
+                                                    ? "bg-brand text-white border-brand"
+                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                            }
                                         `}
                                     >
                                         #{id}
@@ -664,9 +686,7 @@ const LessonVocabPage = () => {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 space-y-1">
                         <div>
                             Job queued:{" "}
-                            <span className="font-semibold">
-                                #{normalizedMap.jobId ?? "—"}
-                            </span>
+                            <span className="font-semibold">#{normalizedMap.jobId ?? "—"}</span>
                         </div>
                         {normalizedMap.totalLessons !== null && (
                             <div>
@@ -692,7 +712,9 @@ const LessonVocabPage = () => {
                 </div>
 
                 {listeningLessons.length === 0 ? (
-                    <div className="text-sm text-slate-500">No listening lessons found for this lesson.</div>
+                    <div className="text-sm text-slate-500">
+                        No listening lessons found for this lesson.
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {listeningLessons.map((detail) => {
@@ -704,7 +726,10 @@ const LessonVocabPage = () => {
                             const saveSuccess = newWordSuccess[detail.id];
 
                             return (
-                                <div key={detail.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                <div
+                                    key={detail.id}
+                                    className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -725,7 +750,9 @@ const LessonVocabPage = () => {
 
                                     <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
                                         <div className="flex items-center justify-between gap-2">
-                                            <p className="text-[11px] uppercase text-slate-500">New Words</p>
+                                            <p className="text-[11px] uppercase text-slate-500">
+                                                New Words
+                                            </p>
                                             <span className="text-xs text-slate-500">
                                                 {selectedKeys.length} selected
                                             </span>
@@ -734,16 +761,24 @@ const LessonVocabPage = () => {
                                         {candidates.length > 0 ? (
                                             <div className="flex flex-wrap gap-2">
                                                 {candidates.map((candidate) => {
-                                                    const isSelected = selectedKeys.includes(candidate.key);
+                                                    const isSelected = selectedKeys.includes(
+                                                        candidate.key,
+                                                    );
                                                     return (
                                                         <button
                                                             key={candidate.key}
                                                             type="button"
-                                                            onClick={() => toggleWordSelection(detail.id, candidate.key)}
-                                                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${isSelected
-                                                                ? "bg-blue-600 border-blue-600 text-white"
-                                                                : "bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-700"
-                                                                }`}
+                                                            onClick={() =>
+                                                                toggleWordSelection(
+                                                                    detail.id,
+                                                                    candidate.key,
+                                                                )
+                                                            }
+                                                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                                                                isSelected
+                                                                    ? "bg-blue-600 border-blue-600 text-white"
+                                                                    : "bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-700"
+                                                            }`}
                                                         >
                                                             {candidate.word}
                                                         </button>
@@ -751,13 +786,17 @@ const LessonVocabPage = () => {
                                                 })}
                                             </div>
                                         ) : (
-                                            <div className="text-xs text-slate-500">No words found for this sentence.</div>
+                                            <div className="text-xs text-slate-500">
+                                                No words found for this sentence.
+                                            </div>
                                         )}
 
                                         <div className="flex flex-wrap items-center gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => handleSaveNewWords(detail, candidates)}
+                                                onClick={() =>
+                                                    handleSaveNewWords(detail, candidates)
+                                                }
                                                 disabled={savingWords}
                                                 className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50"
                                             >
@@ -784,7 +823,9 @@ const LessonVocabPage = () => {
                                                 </button>
                                             )}
                                             {saveSuccess && (
-                                                <span className="text-xs text-emerald-600">{saveSuccess}</span>
+                                                <span className="text-xs text-emerald-600">
+                                                    {saveSuccess}
+                                                </span>
                                             )}
                                         </div>
 
@@ -808,7 +849,10 @@ const LessonVocabPage = () => {
                         </p>
                     </div>
 
-                    <Btn.Primary onClick={handleLoadWords} disabled={wordsLoading || !numericLessonId}>
+                    <Btn.Primary
+                        onClick={handleLoadWords}
+                        disabled={wordsLoading || !numericLessonId}
+                    >
                         {wordsLoading ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -834,7 +878,8 @@ const LessonVocabPage = () => {
                             placeholder="20, 21 (leave empty to load all)"
                         />
                         <p className="text-[11px] text-slate-500">
-                            API supports up to 10 IDs per request; the frontend batches automatically.
+                            API supports up to 10 IDs per request; the frontend batches
+                            automatically.
                         </p>
                     </div>
 
@@ -862,21 +907,25 @@ const LessonVocabPage = () => {
                                                 prev
                                                     .split(/[,\s]+/)
                                                     .map((raw) => Number(raw))
-                                                    .filter((n) => Number.isFinite(n) && n > 0)
+                                                    .filter((n) => Number.isFinite(n) && n > 0),
                                             );
                                             if (current.has(id)) {
                                                 current.delete(id);
                                             } else {
                                                 current.add(id);
                                             }
-                                            return Array.from(current).sort((a, b) => a - b).join(", ");
+                                            return Array.from(current)
+                                                .sort((a, b) => a - b)
+                                                .join(", ");
                                         });
                                     }}
                                     className={`
                                         px-3 py-1 rounded-full text-xs font-semibold border transition
-                                        ${selected
-                                            ? "bg-brand text-white border-brand"
-                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}
+                                        ${
+                                            selected
+                                                ? "bg-brand text-white border-brand"
+                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                        }
                                     `}
                                 >
                                     #{id}
@@ -915,7 +964,11 @@ const LessonVocabPage = () => {
                             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                                 {filteredWords.map((w) => {
                                     const def = getWordDef(w);
-                                    const meaning = def?.meaning ?? { definition: "", translation: "", example: "" };
+                                    const meaning = def?.meaning ?? {
+                                        definition: "",
+                                        translation: "",
+                                        example: "",
+                                    };
                                     const pronunciations = def?.pronunciations ?? [];
                                     const top = pronunciations[0];
 
@@ -930,7 +983,9 @@ const LessonVocabPage = () => {
                                                         {w.lemma || w.word}
                                                     </div>
                                                     {top?.ipa ? (
-                                                        <div className="text-xs text-slate-500">{top.ipa}</div>
+                                                        <div className="text-xs text-slate-500">
+                                                            {top.ipa}
+                                                        </div>
                                                     ) : null}
                                                 </div>
 
@@ -955,7 +1010,9 @@ const LessonVocabPage = () => {
                                                     {meaning.definition}
                                                 </div>
                                             ) : (
-                                                <div className="text-sm text-slate-400">No definition</div>
+                                                <div className="text-sm text-slate-400">
+                                                    No definition
+                                                </div>
                                             )}
                                         </div>
                                     );
@@ -977,7 +1034,9 @@ const LessonVocabPage = () => {
                         </div>
 
                         <Btn.Secondary onClick={handleRefreshJob} disabled={refreshingJob}>
-                            <RefreshCcw className={`w-4 h-4 ${refreshingJob ? "animate-spin" : ""}`} />
+                            <RefreshCcw
+                                className={`w-4 h-4 ${refreshingJob ? "animate-spin" : ""}`}
+                            />
                             Refresh
                         </Btn.Secondary>
                     </div>
@@ -985,11 +1044,14 @@ const LessonVocabPage = () => {
                     {job ? (
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${jobStatusClass}`}>
+                                <span
+                                    className={`px-3 py-1 rounded-full border text-xs font-semibold ${jobStatusClass}`}
+                                >
                                     {job.status}
                                 </span>
                                 <span className="text-slate-600">
-                                    {jobTotals.completed}/{jobTotals.total} completed • {jobTotals.failed} failed
+                                    {jobTotals.completed}/{jobTotals.total} completed •{" "}
+                                    {jobTotals.failed} failed
                                 </span>
                             </div>
 
@@ -1012,9 +1074,12 @@ const LessonVocabPage = () => {
                                                 className="flex items-center justify-between gap-3 text-sm border border-slate-100 rounded-lg px-3 py-2 bg-slate-50"
                                             >
                                                 <span className="font-medium text-slate-900">
-                                                    {(item as unknown as { word?: string }).word || `Item #${item.id}`}
+                                                    {(item as unknown as { word?: string }).word ||
+                                                        `Item #${item.id}`}
                                                 </span>
-                                                <span className="text-xs text-slate-600">{item.status}</span>
+                                                <span className="text-xs text-slate-600">
+                                                    {item.status}
+                                                </span>
                                             </div>
                                         ))}
                                     </div>

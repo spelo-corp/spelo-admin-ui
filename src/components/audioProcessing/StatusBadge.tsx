@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import type { AudioJobStatus } from "../../types/audioProcessing";
 
 interface Props {

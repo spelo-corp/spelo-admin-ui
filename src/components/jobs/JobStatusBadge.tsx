@@ -1,14 +1,14 @@
-import React from "react";
-import type { JobStatus } from "../../types";
 import {
+    AlertTriangle,
+    CheckCircle2,
     Clock,
-    Workflow,
+    FileAudio,
     ListChecks,
     Pencil,
-    CheckCircle2,
-    AlertTriangle,
-    FileAudio,
+    Workflow,
 } from "lucide-react";
+import type React from "react";
+import type { JobStatus } from "../../types";
 
 interface JobStatusBadgeProps {
     status: JobStatus;

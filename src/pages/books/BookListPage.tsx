@@ -1,122 +1,97 @@
-import { FolderOpen, Loader2, PlusCircle, RefreshCcw, Search } from "lucide-react";
+import { Library, Loader2, PlusCircle, RefreshCcw, Search } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
-import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
+import { BookStatusBadge } from "../../components/books/BookStatusBadge";
 import PageHeader from "../../components/common/PageHeader";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
-import type { AudioJob, AudioJobStatus } from "../../types/audioProcessing";
+import type { ContentSource } from "../../types/book";
 
-type StatusFilter = "ALL" | AudioJobStatus;
+type StatusFilter = "ALL" | ContentSource["status"];
 
-const statusFilters: StatusFilter[] = [
-    "ALL",
-    "WAITING_FOR_INPUT",
-    "READY_TO_PROCESS",
-    "PROCESSING",
-    "COMPLETED",
-    "FAILED",
-    "FINALIZED",
-    "REPROCESSING",
-    "PARTIAL",
-    "REVIEWING",
-];
+const statusFilters: StatusFilter[] = ["ALL", "PROCESSING", "READY", "DRAFT"];
 
-const AudioProcessingDashboardPage: React.FC = () => {
-    const [jobs, setJobs] = useState<AudioJob[]>([]);
+const BookListPage: React.FC = () => {
+    const [books, setBooks] = useState<ContentSource[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [search, setSearch] = useState("");
 
-    const loadJobs = async () => {
+    const loadBooks = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const payload = await api.getAudioProcessingJobs();
-            // Handle paginated response
-            if (payload && typeof payload === "object" && "content" in payload) {
-                setJobs(payload.content);
-            } else {
-                // Fallback for non-paginated response
-                setJobs(Array.isArray(payload) ? payload : []);
-            }
+            const payload = await api.getContentSources();
+            setBooks(payload.content ?? []);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to load jobs.");
+            setError(err instanceof Error ? err.message : "Failed to load books.");
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        void loadJobs();
-    }, []);
+        void loadBooks();
+    }, [loadBooks]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadJobs();
+        await loadBooks();
         setRefreshing(false);
     };
 
-    const filteredJobs = useMemo(() => {
+    const filteredBooks = useMemo(() => {
         const term = search.trim().toLowerCase();
-        return jobs.filter((job) => {
-            const matchesStatus = statusFilter === "ALL" || job.status === statusFilter;
+        return books.filter((book) => {
+            const matchesStatus = statusFilter === "ALL" || book.status === statusFilter;
             const matchesSearch =
                 !term ||
-                String(job.id).includes(term) ||
-                job.lessonName?.toLowerCase().includes(term) ||
-                job.transcript?.toLowerCase().includes(term);
+                book.title?.toLowerCase().includes(term) ||
+                book.author?.toLowerCase().includes(term);
             return matchesStatus && matchesSearch;
         });
-    }, [jobs, search, statusFilter]);
+    }, [books, search, statusFilter]);
 
-    const summaryStats = useMemo(() => {
-        const activeStatuses: AudioJobStatus[] = [
-            "WAITING_FOR_INPUT",
-            "READY_TO_PROCESS",
-            "PROCESSING",
-            "PENDING",
-            "REPROCESSING",
-            "RUNNING",
-        ];
-        const completedStatuses: AudioJobStatus[] = ["COMPLETED", "FINALIZED"];
-        return [
-            { label: "Total jobs", value: jobs.length },
+    const summaryStats = useMemo(
+        () => [
+            { label: "Total books", value: books.length },
             {
-                label: "Active",
-                value: jobs.filter((job) => activeStatuses.includes(job.status)).length,
+                label: "Processing",
+                value: books.filter((b) => b.status === "PROCESSING").length,
             },
             {
-                label: "Completed",
-                value: jobs.filter((job) => completedStatuses.includes(job.status)).length,
+                label: "Ready",
+                value: books.filter((b) => b.status === "READY").length,
             },
-            { label: "Failed", value: jobs.filter((job) => job.status === "FAILED").length },
-        ];
-    }, [jobs]);
+            {
+                label: "Draft",
+                value: books.filter((b) => b.status === "DRAFT").length,
+            },
+        ],
+        [books],
+    );
 
     return (
         <div className="relative overflow-hidden px-8 py-6">
             <div className="pointer-events-none absolute inset-0 -z-10">
                 <div className="absolute -top-24 -left-28 h-64 w-64 rounded-full bg-brand/15 blur-3xl" />
                 <div className="absolute top-20 right-[-90px] h-80 w-80 rounded-full bg-gradient-to-br from-brand/25 via-brand/10 to-transparent blur-3xl" />
-                <div className="absolute bottom-[-120px] left-10 h-72 w-72 rounded-full bg-gradient-to-tr from-brand/18 via-transparent to-transparent blur-3xl" />
             </div>
 
             <div className="space-y-8 relative">
-                {/* Header */}
                 <PageHeader
                     badge={
                         <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
                             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                            Audio Align Jobs
+                            Book Library
                         </div>
                     }
-                    title="Audio Jobs"
-                    description="Track uploads, processing status, and jump into sentence edits without losing momentum."
+                    title="Book Library"
+                    description="Upload PDFs, monitor ingestion progress, and browse ingested book content."
                     actions={
                         <>
                             <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
@@ -126,10 +101,10 @@ const AudioProcessingDashboardPage: React.FC = () => {
                                 Refresh
                             </Btn.HeroSecondary>
 
-                            <Link to="/admin/jobs/audio/upload" className="w-full sm:w-auto">
+                            <Link to="/admin/books/upload" className="w-full sm:w-auto">
                                 <Btn.HeroPrimary className="w-full sm:w-auto">
                                     <PlusCircle className="w-4 h-4" />
-                                    New Upload
+                                    Upload Book
                                 </Btn.HeroPrimary>
                             </Link>
                         </>
@@ -158,7 +133,7 @@ const AudioProcessingDashboardPage: React.FC = () => {
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by job ID, lesson name, or transcript text"
+                                placeholder="Search by title or author"
                                 className="rounded-xl"
                             />
                         </div>
@@ -166,16 +141,17 @@ const AudioProcessingDashboardPage: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-2">
                             {statusFilters.map((status) => (
                                 <button
+                                    type="button"
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
                                     className={`
-                                    px-3 py-1.5 rounded-full text-xs font-medium border
-                                    ${
-                                        statusFilter === status
-                                            ? "bg-brand text-white border-brand"
-                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                    }
-                                `}
+                                        px-3 py-1.5 rounded-full text-xs font-medium border
+                                        ${
+                                            statusFilter === status
+                                                ? "bg-brand text-white border-brand"
+                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                        }
+                                    `}
                                 >
                                     {status === "ALL" ? "All" : status}
                                 </button>
@@ -184,13 +160,13 @@ const AudioProcessingDashboardPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Jobs Table */}
+                {/* Books Table */}
                 <div className="bg-white rounded-card shadow-card border border-slate-100 p-0 overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                            <FolderOpen className="w-4 h-4 text-slate-500" />
-                            <h2 className="text-base font-semibold text-slate-900">Jobs</h2>
-                            <span className="text-xs text-slate-500">({filteredJobs.length})</span>
+                            <Library className="w-4 h-4 text-slate-500" />
+                            <h2 className="text-base font-semibold text-slate-900">Books</h2>
+                            <span className="text-xs text-slate-500">({filteredBooks.length})</span>
                         </div>
                     </div>
 
@@ -203,58 +179,55 @@ const AudioProcessingDashboardPage: React.FC = () => {
                     {loading ? (
                         <div className="px-5 py-10 flex items-center justify-center gap-2 text-slate-500">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Loading jobs…
+                            Loading books…
                         </div>
-                    ) : filteredJobs.length === 0 ? (
+                    ) : filteredBooks.length === 0 ? (
                         <div className="px-5 py-12 text-center text-slate-500">
-                            No jobs found. Try adjusting your filters.
+                            No books found. Try adjusting your filters or upload a new book.
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50 text-left text-slate-500 uppercase text-xs tracking-wide">
                                     <tr>
-                                        <th className="px-5 py-3">Job</th>
-                                        <th className="px-5 py-3">Lesson</th>
+                                        <th className="px-5 py-3">Title</th>
+                                        <th className="px-5 py-3">Author</th>
+                                        <th className="px-5 py-3">Chapters</th>
+                                        <th className="px-5 py-3">Sentences</th>
                                         <th className="px-5 py-3">Status</th>
                                         <th className="px-5 py-3">Created</th>
-                                        <th className="px-5 py-3">Updated</th>
                                         <th className="px-5 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredJobs.map((job) => (
-                                        <tr key={job.id} className="hover:bg-slate-50/60">
+                                    {filteredBooks.map((book) => (
+                                        <tr key={book.id} className="hover:bg-slate-50/60">
                                             <td className="px-5 py-3">
                                                 <div className="font-semibold text-slate-900">
-                                                    #{job.id}
+                                                    {book.title || "Untitled"}
                                                 </div>
                                                 <div className="text-[12px] text-slate-500">
-                                                    Transcript:{" "}
-                                                    {job.transcript?.slice(0, 38) || "—"}
-                                                    {job.transcript?.length > 38 ? "…" : ""}
+                                                    ID {book.id} · {book.sourceType}
                                                 </div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <div className="text-sm font-medium text-slate-900">
-                                                    {job.lessonName || `Lesson ${job.lessonId}`}
-                                                </div>
-                                                <div className="text-[12px] text-slate-500">
-                                                    ID {job.lessonId}
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <StatusBadge status={job.status} />
                                             </td>
                                             <td className="px-5 py-3 text-slate-700">
-                                                {new Date(job.createdAt).toLocaleString()}
+                                                {book.author || "—"}
                                             </td>
                                             <td className="px-5 py-3 text-slate-700">
-                                                {new Date(job.updatedAt).toLocaleString()}
+                                                {book.totalSections}
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-700">
+                                                {book.totalSentences}
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <BookStatusBadge status={book.status} />
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-700">
+                                                {new Date(book.createdAt).toLocaleDateString()}
                                             </td>
                                             <td className="px-5 py-3 text-right">
                                                 <Link
-                                                    to={`/admin/jobs/audio/jobs/${job.id}`}
+                                                    to={`/admin/books/${book.id}`}
                                                     className="text-brand font-semibold hover:underline"
                                                 >
                                                     View
@@ -272,4 +245,4 @@ const AudioProcessingDashboardPage: React.FC = () => {
     );
 };
 
-export default AudioProcessingDashboardPage;
+export default BookListPage;

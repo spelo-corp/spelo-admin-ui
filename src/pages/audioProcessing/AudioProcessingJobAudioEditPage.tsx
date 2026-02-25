@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Clock, FileAudio, Loader2, Play, Square, UploadCloud } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
-import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
+import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
 
 const AudioProcessingJobAudioEditPage: React.FC = () => {
@@ -152,7 +153,7 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
         setError(null);
         try {
             const resolvedEnd =
-                replaceEnd > 0 ? replaceEnd : defaultEnd ?? audioRef.current?.duration ?? 0;
+                replaceEnd > 0 ? replaceEnd : (defaultEnd ?? audioRef.current?.duration ?? 0);
             const resolvedStart = Math.max(0, replaceStart);
             if (!resolvedEnd || resolvedEnd <= resolvedStart) {
                 throw new Error("End time must be greater than start time.");
@@ -178,7 +179,9 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-900">Audio</h2>
-                        <p className="text-xs text-slate-500">Use playhead to set start/end quickly.</p>
+                        <p className="text-xs text-slate-500">
+                            Use playhead to set start/end quickly.
+                        </p>
                     </div>
                 </div>
 
@@ -210,7 +213,9 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-xs font-medium text-slate-600">Start (s)</label>
+                        <label className="block text-xs font-medium text-slate-600">
+                            Start (s)
+                        </label>
                         <Input
                             type="number"
                             min={0}
@@ -248,7 +253,8 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
                 </div>
 
                 <p className="text-[11px] text-slate-500">
-                    Send the selected segment to the backend. The job status resets to PENDING and will reprocess with the edited audio.
+                    Send the selected segment to the backend. The job status resets to PENDING and
+                    will reprocess with the edited audio.
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -305,4 +311,3 @@ const AudioProcessingJobAudioEditPage: React.FC = () => {
 };
 
 export default AudioProcessingJobAudioEditPage;
-

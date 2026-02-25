@@ -1,9 +1,9 @@
+import { FileText, Link2, Pencil, Upload } from "lucide-react";
 import React, { useState } from "react";
+import { api } from "../../api/client";
+import type { Lesson } from "../../types";
 import { Btn } from "../ui/Btn";
 import { Input } from "../ui/Input";
-import { Upload, Link2, FileText, Pencil } from "lucide-react";
-import type { Lesson } from "../../types";
-import { api } from "../../api/client";
 
 interface Props {
     open: boolean;
@@ -26,8 +26,7 @@ export const CreateJobModal: React.FC<Props> = ({
     const [audioUrl, setAudioUrl] = useState("");
     const [audioFile, setAudioFile] = useState<File | null>(null);
 
-    const [transcriptMode, setTranscriptMode] =
-        useState<"file" | "text" | "url">("text");
+    const [transcriptMode, setTranscriptMode] = useState<"file" | "text" | "url">("text");
     const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
     const [transcriptText, setTranscriptText] = useState("");
     const [transcriptUrl, setTranscriptUrl] = useState("");
@@ -155,17 +154,13 @@ export const CreateJobModal: React.FC<Props> = ({
                 bg-white rounded-card shadow-shell w-full max-w-xl p-6
                 max-h-[90vh] overflow-y-auto"
             >
-
                 {/* HEADER */}
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-slate-900">
-                        Create Processing Job
-                    </h2>
+                    <h2 className="text-lg font-semibold text-slate-900">Create Processing Job</h2>
                     <button onClick={handleClose}>✕</button>
                 </div>
 
                 <div className="space-y-6 text-sm">
-
                     {/* LESSON + TYPE */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -177,9 +172,7 @@ export const CreateJobModal: React.FC<Props> = ({
                                 value={lessonId ?? ""}
                                 disabled={!!defaultLessonId}
                                 onChange={(e) =>
-                                    setLessonId(
-                                        e.target.value ? Number(e.target.value) : null
-                                    )
+                                    setLessonId(e.target.value ? Number(e.target.value) : null)
                                 }
                             >
                                 <option value="">Select a lesson…</option>
@@ -235,7 +228,8 @@ export const CreateJobModal: React.FC<Props> = ({
                         </button>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                        Audio file is required for processing. If you provide a URL, we will try to download it first.
+                        Audio file is required for processing. If you provide a URL, we will try to
+                        download it first.
                     </p>
 
                     {/* AUDIO UPLOAD */}
@@ -301,9 +295,7 @@ export const CreateJobModal: React.FC<Props> = ({
                     <div className="flex gap-2 text-xs">
                         <button
                             className={`px-3 py-1 rounded-full border flex items-center gap-1 ${
-                                transcriptMode === "file"
-                                    ? "bg-brand text-white"
-                                    : "bg-white"
+                                transcriptMode === "file" ? "bg-brand text-white" : "bg-white"
                             }`}
                             onClick={() => setTranscriptMode("file")}
                         >
@@ -312,9 +304,7 @@ export const CreateJobModal: React.FC<Props> = ({
 
                         <button
                             className={`px-3 py-1 rounded-full border flex items-center gap-1 ${
-                                transcriptMode === "text"
-                                    ? "bg-brand text-white"
-                                    : "bg-white"
+                                transcriptMode === "text" ? "bg-brand text-white" : "bg-white"
                             }`}
                             onClick={() => setTranscriptMode("text")}
                         >
@@ -323,9 +313,7 @@ export const CreateJobModal: React.FC<Props> = ({
 
                         <button
                             className={`px-3 py-1 rounded-full border flex items-center gap-1 ${
-                                transcriptMode === "url"
-                                    ? "bg-brand text-white"
-                                    : "bg-white"
+                                transcriptMode === "url" ? "bg-brand text-white" : "bg-white"
                             }`}
                             onClick={() => setTranscriptMode("url")}
                         >
@@ -443,12 +431,9 @@ export const CreateJobModal: React.FC<Props> = ({
                             />
                         </div>
                     </div>
-
                 </div>
 
-                {error && (
-                    <div className="text-sm text-rose-600 mt-4">{error}</div>
-                )}
+                {error && <div className="text-sm text-rose-600 mt-4">{error}</div>}
 
                 {/* FOOTER */}
                 <div className="flex justify-end gap-2 mt-6">

@@ -1,5 +1,5 @@
-import React from "react";
 import type { LucideIcon } from "lucide-react";
+import type React from "react";
 import type { ReactNode } from "react";
 
 interface StatsCardProps {
@@ -10,7 +10,10 @@ interface StatsCardProps {
     tone?: "brand" | "good" | "warn" | "bad" | "neutral";
 }
 
-const toneStyles: Record<NonNullable<StatsCardProps["tone"]>, { iconBg: string; iconFg: string }> = {
+const toneStyles: Record<
+    NonNullable<StatsCardProps["tone"]>,
+    { iconBg: string; iconFg: string }
+> = {
     brand: { iconBg: "bg-brand/10", iconFg: "text-brand" },
     good: { iconBg: "bg-emerald-100", iconFg: "text-emerald-700" },
     warn: { iconBg: "bg-amber-100", iconFg: "text-amber-700" },

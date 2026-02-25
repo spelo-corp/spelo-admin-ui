@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "react";
 import { Loader2 } from "lucide-react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 declare global {
     interface Window {
@@ -109,7 +109,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
                 )}
             </div>
         );
-    }
+    },
 );
 
 YouTubePlayer.displayName = "YouTubePlayer";

@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, RefreshCcw } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
-import type { AudioJob, AudioSentence } from "../../types/audioProcessing";
 import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
-import { Btn } from "../../components/ui/Btn";
 import PageHeader from "../../components/common/PageHeader";
+import { Btn } from "../../components/ui/Btn";
+import type { AudioJob, AudioSentence } from "../../types/audioProcessing";
 
 export interface YoutubeJobOutletContext {
     job: AudioJob;
@@ -59,7 +60,7 @@ const YoutubeJobPage: React.FC = () => {
                 if (!options?.silent) setLoading(false);
             }
         },
-        [jobId]
+        [jobId],
     );
 
     useEffect(() => {
@@ -94,7 +95,10 @@ const YoutubeJobPage: React.FC = () => {
         setError(null);
 
         if (job.status !== "COMPLETED" && job.status !== "REVIEWING") {
-            setFinalizeStatus({ type: "error", message: "Job must be COMPLETED or REVIEWING before finalizing." });
+            setFinalizeStatus({
+                type: "error",
+                message: "Job must be COMPLETED or REVIEWING before finalizing.",
+            });
             return;
         }
 
@@ -108,7 +112,9 @@ const YoutubeJobPage: React.FC = () => {
             const res = await api.finalizeYouTubeJob(job.id);
             const success =
                 (res as { success?: boolean }).success ??
-                ((res as { status?: string }).status ? (res as { status?: string }).status === "success" : true);
+                ((res as { status?: string }).status
+                    ? (res as { status?: string }).status === "success"
+                    : true);
 
             if (!success) {
                 const message = (res as { message?: string }).message;
@@ -133,7 +139,7 @@ const YoutubeJobPage: React.FC = () => {
             { label: "Overview", path: "overview" },
             { label: "Sentences", path: "sentences" },
         ],
-        []
+        [],
     );
 
     if (loading) {
@@ -205,10 +211,11 @@ const YoutubeJobPage: React.FC = () => {
                 ) : null}
                 {finalizeStatus.type ? (
                     <div
-                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${finalizeStatus.type === "success"
-                            ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
-                            : "text-rose-50 bg-rose-500/15 border-rose-300/25"
-                            }`}
+                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
+                            finalizeStatus.type === "success"
+                                ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
+                                : "text-rose-50 bg-rose-500/15 border-rose-300/25"
+                        }`}
                     >
                         {finalizeStatus.type === "success" ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-100" />
@@ -232,10 +239,11 @@ const YoutubeJobPage: React.FC = () => {
                                         px-4 py-2 text-sm font-medium
                                         rounded-t-xl
                                         transition-all
-                                        ${isActive
-                                        ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:bg-white"
-                                    }
+                                        ${
+                                            isActive
+                                                ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:bg-white"
+                                        }
                                     `
                                 }
                             >

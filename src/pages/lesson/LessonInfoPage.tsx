@@ -1,10 +1,10 @@
 // src/pages/lesson/LessonInfoPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api } from "../../api/client";
 import { BASE_URL } from "../../api/base";
-import type { LessonOutletContext } from "../LessonViewPage";
+import { api } from "../../api/client";
 import type { Lesson, LessonLevel } from "../../types";
+import type { LessonOutletContext } from "../LessonViewPage";
 
 const LessonInfoPage: React.FC = () => {
     const { lessonDetail, lessonMeta, loading, setLessonMeta } =
@@ -13,7 +13,7 @@ const LessonInfoPage: React.FC = () => {
     const baseLesson: Lesson | null = lessonMeta
         ? lessonMeta
         : lessonDetail
-            ? {
+          ? {
                 id: lessonDetail.lesson_id,
                 name: lessonDetail.lesson_name,
                 level: lessonDetail.level ?? "A1",
@@ -23,7 +23,7 @@ const LessonInfoPage: React.FC = () => {
                 image: lessonDetail.image,
                 gems: lessonDetail.gems,
             }
-            : null;
+          : null;
 
     const [name, setName] = useState("");
     const [level, setLevel] = useState<LessonLevel>("A1");
@@ -188,17 +188,13 @@ const LessonInfoPage: React.FC = () => {
         <div className="p-4 bg-white border rounded-xl space-y-4">
             {/* Header row: title + save */}
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900">
-                    Basic Information
-                </h2>
+                <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
 
                 <div className="flex items-center gap-2">
                     {status.type && (
                         <span
                             className={`text-xs ${
-                                status.type === "success"
-                                    ? "text-emerald-600"
-                                    : "text-rose-600"
+                                status.type === "success" ? "text-emerald-600" : "text-rose-600"
                             }`}
                         >
                             {status.message}
@@ -297,9 +293,7 @@ const LessonInfoPage: React.FC = () => {
 
             {/* Name */}
             <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-600">
-                    Lesson Name
-                </label>
+                <label className="text-xs font-medium text-slate-600">Lesson Name</label>
                 <input
                     type="text"
                     value={name}
@@ -311,9 +305,7 @@ const LessonInfoPage: React.FC = () => {
             {/* Level & Category */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600">
-                        Level
-                    </label>
+                    <label className="text-xs font-medium text-slate-600">Level</label>
                     <select
                         value={level}
                         onChange={(e) => setLevel(e.target.value as LessonLevel)}
@@ -329,9 +321,7 @@ const LessonInfoPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600">
-                        Category ID
-                    </label>
+                    <label className="text-xs font-medium text-slate-600">Category ID</label>
                     <div className="text-sm text-slate-700 px-3 py-2 border border-slate-100 rounded-lg bg-slate-50">
                         {baseLesson.category_id}
                     </div>
@@ -339,9 +329,7 @@ const LessonInfoPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-600">
-                    Gems
-                </label>
+                <label className="text-xs font-medium text-slate-600">Gems</label>
                 <input
                     type="number"
                     min={0}
@@ -353,9 +341,7 @@ const LessonInfoPage: React.FC = () => {
 
             {/* Description */}
             <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-600">
-                    Description
-                </label>
+                <label className="text-xs font-medium text-slate-600">Description</label>
                 <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}

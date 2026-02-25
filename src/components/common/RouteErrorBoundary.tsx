@@ -26,11 +26,7 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, State
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error(
-            `Error in route ${this.props.routeName || "unknown"}:`,
-            error,
-            errorInfo
-        );
+        console.error(`Error in route ${this.props.routeName || "unknown"}:`, error, errorInfo);
     }
 
     resetError = () => {

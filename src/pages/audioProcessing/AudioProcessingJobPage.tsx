@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, RefreshCcw } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
-import type { AudioJob, AudioSentence } from "../../types/audioProcessing";
 import { StatusBadge } from "../../components/audioProcessing/StatusBadge";
-import { Btn } from "../../components/ui/Btn";
 import PageHeader from "../../components/common/PageHeader";
+import { Btn } from "../../components/ui/Btn";
+import type { AudioJob, AudioSentence } from "../../types/audioProcessing";
 
 export interface AudioProcessingJobOutletContext {
     job: AudioJob;
@@ -68,7 +69,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                 if (!options?.silent) setLoading(false);
             }
         },
-        [jobId]
+        [jobId],
     );
 
     useEffect(() => {
@@ -117,7 +118,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         setError(null);
 
         if (job.status !== "COMPLETED" && job.status !== "REVIEWING") {
-            setFinalizeStatus({ type: "error", message: "Job must be COMPLETED or REVIEWING before finalizing." });
+            setFinalizeStatus({
+                type: "error",
+                message: "Job must be COMPLETED or REVIEWING before finalizing.",
+            });
             return;
         }
 
@@ -136,12 +140,18 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         }
 
         if (!job.audioUrl) {
-            setFinalizeStatus({ type: "error", message: "Audio is not ready yet. Try refreshing." });
+            setFinalizeStatus({
+                type: "error",
+                message: "Audio is not ready yet. Try refreshing.",
+            });
             return;
         }
 
         if ((job.sentences ?? []).length === 0) {
-            setFinalizeStatus({ type: "error", message: "No sentences found. Submit the job and wait for processing." });
+            setFinalizeStatus({
+                type: "error",
+                message: "No sentences found. Submit the job and wait for processing.",
+            });
             return;
         }
 
@@ -150,7 +160,9 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
             const res = await api.finalizeAudioProcessingJob(job.id);
             const success =
                 (res as { success?: boolean }).success ??
-                ((res as { status?: string }).status ? (res as { status?: string }).status === "success" : true);
+                ((res as { status?: string }).status
+                    ? (res as { status?: string }).status === "success"
+                    : true);
 
             if (!success) {
                 const message = (res as { message?: string }).message;
@@ -162,9 +174,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
 
             setFinalizeStatus({
                 type: "success",
-                message: createdCount !== null
-                    ? `Finalized: created ${createdCount} listening items.`
-                    : "Finalized: created listening items.",
+                message:
+                    createdCount !== null
+                        ? `Finalized: created ${createdCount} listening items.`
+                        : "Finalized: created listening items.",
             });
             await loadJob({ silent: true, preserveError: true });
             navigate(`/admin/lessons/${job.lessonId}/audio`);
@@ -185,7 +198,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
             { label: "Sentences", path: "sentences" },
             { label: "Audio Edit", path: "audio" },
         ],
-        []
+        [],
     );
 
     if (loading) {
@@ -213,7 +226,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         readOnly ||
         submitting ||
         job.status === "WAITING_FOR_INPUT" ||
-        activelyProcessing.includes(job.status as typeof activelyProcessing[number]);
+        activelyProcessing.includes(job.status as (typeof activelyProcessing)[number]);
 
     const showFinalize = !readOnly && (job.status === "COMPLETED" || job.status === "REVIEWING");
 
@@ -250,7 +263,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                         {mode !== "review" && (
                             <>
                                 {showFinalize ? (
-                                    <Btn.HeroPrimary onClick={handleFinalizeListening} disabled={finalizing}>
+                                    <Btn.HeroPrimary
+                                        onClick={handleFinalizeListening}
+                                        disabled={finalizing}
+                                    >
                                         {finalizing ? (
                                             <>
                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -264,7 +280,10 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                                         )}
                                     </Btn.HeroPrimary>
                                 ) : (
-                                    <Btn.HeroPrimary onClick={handleSubmitJob} disabled={disableSubmit}>
+                                    <Btn.HeroPrimary
+                                        onClick={handleSubmitJob}
+                                        disabled={disableSubmit}
+                                    >
                                         {submitting ? (
                                             <>
                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -291,10 +310,11 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                 ) : null}
                 {finalizeStatus.type ? (
                     <div
-                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${finalizeStatus.type === "success"
-                            ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
-                            : "text-rose-50 bg-rose-500/15 border-rose-300/25"
-                            }`}
+                        className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
+                            finalizeStatus.type === "success"
+                                ? "text-emerald-50 bg-emerald-500/15 border-emerald-300/25"
+                                : "text-rose-50 bg-rose-500/15 border-rose-300/25"
+                        }`}
                     >
                         {finalizeStatus.type === "success" ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-100" />
@@ -318,10 +338,11 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                                         px-4 py-2 text-sm font-medium
                                         rounded-t-xl
                                         transition-all
-                                        ${isActive
-                                        ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:bg-white"
-                                    }
+                                        ${
+                                            isActive
+                                                ? "bg-white border border-slate-200 border-b-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:bg-white"
+                                        }
                                     `
                                 }
                             >

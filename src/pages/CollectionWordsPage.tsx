@@ -1,27 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search, Sparkles, X } from "lucide-react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-    ArrowLeft,
-    BookOpen,
-    Check,
-    Loader2,
-    Plus,
-    Search,
-    Sparkles,
-    X,
-} from "lucide-react";
 
 import { api } from "../api/client";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
-import type { VocabWord } from "../types";
 import {
     useAddTerminologiesToCollection,
-    useCollectionTerminologies,
     useCollections,
+    useCollectionTerminologies,
 } from "../hooks/useCollections";
+import type { VocabWord } from "../types";
 
 const getWordMeaning = (word: VocabWord) => {
     const sense = word.senses?.[0];
@@ -37,7 +29,7 @@ const CollectionWordsPage: React.FC = () => {
     const { data: collections = [], isLoading: collectionsLoading } = useCollections();
     const collection = useMemo(
         () => collections.find((item) => item.id === parsedId),
-        [collections, parsedId]
+        [collections, parsedId],
     );
 
     const {
@@ -80,9 +72,9 @@ const CollectionWordsPage: React.FC = () => {
     };
 
     const handleSelectWord = (word: VocabWord) => {
-        setSelectedWords((prev) => (
-            prev.some((item) => item.id === word.id) ? prev : [...prev, word]
-        ));
+        setSelectedWords((prev) =>
+            prev.some((item) => item.id === word.id) ? prev : [...prev, word],
+        );
         setAddError(null);
     };
 
@@ -140,10 +132,8 @@ const CollectionWordsPage: React.FC = () => {
     }, [filteredTerminologies, selectedTerminologyId]);
 
     const selectedTerminology = useMemo(
-        () =>
-            filteredTerminologies.find((item) => item.word_id === selectedTerminologyId) ??
-            null,
-        [filteredTerminologies, selectedTerminologyId]
+        () => filteredTerminologies.find((item) => item.word_id === selectedTerminologyId) ?? null,
+        [filteredTerminologies, selectedTerminologyId],
     );
 
     const addingWords = addTerminologiesMutation.isPending;
@@ -197,7 +187,9 @@ const CollectionWordsPage: React.FC = () => {
                                 <BookOpen className="w-5 h-5" />
                             </div>
                             <div>
-                                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Words</p>
+                                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                                    Words
+                                </p>
                                 <p className="text-sm text-slate-600">
                                     {filteredTerminologies.length} showing
                                 </p>
@@ -221,7 +213,9 @@ const CollectionWordsPage: React.FC = () => {
                         {selectedTerminology ? (
                             <div className="space-y-1">
                                 <div className="flex items-center justify-between text-sm text-slate-700">
-                                    <span className="font-semibold">{selectedTerminology.terminology}</span>
+                                    <span className="font-semibold">
+                                        {selectedTerminology.terminology}
+                                    </span>
                                     <span className="text-xs text-slate-400">
                                         ID #{selectedTerminology.word_id}
                                     </span>
@@ -262,10 +256,11 @@ const CollectionWordsPage: React.FC = () => {
                             {filteredTerminologies.map((item) => (
                                 <div
                                     key={`${item.word_id}-${item.terminology}`}
-                                    className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2 transition ${selectedTerminologyId === item.word_id
+                                    className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2 transition ${
+                                        selectedTerminologyId === item.word_id
                                             ? "border-brand/40 bg-brand/10"
                                             : "border-slate-100 bg-slate-50/60 hover:bg-slate-50"
-                                        }`}
+                                    }`}
                                     onClick={() => setSelectedTerminologyId(item.word_id)}
                                     role="button"
                                     tabIndex={0}
@@ -279,7 +274,9 @@ const CollectionWordsPage: React.FC = () => {
                                         <p className="text-sm font-semibold text-slate-800">
                                             {item.terminology}
                                         </p>
-                                        <p className="text-xs text-slate-400">Word ID #{item.word_id}</p>
+                                        <p className="text-xs text-slate-400">
+                                            Word ID #{item.word_id}
+                                        </p>
                                     </div>
                                     <span className="shrink-0 rounded-full bg-brand/10 text-brand text-[11px] px-2.5 py-1">
                                         #{item.collection_id}
@@ -296,9 +293,7 @@ const CollectionWordsPage: React.FC = () => {
                             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
                                 Search dictionary
                             </p>
-                            <p className="text-sm text-slate-600">
-                                {wordResults.length} results
-                            </p>
+                            <p className="text-sm text-slate-600">{wordResults.length} results</p>
                         </div>
                         <span className="text-[11px] text-slate-400">
                             {selectedWords.length} selected
@@ -355,7 +350,9 @@ const CollectionWordsPage: React.FC = () => {
                             </div>
                         ) : (
                             wordResults.map((word) => {
-                                const isSelected = selectedWords.some((item) => item.id === word.id);
+                                const isSelected = selectedWords.some(
+                                    (item) => item.id === word.id,
+                                );
                                 const meaning = getWordMeaning(word);
                                 return (
                                     <div
@@ -363,7 +360,9 @@ const CollectionWordsPage: React.FC = () => {
                                         className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2"
                                     >
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800">{word.lemma}</p>
+                                            <p className="text-sm font-semibold text-slate-800">
+                                                {word.lemma}
+                                            </p>
                                             <p className="text-xs text-slate-400">ID #{word.id}</p>
                                             {meaning ? (
                                                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">
@@ -374,10 +373,11 @@ const CollectionWordsPage: React.FC = () => {
                                         <button
                                             onClick={() => handleSelectWord(word)}
                                             disabled={isSelected}
-                                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition ${isSelected
+                                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                                                isSelected
                                                     ? "bg-emerald-100 text-emerald-700 cursor-default"
                                                     : "bg-brand/10 text-brand hover:bg-brand/20"
-                                                }`}
+                                            }`}
                                         >
                                             {isSelected ? (
                                                 <>
@@ -424,7 +424,9 @@ const CollectionWordsPage: React.FC = () => {
                                                 <p className="text-sm font-semibold text-slate-800">
                                                     {word.word}
                                                 </p>
-                                                <p className="text-xs text-slate-400">ID #{word.id}</p>
+                                                <p className="text-xs text-slate-400">
+                                                    ID #{word.id}
+                                                </p>
                                                 {meaning ? (
                                                     <p className="text-xs text-slate-500 line-clamp-2 mt-1">
                                                         {meaning}
@@ -444,9 +446,7 @@ const CollectionWordsPage: React.FC = () => {
                         )}
                     </div>
 
-                    {addError ? (
-                        <div className="text-xs text-rose-600">{addError}</div>
-                    ) : null}
+                    {addError ? <div className="text-xs text-rose-600">{addError}</div> : null}
 
                     <div className="flex justify-end">
                         <Btn.Primary onClick={handleAddWordsSubmit} disabled={addingWords}>

@@ -1,4 +1,4 @@
-import type {ButtonHTMLAttributes, ReactNode} from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     children: ReactNode;
@@ -16,7 +16,7 @@ export const Btn = {
             disabled:opacity-60 disabled:cursor-not-allowed
             ${className}
           `}
-            >
+        >
             {children}
         </button>
     ),

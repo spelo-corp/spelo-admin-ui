@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock, Loader2, Play, Save, Wand2 } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { WaveformRegionsPlayer } from "../../components/audio/WaveformRegionsPlayer";
-import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import { Btn } from "../../components/ui/Btn";
+import { usePresignedAudioUrl } from "../../hooks/usePresignedAudioUrl";
 import type { AudioSentence } from "../../types/audioProcessing";
 import type { AudioProcessingJobOutletContext } from "./AudioProcessingJobPage";
 
@@ -103,7 +104,7 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
 
         const sortedIndexes = [...new Set(selectedSentenceIndexes)].sort((a, b) => a - b);
         const areConsecutive = sortedIndexes.every((idx, i) =>
-            i === 0 ? true : idx === sortedIndexes[i - 1] + 1
+            i === 0 ? true : idx === sortedIndexes[i - 1] + 1,
         );
 
         if (!areConsecutive) {
@@ -111,9 +112,7 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
             return;
         }
 
-        const selectedSentences = sortedIndexes
-            .map((idx) => sentences[idx])
-            .filter(Boolean);
+        const selectedSentences = sortedIndexes.map((idx) => sentences[idx]).filter(Boolean);
 
         if (selectedSentences.length < 2) {
             setError("Selected sentences are not available to merge.");
@@ -189,29 +188,29 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                 id: String(index),
                 start: sentence.start,
                 end: sentence.end,
-                color:
-                    activeSentence === index
-                        ? "rgba(26,159,109,0.32)"
-                        : "rgba(14,165,233,0.24)",
+                color: activeSentence === index ? "rgba(26,159,109,0.32)" : "rgba(14,165,233,0.24)",
             })),
-        [sentences, activeSentence]
+        [sentences, activeSentence],
     );
 
-    const handleWaveformRegionUpdate = useCallback((id: string, start: number, end: number) => {
-        const index = Number(id);
-        if (!Number.isFinite(index)) return;
+    const handleWaveformRegionUpdate = useCallback(
+        (id: string, start: number, end: number) => {
+            const index = Number(id);
+            if (!Number.isFinite(index)) return;
 
-        setSentences((prev) => {
-            if (index < 0 || index >= prev.length) return prev;
-            const next = [...prev];
-            next[index] = {
-                ...next[index],
-                start: Math.max(0, Number(start.toFixed(3))),
-                end: Math.max(0, Number(end.toFixed(3))),
-            };
-            return next;
-        });
-    }, [setSentences]);
+            setSentences((prev) => {
+                if (index < 0 || index >= prev.length) return prev;
+                const next = [...prev];
+                next[index] = {
+                    ...next[index],
+                    start: Math.max(0, Number(start.toFixed(3))),
+                    end: Math.max(0, Number(end.toFixed(3))),
+                };
+                return next;
+            });
+        },
+        [setSentences],
+    );
 
     return (
         <div className="space-y-4">
@@ -219,7 +218,9 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-900">Audio Player</h2>
-                        <p className="text-xs text-slate-500">Use play to verify sentence boundaries.</p>
+                        <p className="text-xs text-slate-500">
+                            Use play to verify sentence boundaries.
+                        </p>
                     </div>
                 </div>
 
@@ -261,7 +262,9 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                     />
                 ) : (
                     <div className="text-sm text-slate-500">
-                        {loadingUrl ? "Loading audio..." : "Audio is not available yet. Refresh once processing is complete."}
+                        {loadingUrl
+                            ? "Loading audio..."
+                            : "Audio is not available yet. Refresh once processing is complete."}
                     </div>
                 )}
             </div>
@@ -334,11 +337,13 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                                 key={`${sentence.start}-${index}`}
                                 className={`
                                     border rounded-xl p-3 space-y-2
-                                    ${isActive
-                                        ? "border-brand bg-brand-soft/60"
-                                        : isSelected
-                                            ? "border-sky-200 bg-sky-50"
-                                            : "border-slate-200 bg-slate-50"}
+                                    ${
+                                        isActive
+                                            ? "border-brand bg-brand-soft/60"
+                                            : isSelected
+                                              ? "border-sky-200 bg-sky-50"
+                                              : "border-slate-200 bg-slate-50"
+                                    }
                                 `}
                             >
                                 <div className="flex items-center justify-between text-xs">
@@ -358,8 +363,8 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
                                         </span>
                                     </div>
                                     <span className="text-slate-500">
-                                        {formatSeconds(sentence.start)} → {formatSeconds(sentence.end)} •{" "}
-                                        {duration.toFixed(2)}s
+                                        {formatSeconds(sentence.start)} →{" "}
+                                        {formatSeconds(sentence.end)} • {duration.toFixed(2)}s
                                     </span>
                                 </div>
 
@@ -433,7 +438,8 @@ const AudioProcessingJobSentencesPage: React.FC = () => {
 
                     {sentences.length === 0 && (
                         <div className="text-center text-slate-500 py-10">
-                            No sentences available yet. If the job is still processing, try refreshing.
+                            No sentences available yet. If the job is still processing, try
+                            refreshing.
                         </div>
                     )}
                 </div>

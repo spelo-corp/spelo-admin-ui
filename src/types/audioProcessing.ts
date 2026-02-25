@@ -14,7 +14,7 @@ export type AudioJobStatus =
 export interface AudioSentence {
     text: string;
     start: number; // seconds
-    end: number;   // seconds
+    end: number; // seconds
 }
 
 export interface AudioJob {

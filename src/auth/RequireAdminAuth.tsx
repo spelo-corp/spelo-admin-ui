@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isAdminLoggedIn } from "./adminAuth";
 
@@ -11,4 +11,3 @@ export const RequireAdminAuth: React.FC<{ children: React.ReactElement }> = ({ c
 
     return children;
 };
-

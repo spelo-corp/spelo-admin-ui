@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 
 interface SparklineProps {
     data: number[];
@@ -56,4 +57,3 @@ const Sparkline: React.FC<SparklineProps> = ({
 };
 
 export default Sparkline;
-

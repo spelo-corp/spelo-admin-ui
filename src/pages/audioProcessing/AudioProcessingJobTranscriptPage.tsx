@@ -1,5 +1,6 @@
-import React, { useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Save } from "lucide-react";
+import type React from "react";
+import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { Btn } from "../../components/ui/Btn";
@@ -52,12 +53,15 @@ const AudioProcessingJobTranscriptPage: React.FC = () => {
                     <div className="space-y-1">
                         <h3 className="text-lg font-semibold text-slate-900">Transcript</h3>
                         <p className="text-xs text-slate-500">
-                            Update the full transcript for this job. Submit the job to re-run processing.
+                            Update the full transcript for this job. Submit the job to re-run
+                            processing.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-slate-500">{transcriptDraft.trim().length} chars</span>
+                        <span className="text-xs text-slate-500">
+                            {transcriptDraft.trim().length} chars
+                        </span>
                         <Btn.Secondary
                             type="button"
                             onClick={() => {
@@ -122,4 +126,3 @@ const AudioProcessingJobTranscriptPage: React.FC = () => {
 };
 
 export default AudioProcessingJobTranscriptPage;
-
