@@ -1,4 +1,4 @@
-import { Loader2, Play, Save, Scissors, Search, Trash2 } from "lucide-react";
+import { Loader2, Play, Redo2, Save, Scissors, Search, Trash2, Undo2 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
@@ -29,6 +29,14 @@ const YoutubeJobSentencesPage: React.FC = () => {
     const [sentenceSearch, setSentenceSearch] = useState("");
     const [savedSentencesSnapshot, setSavedSentencesSnapshot] = useState<string>("");
 
+    // Undo/redo stacks
+    const undoStackRef = useRef<AudioSentence[][]>([]);
+    const redoStackRef = useRef<AudioSentence[][]>([]);
+    const [canUndo, setCanUndo] = useState(false);
+    const [canRedo, setCanRedo] = useState(false);
+    const lastFocusSnapshotRef = useRef<boolean>(false);
+    const lastClickedIndexRef = useRef<number | null>(null);
+
     // Set initial snapshot when sentences load (intentionally only on job change)
     // biome-ignore lint/correctness/useExhaustiveDependencies: only reset snapshot on job change, not every edit
     useEffect(() => {
@@ -36,6 +44,45 @@ const YoutubeJobSentencesPage: React.FC = () => {
     }, [job.id]);
 
     const isDirty = JSON.stringify(sentences) !== savedSentencesSnapshot;
+
+    const pushUndo = useCallback((snapshot: AudioSentence[]) => {
+        undoStackRef.current.push(snapshot);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        setCanUndo(true);
+        setCanRedo(false);
+    }, []);
+
+    const handleUndo = useCallback(() => {
+        const stack = undoStackRef.current;
+        if (stack.length === 0) return;
+        const prev = stack.pop() as AudioSentence[];
+        redoStackRef.current.push([...sentences]);
+        setSentences(prev);
+        setCanUndo(stack.length > 0);
+        setCanRedo(true);
+    }, [sentences, setSentences]);
+
+    const handleRedo = useCallback(() => {
+        const stack = redoStackRef.current;
+        if (stack.length === 0) return;
+        const next = stack.pop() as AudioSentence[];
+        undoStackRef.current.push([...sentences]);
+        setSentences(next);
+        setCanRedo(stack.length > 0);
+        setCanUndo(true);
+    }, [sentences, setSentences]);
+
+    const handleFieldFocus = useCallback(() => {
+        if (!lastFocusSnapshotRef.current) {
+            pushUndo([...sentences]);
+            lastFocusSnapshotRef.current = true;
+        }
+    }, [pushUndo, sentences]);
+
+    const handleFieldBlur = useCallback(() => {
+        lastFocusSnapshotRef.current = false;
+    }, []);
 
     // Unsaved changes warning
     useEffect(() => {
@@ -99,17 +146,30 @@ const YoutubeJobSentencesPage: React.FC = () => {
         }
     }, []);
 
-    const toggleSentenceSelection = (index: number) => {
-        setSelectedSentenceIndexes((prev) => {
-            if (prev.includes(index)) {
-                return prev.filter((i) => i !== index);
-            }
-            return [...prev, index].sort((a, b) => a - b);
-        });
+    const toggleSentenceSelection = (index: number, shiftKey: boolean) => {
+        if (shiftKey && lastClickedIndexRef.current !== null) {
+            const from = Math.min(lastClickedIndexRef.current, index);
+            const to = Math.max(lastClickedIndexRef.current, index);
+            setSelectedSentenceIndexes((prev) => {
+                const range = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+                const merged = new Set([...prev, ...range]);
+                return [...merged].sort((a, b) => a - b);
+            });
+        } else {
+            setSelectedSentenceIndexes((prev) => {
+                if (prev.includes(index)) return prev.filter((i) => i !== index);
+                return [...prev, index].sort((a, b) => a - b);
+            });
+        }
+        lastClickedIndexRef.current = index;
     };
 
-    const clearSentenceSelection = () => {
-        setSelectedSentenceIndexes([]);
+    const handleToggleSelectAll = () => {
+        if (selectedSentenceIndexes.length === sentences.length) {
+            setSelectedSentenceIndexes([]);
+        } else {
+            setSelectedSentenceIndexes(sentences.map((_, i) => i));
+        }
     };
 
     const mergeSelectedSentences = () => {
@@ -153,6 +213,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
             end,
         };
 
+        pushUndo([...sentences]);
         setSentences((prev) => {
             const next = prev.filter((_, idx) => !sortedIndexes.includes(idx));
             next.splice(sortedIndexes[0], 0, mergedSentence);
@@ -178,6 +239,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
         const first = { text: textBefore, start: sentence.start, end: Number(midTime.toFixed(3)) };
         const second = { text: textAfter, start: Number(midTime.toFixed(3)), end: sentence.end };
 
+        pushUndo([...sentences]);
         setSentences((prev) => {
             const next = [...prev];
             next.splice(index, 1, first, second);
@@ -209,6 +271,7 @@ const YoutubeJobSentencesPage: React.FC = () => {
         if (readOnly) return;
         if (!window.confirm("Are you sure you want to delete this sentence?")) return;
 
+        pushUndo([...sentences]);
         setSentences((prev) => prev.filter((_, i) => i !== index));
 
         // Adjust selection indexes
@@ -221,6 +284,17 @@ const YoutubeJobSentencesPage: React.FC = () => {
             setActiveSentence(activeSentence - 1);
     };
 
+    const handleDeleteSelected = () => {
+        if (readOnly || selectedSentenceIndexes.length === 0) return;
+        const count = selectedSentenceIndexes.length;
+        if (!window.confirm(`Delete ${count} selected sentence${count > 1 ? "s" : ""}?`)) return;
+        pushUndo([...sentences]);
+        const toDelete = new Set(selectedSentenceIndexes);
+        setSentences((prev) => prev.filter((_, i) => !toDelete.has(i)));
+        setSelectedSentenceIndexes([]);
+        setActiveSentence(null);
+    };
+
     // Keyboard shortcuts
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -229,6 +303,18 @@ const YoutubeJobSentencesPage: React.FC = () => {
             if (mod && e.key === "s") {
                 e.preventDefault();
                 if (!saving && !readOnly) handleSave();
+                return;
+            }
+
+            if (mod && e.key === "z" && !e.shiftKey) {
+                e.preventDefault();
+                if (!readOnly) handleUndo();
+                return;
+            }
+
+            if ((mod && e.shiftKey && e.key === "z") || (mod && e.key === "y")) {
+                e.preventDefault();
+                if (!readOnly) handleRedo();
                 return;
             }
 
@@ -255,7 +341,16 @@ const YoutubeJobSentencesPage: React.FC = () => {
         };
         document.addEventListener("keydown", handler);
         return () => document.removeEventListener("keydown", handler);
-    }, [activeSentence, sentences, saving, readOnly, handleSave, handlePlaySentence]);
+    }, [
+        activeSentence,
+        sentences,
+        saving,
+        readOnly,
+        handleSave,
+        handlePlaySentence,
+        handleUndo,
+        handleRedo,
+    ]);
 
     return (
         <div className="space-y-4">
@@ -291,23 +386,38 @@ const YoutubeJobSentencesPage: React.FC = () => {
                             Sentences ({sentences.length})
                         </h3>
                         <p className="text-xs text-slate-500">
-                            {selectedSentenceIndexes.length} selected for merge.
+                            {selectedSentenceIndexes.length} selected · Shift+click for range
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        <Btn.Secondary onClick={handleUndo} disabled={!canUndo || readOnly}>
+                            <Undo2 className="w-4 h-4" /> Undo
+                        </Btn.Secondary>
+                        <Btn.Secondary onClick={handleRedo} disabled={!canRedo || readOnly}>
+                            <Redo2 className="w-4 h-4" /> Redo
+                        </Btn.Secondary>
                         <Btn.Secondary
                             onClick={mergeSelectedSentences}
                             disabled={readOnly || selectedSentenceIndexes.length < 2}
                         >
                             Merge Selected
                         </Btn.Secondary>
+                        <Btn.Secondary
+                            onClick={handleDeleteSelected}
+                            disabled={readOnly || selectedSentenceIndexes.length === 0}
+                            className="text-rose-600 hover:text-rose-700"
+                        >
+                            <Trash2 className="w-4 h-4" /> Delete Selected
+                        </Btn.Secondary>
                         <button
                             type="button"
-                            onClick={clearSentenceSelection}
-                            disabled={readOnly || selectedSentenceIndexes.length === 0}
+                            onClick={handleToggleSelectAll}
+                            disabled={readOnly}
                             className="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-60"
                         >
-                            Clear selection
+                            {selectedSentenceIndexes.length === sentences.length
+                                ? "Deselect all"
+                                : "Select all"}
                         </button>
                         <Btn.Primary onClick={handleSave} disabled={saving || readOnly}>
                             {saving ? (
@@ -349,7 +459,8 @@ const YoutubeJobSentencesPage: React.FC = () => {
                 </div>
 
                 <p className="text-[11px] text-slate-400">
-                    Ctrl+S Save · Ctrl+Enter Play · Alt+↑↓ Navigate
+                    Ctrl+Z Undo · Ctrl+Shift+Z Redo · Ctrl+S Save · Ctrl+Enter Play · Alt+↑↓
+                    Navigate
                 </p>
 
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
@@ -387,11 +498,16 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={isSelected}
-                                                onChange={() => toggleSentenceSelection(index)}
+                                                onChange={(e) =>
+                                                    toggleSentenceSelection(
+                                                        index,
+                                                        (e.nativeEvent as MouseEvent).shiftKey,
+                                                    )
+                                                }
                                                 disabled={readOnly}
                                                 className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500/30"
                                             />
-                                            Merge
+                                            Select
                                         </label>
                                         <span className="font-semibold text-slate-900">
                                             Sentence {index + 1}
@@ -430,6 +546,8 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                             min="0"
                                             step="0.01"
                                             value={sentence.start}
+                                            onFocus={handleFieldFocus}
+                                            onBlur={handleFieldBlur}
                                             onChange={(e) => {
                                                 const value = Number(e.target.value);
                                                 setSentences((prev) => {
@@ -450,6 +568,8 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                             min="0"
                                             step="0.01"
                                             value={sentence.end}
+                                            onFocus={handleFieldFocus}
+                                            onBlur={handleFieldBlur}
                                             onChange={(e) => {
                                                 const value = Number(e.target.value);
                                                 setSentences((prev) => {
@@ -479,6 +599,8 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                         sentenceTextareaRefs.current[index] = el;
                                     }}
                                     value={sentence.text}
+                                    onFocus={handleFieldFocus}
+                                    onBlur={handleFieldBlur}
                                     onChange={(e) =>
                                         setSentences((prev) => {
                                             const next = [...prev];
