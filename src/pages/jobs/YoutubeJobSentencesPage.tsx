@@ -1,6 +1,6 @@
-import { Loader2, Play, Save, Trash2 } from "lucide-react";
+import { Loader2, Play, Save, Scissors, Search, Trash2 } from "lucide-react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api } from "../../api/client";
 import { YouTubePlayer, type YouTubePlayerRef } from "../../components/common/YouTubePlayer";
@@ -20,10 +20,50 @@ const YoutubeJobSentencesPage: React.FC = () => {
 
     const playerRef = useRef<YouTubePlayerRef>(null);
     const stopTimeRef = useRef<number | null>(null);
+    const sentenceTextareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+    const sentenceCardRefs = useRef<(HTMLDivElement | null)[]>([]);
     const [activeSentence, setActiveSentence] = useState<number | null>(null);
     const [selectedSentenceIndexes, setSelectedSentenceIndexes] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
+    const [sentenceSearch, setSentenceSearch] = useState("");
+    const [savedSentencesSnapshot, setSavedSentencesSnapshot] = useState<string>("");
+
+    // Set initial snapshot when sentences load (intentionally only on job change)
+    // biome-ignore lint/correctness/useExhaustiveDependencies: only reset snapshot on job change, not every edit
+    useEffect(() => {
+        setSavedSentencesSnapshot(JSON.stringify(sentences));
+    }, [job.id]);
+
+    const isDirty = JSON.stringify(sentences) !== savedSentencesSnapshot;
+
+    // Unsaved changes warning
+    useEffect(() => {
+        if (!isDirty) return;
+        const handler = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [isDirty]);
+
+    // Scroll to active sentence
+    useEffect(() => {
+        if (activeSentence === null) return;
+        sentenceCardRefs.current[activeSentence]?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+        });
+    }, [activeSentence]);
+
+    // Search/filter
+    const filteredSentenceIndexes = useMemo(() => {
+        const term = sentenceSearch.trim().toLowerCase();
+        if (!term) return null;
+        return sentences
+            .map((s, i) => (s.text.toLowerCase().includes(term) ? i : -1))
+            .filter((i) => i !== -1);
+    }, [sentences, sentenceSearch]);
 
     // Sync active sentence with video time
     useEffect(() => {
@@ -50,14 +90,14 @@ const YoutubeJobSentencesPage: React.FC = () => {
         return () => clearInterval(interval);
     }, [isPlayerReady, sentences]);
 
-    const handlePlaySentence = (sentence: AudioSentence, index: number) => {
+    const handlePlaySentence = useCallback((sentence: AudioSentence, index: number) => {
         if (playerRef.current) {
             playerRef.current.seekTo(sentence.start, true);
             playerRef.current.playVideo();
             stopTimeRef.current = sentence.end;
             setActiveSentence(index);
         }
-    };
+    }, []);
 
     const toggleSentenceSelection = (index: number) => {
         setSelectedSentenceIndexes((prev) => {
@@ -124,7 +164,28 @@ const YoutubeJobSentencesPage: React.FC = () => {
         stopTimeRef.current = null; // Clear stop time to avoid unwanted pauses after merge
     };
 
-    const handleSave = async () => {
+    const handleSplitSentence = (index: number) => {
+        if (readOnly) return;
+        const sentence = sentences[index];
+        const textarea = sentenceTextareaRefs.current[index];
+        const cursorPos = textarea?.selectionStart ?? Math.floor(sentence.text.length / 2);
+
+        const textBefore = sentence.text.slice(0, cursorPos).trim();
+        const textAfter = sentence.text.slice(cursorPos).trim();
+        if (!textBefore || !textAfter) return;
+
+        const midTime = (sentence.start + sentence.end) / 2;
+        const first = { text: textBefore, start: sentence.start, end: Number(midTime.toFixed(3)) };
+        const second = { text: textAfter, start: Number(midTime.toFixed(3)), end: sentence.end };
+
+        setSentences((prev) => {
+            const next = [...prev];
+            next.splice(index, 1, first, second);
+            return next;
+        });
+    };
+
+    const handleSave = useCallback(async () => {
         const hasInvalidTimes = sentences.some((s) => s.end <= s.start);
         if (hasInvalidTimes) {
             setError("End time must be greater than start time for every sentence.");
@@ -136,12 +197,13 @@ const YoutubeJobSentencesPage: React.FC = () => {
         try {
             await api.updateYouTubeSentences(job.id, sentences);
             setJob((prev) => (prev ? { ...prev, sentences } : prev));
+            setSavedSentencesSnapshot(JSON.stringify(sentences));
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to save sentences.");
         } finally {
             setSaving(false);
         }
-    };
+    }, [sentences, job.id, setError, setJob]);
 
     const handleDeleteSentence = (index: number) => {
         if (readOnly) return;
@@ -158,6 +220,42 @@ const YoutubeJobSentencesPage: React.FC = () => {
         else if (activeSentence !== null && activeSentence > index)
             setActiveSentence(activeSentence - 1);
     };
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            const mod = e.metaKey || e.ctrlKey;
+
+            if (mod && e.key === "s") {
+                e.preventDefault();
+                if (!saving && !readOnly) handleSave();
+                return;
+            }
+
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+            if (mod && e.key === "Enter") {
+                e.preventDefault();
+                if (activeSentence !== null)
+                    handlePlaySentence(sentences[activeSentence], activeSentence);
+                return;
+            }
+            if (e.altKey && e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveSentence((prev) => (prev !== null && prev > 0 ? prev - 1 : prev));
+                return;
+            }
+            if (e.altKey && e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveSentence((prev) =>
+                    prev !== null && prev < sentences.length - 1 ? prev + 1 : prev,
+                );
+            }
+        };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
+    }, [activeSentence, sentences, saving, readOnly, handleSave, handlePlaySentence]);
 
     return (
         <div className="space-y-4">
@@ -224,11 +322,44 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                 </>
                             )}
                         </Btn.Primary>
+                        {isDirty && (
+                            <span className="text-xs text-amber-600 font-medium">
+                                • Unsaved changes
+                            </span>
+                        )}
                     </div>
                 </div>
 
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-1 max-w-xs">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search sentences…"
+                            value={sentenceSearch}
+                            onChange={(e) => setSentenceSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                        />
+                    </div>
+                    {filteredSentenceIndexes !== null && (
+                        <span className="text-xs text-slate-500">
+                            {filteredSentenceIndexes.length} of {sentences.length} sentences match
+                        </span>
+                    )}
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                    Ctrl+S Save · Ctrl+Enter Play · Alt+↑↓ Navigate
+                </p>
+
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
                     {sentences.map((sentence, index) => {
+                        if (
+                            filteredSentenceIndexes !== null &&
+                            !filteredSentenceIndexes.includes(index)
+                        )
+                            return null;
+
                         const duration = sentence.end - sentence.start;
                         const isActive = activeSentence === index;
                         const isSelected = selectedSentenceIndexes.includes(index);
@@ -236,6 +367,9 @@ const YoutubeJobSentencesPage: React.FC = () => {
                         return (
                             <div
                                 key={`${sentence.start}-${index}`}
+                                ref={(el) => {
+                                    sentenceCardRefs.current[index] = el;
+                                }}
                                 className={`
                                     border rounded-xl p-3 space-y-2
                                     ${
@@ -277,6 +411,16 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                         disabled={!isPlayerReady}
                                     >
                                         <Play className="w-3 h-3" /> Play
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleSplitSentence(index)}
+                                        className="px-3 py-1 rounded-full border border-slate-300 text-slate-700 flex items-center gap-1 hover:bg-slate-100"
+                                        type="button"
+                                        disabled={readOnly}
+                                        title="Split sentence at cursor position"
+                                    >
+                                        <Scissors className="w-3 h-3" /> Split
                                     </button>
 
                                     <label className="flex items-center gap-1 text-slate-500">
@@ -324,12 +468,16 @@ const YoutubeJobSentencesPage: React.FC = () => {
                                         className="p-1 text-slate-400 hover:text-rose-500 transition-colors ml-auto"
                                         title="Delete sentence"
                                         disabled={readOnly}
+                                        type="button"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
 
                                 <textarea
+                                    ref={(el) => {
+                                        sentenceTextareaRefs.current[index] = el;
+                                    }}
                                     value={sentence.text}
                                     onChange={(e) =>
                                         setSentences((prev) => {
