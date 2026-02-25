@@ -12,6 +12,7 @@ import {
     Settings,
     Users,
     Workflow,
+    GitFork,
 } from "lucide-react";
 import type React from "react";
 import { NavLink } from "react-router-dom";
@@ -98,6 +99,11 @@ const Sidebar: React.FC = () => {
                 <NavLink to="/admin/jobs" className={linkClass}>
                     <Workflow className="w-5 h-5" />
                     <span>Jobs</span>
+                </NavLink>
+
+                <NavLink to="/admin/pipelines" className={linkClass}>
+                    <GitFork className="w-5 h-5" />
+                    <span>Pipelines</span>
                 </NavLink>
 
                 <NavLink to="/admin/audio-files" className={linkClass}>

@@ -34,6 +34,8 @@ import LessonJobsPage from "../pages/lesson/LessonJobsPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
 import UsersPage from "../pages/UsersPage";
+import PipelineListPage from "../pages/pipelines/PipelineListPage";
+import PipelineEditorPage from "../pages/pipelines/PipelineEditorPage";
 
 export const AppRoutes = () => {
     return (
@@ -112,6 +114,24 @@ export const AppRoutes = () => {
                 <Route
                     path="audio-processing/jobs/:jobId/*"
                     element={<AudioProcessingRedirect />}
+                />
+
+                {/* Pipelines */}
+                <Route
+                    path="pipelines"
+                    element={
+                        <RouteErrorBoundary routeName="Pipelines">
+                            <PipelineListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="pipelines/:pipelineId"
+                    element={
+                        <RouteErrorBoundary routeName="Pipeline Editor">
+                            <PipelineEditorPage />
+                        </RouteErrorBoundary>
+                    }
                 />
 
                 {/* Books */}

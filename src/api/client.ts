@@ -7,6 +7,7 @@ import { filesApi } from "./files";
 import { jobsApi } from "./jobs";
 import { lessonsApi } from "./lessons";
 import { vocabApi } from "./vocab";
+import { pipelinesApi } from "./pipelines";
 
 export const api = {
     ...dashboardApi,
@@ -18,6 +19,7 @@ export const api = {
     ...categoriesApi,
     ...collectionsApi,
     ...booksApi,
+    ...pipelinesApi,
 };
 
 export {
@@ -30,4 +32,5 @@ export {
     categoriesApi,
     collectionsApi,
     booksApi,
+    pipelinesApi,
 };
