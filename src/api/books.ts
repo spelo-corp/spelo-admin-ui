@@ -17,7 +17,7 @@ export const booksApi = {
             body: form,
         });
 
-        return handle<{ data: BookIngestionUploadResponse }>(res).then((r) => r.data);
+        return handle<BookIngestionUploadResponse>(res);
     },
 
     async getContentSources(params?: {
