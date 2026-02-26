@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
-import { useState } from "react";
-import { STEP_KEYS } from "../../types/pipeline";
+import { useEffect, useState } from "react";
+import { api } from "../../api/client";
 
 interface AddStepModalProps {
     isOpen: boolean;
@@ -9,9 +9,28 @@ interface AddStepModalProps {
 }
 
 export function AddStepModal({ isOpen, onClose, onAdd }: AddStepModalProps) {
-    const [selectedKey, setSelectedKey] = useState<string>(STEP_KEYS[0]);
+    const [stepKeys, setStepKeys] = useState<string[]>([]);
+    const [selectedKey, setSelectedKey] = useState<string>("");
     const [customKey, setCustomKey] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [loadingKeys, setLoadingKeys] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchKeys = async () => {
+            setLoadingKeys(true);
+            try {
+                const keys = await api.listStepKeys();
+                setStepKeys(keys);
+                if (keys.length > 0) setSelectedKey(keys[0]);
+            } catch (_e) {
+                setStepKeys([]);
+            } finally {
+                setLoadingKeys(false);
+            }
+        };
+        void fetchKeys();
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -23,8 +42,7 @@ export function AddStepModal({ isOpen, onClose, onAdd }: AddStepModalProps) {
         try {
             setIsSubmitting(true);
             await onAdd(finalKey);
-            // reset state for next time
-            setSelectedKey(STEP_KEYS[0]);
+            setSelectedKey(stepKeys[0] || "");
             setCustomKey("");
             onClose();
         } finally {
@@ -54,18 +72,22 @@ export function AddStepModal({ isOpen, onClose, onAdd }: AddStepModalProps) {
                         <label className="block text-slate-700 text-sm font-medium mb-1.5">
                             Select Step Key
                         </label>
-                        <select
-                            value={selectedKey}
-                            onChange={(e) => setSelectedKey(e.target.value)}
-                            className="w-full border-slate-300 rounded-md shadow-sm focus:border-brand focus:ring focus:ring-brand/20 text-slate-900"
-                        >
-                            {STEP_KEYS.map((key) => (
-                                <option key={key} value={key}>
-                                    {key}
-                                </option>
-                            ))}
-                            <option value="custom">-- Custom Step --</option>
-                        </select>
+                        {loadingKeys ? (
+                            <div className="text-sm text-slate-500 py-2">Loading step keys...</div>
+                        ) : (
+                            <select
+                                value={selectedKey}
+                                onChange={(e) => setSelectedKey(e.target.value)}
+                                className="w-full border-slate-300 rounded-md shadow-sm focus:border-brand focus:ring focus:ring-brand/20 text-slate-900"
+                            >
+                                {stepKeys.map((key) => (
+                                    <option key={key} value={key}>
+                                        {key}
+                                    </option>
+                                ))}
+                                <option value="custom">-- Custom Step --</option>
+                            </select>
+                        )}
                     </div>
 
                     {selectedKey === "custom" && (

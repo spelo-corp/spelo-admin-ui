@@ -1,4 +1,13 @@
-import { GitFork, Loader2, Play, PlusCircle, RefreshCcw, Search, Trash2 } from "lucide-react";
+import {
+    GitFork,
+    Loader2,
+    Pause,
+    Play,
+    PlusCircle,
+    RefreshCcw,
+    Search,
+    Trash2,
+} from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -93,10 +102,18 @@ const PipelineListPage: React.FC = () => {
     const handleActivate = async (id: number) => {
         try {
             await api.activatePipeline(id);
-            // Refresh list to update all isActive flags correctly (since the backend deactivates others)
             await loadPipelines();
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to activate pipeline");
+        }
+    };
+
+    const handleDeactivate = async (id: number) => {
+        try {
+            await api.deactivatePipeline(id);
+            await loadPipelines();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to deactivate pipeline");
         }
     };
 
@@ -371,14 +388,25 @@ const PipelineListPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-5 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        {!pipeline.isActive && (
+                                                        {pipeline.isActive ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDeactivate(pipeline.id)
+                                                                }
+                                                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition"
+                                                                title="Deactivate"
+                                                            >
+                                                                <Pause className="w-4 h-4" />
+                                                            </button>
+                                                        ) : (
                                                             <button
                                                                 type="button"
                                                                 onClick={() =>
                                                                     handleActivate(pipeline.id)
                                                                 }
                                                                 className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition"
-                                                                title="Set Active"
+                                                                title="Activate"
                                                             >
                                                                 <Play className="w-4 h-4" />
                                                             </button>

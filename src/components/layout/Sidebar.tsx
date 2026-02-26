@@ -3,6 +3,7 @@ import {
     BookOpen,
     FileAudio2,
     Folder,
+    GitFork,
     Headphones,
     HelpCircle,
     Home,
@@ -12,7 +13,6 @@ import {
     Settings,
     Users,
     Workflow,
-    GitFork,
 } from "lucide-react";
 import type React from "react";
 import { NavLink } from "react-router-dom";

@@ -153,29 +153,14 @@ export default function PipelineEditorPage() {
         const resequenced = newArray.map((step, idx) => ({ ...step, sequence: idx + 1 }));
         setSteps(resequenced);
 
-        // API calls in parallel to update order
+        // Single API call to reorder
         try {
-            // only update items whose sequence changed
-            const changedSteps = resequenced.filter(
-                (step) => step.sequence !== steps.find((s) => s.id === step.id)?.sequence,
-            );
-
-            await Promise.all(
-                changedSteps.map((step) =>
-                    api.updateStep(pipeline.id, step.id as number, {
-                        stepKey: step.stepKey,
-                        sequence: step.sequence,
-                        config: step.config ?? undefined,
-                        failureMode: step.failureMode,
-                        retryBackoffMs: step.retryBackoffMs,
-                        retryCount: step.retryCount,
-                        skipOnFail: step.skipOnFail,
-                        timeoutMs: step.timeoutMs,
-                        conditionExpression: step.conditionExpression,
-                        isParallel: step.isParallel,
-                    }),
-                ),
-            );
+            const orderedIds = resequenced.map((s) => s.id as number);
+            const updatedPipeline = await api.reorderSteps(pipeline.id, orderedIds);
+            if (updatedPipeline.steps) {
+                setSteps([...updatedPipeline.steps].sort((a, b) => a.sequence - b.sequence));
+                return;
+            }
         } catch (_e) {
             alert("Warning: Failed to persist step order completely. Reloading.");
             // Reset to original payload order

@@ -33,9 +33,9 @@ import LessonInfoPage from "../pages/lesson/LessonInfoPage";
 import LessonJobsPage from "../pages/lesson/LessonJobsPage";
 import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
-import UsersPage from "../pages/UsersPage";
-import PipelineListPage from "../pages/pipelines/PipelineListPage";
 import PipelineEditorPage from "../pages/pipelines/PipelineEditorPage";
+import PipelineListPage from "../pages/pipelines/PipelineListPage";
+import UsersPage from "../pages/UsersPage";
 
 export const AppRoutes = () => {
     return (

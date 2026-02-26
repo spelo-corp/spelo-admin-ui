@@ -63,4 +63,13 @@ export const booksApi = {
 
         return handle<{ data: ContentSentence[] }>(res).then((r) => r.data);
     },
+
+    async deleteContentSource(id: number): Promise<void> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sources/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        return handle<{ data: void }>(res).then(() => {});
+    },
 };

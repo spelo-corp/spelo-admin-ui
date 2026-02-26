@@ -6,8 +6,8 @@ import { dashboardApi } from "./dashboard";
 import { filesApi } from "./files";
 import { jobsApi } from "./jobs";
 import { lessonsApi } from "./lessons";
-import { vocabApi } from "./vocab";
 import { pipelinesApi } from "./pipelines";
+import { vocabApi } from "./vocab";
 
 export const api = {
     ...dashboardApi,
