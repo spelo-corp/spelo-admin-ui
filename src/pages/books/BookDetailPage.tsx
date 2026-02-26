@@ -17,6 +17,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { booksApi } from "../../api/books";
 import { api } from "../../api/client";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 import PageHeader from "../../components/common/PageHeader";
 import type { ContentSection, ContentSentence, ContentSource } from "../../types/book";
 
@@ -27,6 +28,9 @@ const BookDetailPage: React.FC = () => {
     const [sections, setSections] = useState<ContentSection[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
     const [sectionSentences, setSectionSentences] = useState<Record<number, ContentSentence[]>>({});
@@ -100,20 +104,23 @@ const BookDetailPage: React.FC = () => {
     const handleAction = async (action: string) => {
         if (action === "Delete") {
             if (!book) return;
-            const confirm = window.confirm(
-                `Are you sure you want to delete the book "${book.title}"? This action cannot be undone.`,
-            );
-            if (!confirm) return;
-
-            try {
-                await booksApi.deleteContentSource(book.id);
-                navigate("/admin/books");
-            } catch (err: unknown) {
-                alert(err instanceof Error ? err.message : "Failed to delete book.");
-            }
+            setIsDeleteDialogOpen(true);
             return;
         }
         alert(`${action} action is not implemented yet.`);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!book) return;
+        setIsDeleting(true);
+        try {
+            await booksApi.deleteContentSource(book.id);
+            navigate("/admin/books");
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to delete book.");
+            setIsDeleting(false);
+            setIsDeleteDialogOpen(false);
+        }
     };
 
     if (loading) {
@@ -392,6 +399,24 @@ const BookDetailPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {book && (
+                <ConfirmModal
+                    isOpen={isDeleteDialogOpen}
+                    onClose={() => !isDeleting && setIsDeleteDialogOpen(false)}
+                    onConfirm={handleDeleteConfirm}
+                    title="Delete Book"
+                    description={
+                        <>
+                            Are you sure you want to delete <strong>{book.title}</strong>? This
+                            action cannot be undone.
+                        </>
+                    }
+                    confirmText="Delete Book"
+                    isDestructive={true}
+                    isConfirming={isDeleting}
+                />
+            )}
         </div>
     );
 };
