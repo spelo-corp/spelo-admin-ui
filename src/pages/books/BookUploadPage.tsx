@@ -1,13 +1,6 @@
-import {
-    AlertTriangle,
-    ArrowLeft,
-    CheckCircle2,
-    FileText,
-    Loader2,
-    UploadCloud,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileText, Loader2, UploadCloud } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import PageHeader from "../../components/common/PageHeader";
@@ -28,23 +21,7 @@ const BookUploadPage: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
-    const [successJobId, setSuccessJobId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-
-    useEffect(() => {
-        if (!submitting) {
-            setUploadProgress(0);
-            return;
-        }
-
-        setUploadProgress(12);
-        const timer = window.setInterval(() => {
-            setUploadProgress((p) => Math.min(p + 8, 90));
-        }, 400);
-
-        return () => window.clearInterval(timer);
-    }, [submitting]);
 
     const handleFile = (selected: File | null) => {
         if (!selected) return;
@@ -65,7 +42,6 @@ const BookUploadPage: React.FC = () => {
 
     const handleSubmit = async () => {
         setError(null);
-        setSuccessJobId(null);
 
         if (!file) {
             setError("Please select a PDF file to upload.");
@@ -75,13 +51,9 @@ const BookUploadPage: React.FC = () => {
         setSubmitting(true);
         try {
             const res = await api.uploadBook(file);
-            setUploadProgress(100);
-            setSuccessJobId(res.jobId);
-
-            setTimeout(() => navigate("/admin/books"), 1200);
+            navigate(`/admin/books/ingest/${res.jobId}`);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to upload book for processing.");
-        } finally {
             setSubmitting(false);
         }
     };
@@ -172,28 +144,6 @@ const BookUploadPage: React.FC = () => {
                             <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
                                 <AlertTriangle className="w-4 h-4" />
                                 {error}
-                            </div>
-                        )}
-
-                        {successJobId && (
-                            <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg">
-                                <CheckCircle2 className="w-4 h-4" />
-                                Uploaded! Job ID {successJobId}. Redirecting…
-                            </div>
-                        )}
-
-                        {submitting && (
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between text-xs text-slate-500">
-                                    <span>Uploading</span>
-                                    <span>{uploadProgress}%</span>
-                                </div>
-                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-brand transition-all"
-                                        style={{ width: `${uploadProgress}%` }}
-                                    />
-                                </div>
                             </div>
                         )}
 

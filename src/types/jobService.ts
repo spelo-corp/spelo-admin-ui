@@ -8,7 +8,8 @@ export type JobType =
     | "LESSON_TRANSLATE"
     | "AI_SCORING"
     | "UPLOAD_TO_R2"
-    | "COLLECTION_GENERATE";
+    | "COLLECTION_GENERATE"
+    | "BOOK_INGEST";
 
 export type JobServiceStatus =
     | "PENDING"

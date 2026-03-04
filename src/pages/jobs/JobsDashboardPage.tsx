@@ -21,6 +21,7 @@ const typeFilters: TypeFilter[] = [
     "AI_SCORING",
     "UPLOAD_TO_R2",
     "COLLECTION_GENERATE",
+    "BOOK_INGEST",
 ];
 
 const statusColors: Record<string, string> = {
@@ -45,6 +46,7 @@ const badgeColors: Record<string, string> = {
     AI_SCORING: "bg-amber-100 text-amber-700",
     UPLOAD_TO_R2: "bg-cyan-100 text-cyan-700",
     COLLECTION_GENERATE: "bg-teal-100 text-teal-700",
+    BOOK_INGEST: "bg-emerald-100 text-emerald-700",
 };
 
 interface JobRow {
@@ -126,6 +128,7 @@ const JobsDashboardPage: React.FC = () => {
     const getViewLink = (job: JobRow): string | null => {
         if (job.job_type === "AUDIO_ALIGN") return `/admin/jobs/audio/jobs/${job.id}`;
         if (job.job_type === "YOUTUBE_ALIGN") return `/admin/jobs/youtube/${job.id}`;
+        if (job.job_type === "BOOK_INGEST") return `/admin/books/ingest/${job.id}`;
         return null;
     };
 

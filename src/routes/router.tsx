@@ -14,6 +14,7 @@ import AudioProcessingJobSentencesPage from "../pages/audioProcessing/AudioProce
 import AudioProcessingJobTranscriptPage from "../pages/audioProcessing/AudioProcessingJobTranscriptPage";
 import AudioProcessingUploadPage from "../pages/audioProcessing/AudioProcessingUploadPage";
 import BookDetailPage from "../pages/books/BookDetailPage";
+import BookIngestProgressPage from "../pages/books/BookIngestProgressPage";
 import BookListPage from "../pages/books/BookListPage";
 import BookUploadPage from "../pages/books/BookUploadPage";
 import CategoryManagementPage from "../pages/CategoryManagementPage";
@@ -144,6 +145,7 @@ export const AppRoutes = () => {
                     }
                 />
                 <Route path="books/upload" element={<BookUploadPage />} />
+                <Route path="books/ingest/:jobId" element={<BookIngestProgressPage />} />
                 <Route path="books/:sourceId" element={<BookDetailPage />} />
 
                 <Route

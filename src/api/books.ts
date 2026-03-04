@@ -4,6 +4,7 @@ import type {
     ContentSentence,
     ContentSource,
 } from "../types/book";
+import type { Job } from "../types/jobService";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 export const booksApi = {
@@ -62,6 +63,14 @@ export const booksApi = {
         });
 
         return handle<{ data: ContentSentence[] }>(res).then((r) => r.data);
+    },
+
+    async getBookIngestJob(jobId: number): Promise<Job> {
+        const res = await fetch(`${BASE_URL}/api/v1/jobs/${jobId}`, {
+            headers: getAuthHeaders(),
+        });
+
+        return handle<{ data: Job }>(res).then((r) => r.data);
     },
 
     async deleteContentSource(id: number): Promise<void> {
