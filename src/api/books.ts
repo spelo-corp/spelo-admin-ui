@@ -73,6 +73,25 @@ export const booksApi = {
         return handle<{ data: Job }>(res).then((r) => r.data);
     },
 
+    async updateSentence(
+        sentenceId: number,
+        data: {
+            text: string;
+            sequence: number;
+            paragraph_index: number | null;
+            token_count: number | null;
+            metadata: string | null;
+        },
+    ): Promise<ContentSentence> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sentences/${sentenceId}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+
+        return handle<{ data: ContentSentence }>(res).then((r) => r.data);
+    },
+
     async deleteContentSource(id: number): Promise<void> {
         const res = await fetch(`${BASE_URL}/api/v1/content/sources/${id}`, {
             method: "DELETE",

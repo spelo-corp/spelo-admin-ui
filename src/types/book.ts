@@ -36,6 +36,7 @@ export interface ContentSentence {
     paragraphIndex: number;
     charOffset: number;
     tokenCount: number;
+    metadata: Record<string, unknown> | null;
     createdAt: string;
 }
 

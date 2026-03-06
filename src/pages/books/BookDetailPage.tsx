@@ -17,6 +17,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { booksApi } from "../../api/books";
 import { api } from "../../api/client";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
+import EditableSentenceRow from "../../components/books/EditableSentenceRow";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
 import PageHeader from "../../components/common/PageHeader";
 import type { ContentSection, ContentSentence, ContentSource } from "../../types/book";
@@ -355,26 +356,18 @@ const BookDetailPage: React.FC = () => {
                                     ) : sentences && sentences.length > 0 ? (
                                         <div className="max-w-3xl space-y-5">
                                             {sentences.map((s) => (
-                                                <div
+                                                <EditableSentenceRow
                                                     key={s.id}
-                                                    className="group flex gap-4 p-3 -mx-3 rounded-xl hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <div className="w-8 shrink-0 flex justify-end">
-                                                        <span className="text-[11px] font-mono text-slate-300 group-hover:text-brand-400 font-medium pt-1 transition-colors">
-                                                            {String(s.sequence).padStart(3, "0")}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 space-y-1">
-                                                        <p className="text-[15px] leading-relaxed text-slate-700 font-medium tracking-wide">
-                                                            {s.text}
-                                                        </p>
-                                                        {s.tokenCount > 0 && (
-                                                            <p className="text-[11px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                tokens: {s.tokenCount}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                    sentence={s}
+                                                    onSaved={(updated) => {
+                                                        setSectionSentences((prev) => ({
+                                                            ...prev,
+                                                            [selectedSectionId!]: prev[selectedSectionId!].map(
+                                                                (sent) => sent.id === updated.id ? updated : sent,
+                                                            ),
+                                                        }));
+                                                    }}
+                                                />
                                             ))}
                                         </div>
                                     ) : (
