@@ -3,6 +3,7 @@ import type {
     ContentSection,
     ContentSentence,
     ContentSource,
+    SentenceMetadata,
 } from "../types/book";
 import type { Job } from "../types/jobService";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
@@ -36,8 +37,8 @@ export const booksApi = {
             headers: getAuthHeaders(),
         });
 
-        return handle<{ data: { content: ContentSource[]; totalElements: number } }>(res).then(
-            (r) => r.data,
+        return handle<{ data: ContentSource[]; total: number }>(res).then(
+            (r) => ({ content: r.data, totalElements: r.total }),
         );
     },
 
@@ -80,7 +81,7 @@ export const booksApi = {
             sequence: number;
             paragraph_index: number | null;
             token_count: number | null;
-            metadata: string | null;
+            metadata: SentenceMetadata | null;
         },
     ): Promise<ContentSentence> {
         const res = await fetch(`${BASE_URL}/api/v1/content/sentences/${sentenceId}`, {

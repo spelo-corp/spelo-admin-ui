@@ -27,6 +27,24 @@ export interface ContentSection {
     updatedAt: string;
 }
 
+export interface WordMeta {
+    word: string;
+    clean_word: string;
+    definition: string | null;
+    translation: string | null;
+    ipa: string | null;
+    example: string | null;
+    sense_id: number | null;
+    no_sense: boolean | null;
+}
+
+export interface SentenceMetadata {
+    translation: string | null;
+    contains_latex: boolean | null;
+    words: WordMeta[];
+    [key: string]: unknown;
+}
+
 export interface ContentSentence {
     id: number;
     sectionId: number;
@@ -36,7 +54,7 @@ export interface ContentSentence {
     paragraphIndex: number;
     charOffset: number;
     tokenCount: number;
-    metadata: Record<string, unknown> | null;
+    metadata: SentenceMetadata | null;
     createdAt: string;
 }
 

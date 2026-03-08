@@ -1,8 +1,11 @@
-import { AlertCircle, Check, ChevronDown, ChevronRight, Loader2, Pencil, X } from "lucide-react";
+import { AlertCircle, Check, Loader2, Pencil, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { booksApi } from "../../api/books";
-import type { ContentSentence } from "../../types/book";
+import type { ContentSentence, SentenceMetadata, WordMeta } from "../../types/book";
+import MetadataEditor from "./MetadataEditor";
+import MetadataPreview from "./MetadataPreview";
+import type { DraftWord } from "./WordAccordionItem";
 
 interface EditableSentenceRowProps {
     sentence: ContentSentence;
@@ -14,30 +17,51 @@ interface Draft {
     sequence: number;
     paragraphIndex: number;
     tokenCount: number;
-    metadata: string;
+    metadataTranslation: string;
+    metadataWords: DraftWord[];
 }
 
-function formatMetadata(metadata: Record<string, unknown> | null): string {
-    if (!metadata) return "";
-    try {
-        return JSON.stringify(metadata, null, 2);
-    } catch {
-        return "";
-    }
+function wordMetaToDraft(w: WordMeta): DraftWord {
+    return {
+        word: w.word ?? "",
+        clean_word: w.clean_word ?? "",
+        definition: w.definition ?? "",
+        translation: w.translation ?? "",
+        ipa: w.ipa ?? "",
+        example: w.example ?? "",
+        sense_id: w.sense_id != null ? String(w.sense_id) : "",
+        no_sense: w.no_sense ?? false,
+    };
 }
 
-function parseMetadata(str: string): { valid: boolean; value: Record<string, unknown> | null } {
-    const trimmed = str.trim();
-    if (!trimmed) return { valid: true, value: null };
-    try {
-        const parsed = JSON.parse(trimmed);
-        if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-            return { valid: true, value: parsed };
-        }
-        return { valid: false, value: null };
-    } catch {
-        return { valid: false, value: null };
-    }
+function draftWordsToMeta(words: DraftWord[]): WordMeta[] {
+    return words.map((w) => ({
+        word: w.word,
+        clean_word: w.clean_word,
+        definition: w.definition || null,
+        translation: w.translation || null,
+        ipa: w.ipa || null,
+        example: w.example || null,
+        sense_id: w.sense_id ? parseInt(w.sense_id, 10) || null : null,
+        no_sense: w.no_sense || null,
+    }));
+}
+
+function buildMetadata(
+    translation: string,
+    words: DraftWord[],
+    original: SentenceMetadata | null,
+): SentenceMetadata | null {
+    const hasTranslation = translation.trim().length > 0;
+    const hasWords = words.length > 0;
+    if (!hasTranslation && !hasWords) return null;
+
+    const result: SentenceMetadata = {
+        ...(original || {}),
+        translation: hasTranslation ? translation.trim() : null,
+        words: draftWordsToMeta(words),
+    };
+    return result;
 }
 
 const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onSaved }) => {
@@ -46,20 +70,19 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [metadataExpanded, setMetadataExpanded] = useState(false);
-    const [metadataError, setMetadataError] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const startEditing = () => {
+        const meta = sentence.metadata;
         setDraft({
             text: sentence.text,
             sequence: sentence.sequence,
             paragraphIndex: sentence.paragraphIndex,
             tokenCount: sentence.tokenCount,
-            metadata: formatMetadata(sentence.metadata),
+            metadataTranslation: meta?.translation ?? "",
+            metadataWords: (meta?.words ?? []).map(wordMetaToDraft),
         });
         setError(null);
-        setMetadataError(false);
         setIsEditing(true);
     };
 
@@ -67,29 +90,25 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
         setIsEditing(false);
         setDraft(null);
         setError(null);
-        setMetadataError(false);
     };
 
     const handleSave = async () => {
         if (!draft || !draft.text.trim()) return;
 
-        const metaResult = parseMetadata(draft.metadata);
-        if (!metaResult.valid) {
-            setMetadataError(true);
-            setError("Invalid JSON in metadata field.");
-            return;
-        }
-
         setSaving(true);
         setError(null);
-        setMetadataError(false);
         try {
+            const metadata = buildMetadata(
+                draft.metadataTranslation,
+                draft.metadataWords,
+                sentence.metadata,
+            );
             const updated = await booksApi.updateSentence(sentence.id, {
                 text: draft.text,
                 sequence: draft.sequence,
                 paragraph_index: draft.paragraphIndex,
                 token_count: draft.tokenCount,
-                metadata: draft.metadata.trim() || null,
+                metadata,
             });
             onSaved(updated);
             setIsEditing(false);
@@ -121,7 +140,9 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
         }
     };
 
-    const hasMetadata = sentence.metadata && Object.keys(sentence.metadata).length > 0;
+    const hasMetadata =
+        sentence.metadata &&
+        (sentence.metadata.translation || (sentence.metadata.words?.length ?? 0) > 0);
 
     if (isEditing && draft) {
         return (
@@ -192,35 +213,13 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                     </label>
                 </div>
 
-                {/* Metadata JSON editor */}
-                <label className="block mt-3">
-                    <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                        Metadata (JSON)
-                    </span>
-                    <textarea
-                        value={draft.metadata}
-                        onChange={(e) => {
-                            setDraft({ ...draft, metadata: e.target.value });
-                            if (metadataError) {
-                                const result = parseMetadata(e.target.value);
-                                setMetadataError(!result.valid);
-                            }
-                        }}
-                        disabled={saving}
-                        placeholder='{ "key": "value" }'
-                        className={`mt-1 w-full border rounded-lg p-3 text-sm text-slate-700 font-mono leading-relaxed focus:outline-none focus:ring-2 resize-y min-h-[80px] disabled:bg-slate-50 disabled:opacity-60 ${
-                            metadataError
-                                ? "border-rose-300 focus:ring-rose-400/40 focus:border-rose-400"
-                                : "border-slate-200 focus:ring-brand/40 focus:border-brand"
-                        }`}
-                        rows={Math.max(3, draft.metadata.split("\n").length)}
-                    />
-                </label>
-                {metadataError && (
-                    <p className="text-xs text-rose-500 mt-1">
-                        Invalid JSON. Must be an object or empty.
-                    </p>
-                )}
+                <MetadataEditor
+                    translation={draft.metadataTranslation}
+                    words={draft.metadataWords}
+                    onTranslationChange={(v) => setDraft({ ...draft, metadataTranslation: v })}
+                    onWordsChange={(w) => setDraft({ ...draft, metadataWords: w })}
+                    disabled={saving}
+                />
 
                 <div className="flex justify-end gap-2 mt-3">
                     <button
@@ -235,7 +234,7 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving || !draft.text.trim() || metadataError}
+                        disabled={saving || !draft.text.trim()}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand border border-transparent rounded-lg hover:bg-brand-600 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         {saving ? (
@@ -247,7 +246,7 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                     </button>
                 </div>
 
-                {error && !metadataError && (
+                {error && (
                     <p className="text-xs text-rose-600 flex items-center gap-1 mt-2">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         {error}
@@ -275,9 +274,18 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                     <p className="text-[15px] leading-relaxed text-slate-700 font-medium tracking-wide">
                         {sentence.text}
                     </p>
+                    {sentence.metadata?.translation && (
+                        <p className="text-[13px] text-slate-400 italic">
+                            {sentence.metadata.translation}
+                        </p>
+                    )}
                     <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                         {sentence.tokenCount > 0 && <span>tokens: {sentence.tokenCount}</span>}
-                        {hasMetadata && <span className="text-brand-500">has metadata</span>}
+                        {hasMetadata && (
+                            <span className="text-brand-500">
+                                {sentence.metadata?.words?.length ?? 0} words
+                            </span>
+                        )}
                     </div>
                 </div>
                 {showSuccess ? (
@@ -297,31 +305,7 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                 )}
             </div>
 
-            {/* Collapsible metadata preview in normal state */}
-            {hasMetadata && (
-                <div className="-mx-3 px-3 pb-2">
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMetadataExpanded(!metadataExpanded);
-                        }}
-                        className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 font-mono ml-12 transition-colors"
-                    >
-                        {metadataExpanded ? (
-                            <ChevronDown className="w-3 h-3" />
-                        ) : (
-                            <ChevronRight className="w-3 h-3" />
-                        )}
-                        metadata
-                    </button>
-                    {metadataExpanded && (
-                        <pre className="ml-12 mt-1 p-2 bg-slate-50 rounded-lg text-[11px] text-slate-600 font-mono overflow-x-auto max-h-48 border border-slate-100">
-                            {formatMetadata(sentence.metadata)}
-                        </pre>
-                    )}
-                </div>
-            )}
+            {hasMetadata && sentence.metadata && <MetadataPreview metadata={sentence.metadata} />}
         </div>
     );
 };
