@@ -19,6 +19,7 @@ import BookListPage from "../pages/books/BookListPage";
 import BookUploadPage from "../pages/books/BookUploadPage";
 import CategoryManagementPage from "../pages/CategoryManagementPage";
 import CollectionsPage from "../pages/CollectionsPage";
+import DialogueScenarioManagementPage from "../pages/DialogueScenarioManagementPage";
 import CollectionWordsPage from "../pages/CollectionWordsPage";
 import DashboardPage from "../pages/DashboardPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
@@ -161,6 +162,14 @@ export const AppRoutes = () => {
                     element={
                         <RouteErrorBoundary routeName="Categories">
                             <CategoryManagementPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="dialogues"
+                    element={
+                        <RouteErrorBoundary routeName="Dialogue Scenarios">
+                            <DialogueScenarioManagementPage />
                         </RouteErrorBoundary>
                     }
                 />

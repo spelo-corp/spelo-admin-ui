@@ -3,6 +3,7 @@ import { booksApi } from "./books";
 import { categoriesApi } from "./categories";
 import { collectionsApi } from "./collections";
 import { dashboardApi } from "./dashboard";
+import { dialogueScenariosApi } from "./dialogueScenarios";
 import { filesApi } from "./files";
 import { jobsApi } from "./jobs";
 import { lessonsApi } from "./lessons";
@@ -20,6 +21,7 @@ export const api = {
     ...collectionsApi,
     ...booksApi,
     ...pipelinesApi,
+    ...dialogueScenariosApi,
 };
 
 export {
@@ -33,4 +35,5 @@ export {
     collectionsApi,
     booksApi,
     pipelinesApi,
+    dialogueScenariosApi,
 };
