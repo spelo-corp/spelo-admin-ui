@@ -11,6 +11,7 @@ export interface CategoryListItemDTO {
     image: string;
     description: string;
     lesson_count: number;
+    child_count: number;
     min_level: string; // e.g., "A1", "B2"
     max_level: string;
 }
@@ -27,6 +28,7 @@ export interface Category {
     description?: string;
     status?: number; // For filtering active/inactive categories
     lesson_count?: number;
+    child_count?: number;
     min_level?: string;
     max_level?: string;
 }

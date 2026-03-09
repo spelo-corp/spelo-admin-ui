@@ -37,9 +37,10 @@ export const booksApi = {
             headers: getAuthHeaders(),
         });
 
-        return handle<{ data: ContentSource[]; total: number }>(res).then(
-            (r) => ({ content: r.data, totalElements: r.total }),
-        );
+        return handle<{ data: ContentSource[]; total: number }>(res).then((r) => ({
+            content: r.data,
+            totalElements: r.total,
+        }));
     },
 
     async getContentSource(id: number): Promise<ContentSource> {
@@ -100,5 +101,111 @@ export const booksApi = {
         });
 
         return handle<{ data: void }>(res).then(() => {});
+    },
+
+    async updateSource(
+        sourceId: number,
+        data: { title: string; author?: string; language?: string },
+    ): Promise<ContentSource> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sources/${sourceId}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        return handle<{ data: ContentSource }>(res).then((r) => r.data);
+    },
+
+    async createSection(
+        sourceId: number,
+        data: { title: string; section_type?: string },
+    ): Promise<ContentSection> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sources/${sourceId}/sections`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        return handle<{ data: ContentSection }>(res).then((r) => r.data);
+    },
+
+    async updateSection(
+        sectionId: number,
+        data: { title?: string; sequence?: number },
+    ): Promise<ContentSection> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sections/${sectionId}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        return handle<{ data: ContentSection }>(res).then((r) => r.data);
+    },
+
+    async deleteSection(sectionId: number): Promise<void> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sections/${sectionId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        return handle<{ data: void }>(res).then(() => {});
+    },
+
+    async createSentence(
+        sectionId: number,
+        data: {
+            text: string;
+            sequence: number;
+            block_type?: string;
+            paragraph_index?: number | null;
+            token_count?: number | null;
+            metadata?: SentenceMetadata | null;
+        },
+    ): Promise<ContentSentence> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sections/${sectionId}/sentences`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        });
+        return handle<{ data: ContentSentence }>(res).then((r) => r.data);
+    },
+
+    async deleteSentence(sentenceId: number): Promise<void> {
+        const res = await fetch(`${BASE_URL}/api/v1/content/sentences/${sentenceId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        return handle<{ data: void }>(res).then(() => {});
+    },
+
+    async uploadContentImage(file: File): Promise<string> {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch(`${BASE_URL}/api/v1/file/spelo-content/upload`, {
+            method: "POST",
+            headers: getAuthHeaders({ contentType: null }),
+            body: form,
+        });
+        const objectName = await handle<{ data: string }>(res).then((r) => r.data);
+        return objectName;
+    },
+
+    async getPresignedUrl(
+        bucketName: string,
+        objectName: string,
+    ): Promise<string> {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/file/presigned_url/${bucketName}/${objectName}`,
+            { headers: getAuthHeaders() },
+        );
+        return handle<{ data: string }>(res).then((r) => r.data);
+    },
+
+    async reorderSentences(sectionId: number, sentenceIds: number[]): Promise<ContentSentence[]> {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/content/sections/${sectionId}/sentences/reorder`,
+            {
+                method: "PUT",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ sentence_ids: sentenceIds }),
+            },
+        );
+        return handle<{ data: ContentSentence[] }>(res).then((r) => r.data);
     },
 };

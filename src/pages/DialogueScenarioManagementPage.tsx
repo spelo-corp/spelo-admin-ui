@@ -1,4 +1,6 @@
 import {
+    ChevronDown,
+    ChevronUp,
     CircleAlert,
     Edit,
     MessageSquare,
@@ -16,6 +18,7 @@ import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
+import { useDialogueCharacters } from "../hooks/useDialogueCharacters";
 import {
     useCreateDialogueScenario,
     useDeleteDialogueScenario,
@@ -56,6 +59,7 @@ const difficultyColor = (d: string) => {
 
 const DialogueScenarioManagementPage: React.FC = () => {
     const { data: scenarios = [], isLoading: loading } = useDialogueScenarios();
+    const { data: characters = [] } = useDialogueCharacters();
     const createMutation = useCreateDialogueScenario();
     const updateMutation = useUpdateDialogueScenario();
     const deleteMutation = useDeleteDialogueScenario();
@@ -74,7 +78,8 @@ const DialogueScenarioManagementPage: React.FC = () => {
     const [description, setDescription] = useState("");
     const [category, setCategory] = useState("Travel");
     const [difficulty, setDifficulty] = useState("guided");
-    const [aiPersona, setAiPersona] = useState("");
+    const [characterId, setCharacterId] = useState<number | null>(null);
+    const [characterPreviewOpen, setCharacterPreviewOpen] = useState(false);
     const [setting, setSetting] = useState("");
     const [contextData, setContextData] = useState("");
     const [checkpoints, setCheckpoints] = useState("[]");
@@ -93,12 +98,20 @@ const DialogueScenarioManagementPage: React.FC = () => {
     const [deleteTarget, setDeleteTarget] = useState<DialogueScenarioDTO | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const activeCharacters = useMemo(() => characters.filter((c) => c.is_active), [characters]);
+
+    const selectedCharacter = useMemo(
+        () => characters.find((c) => c.id === characterId) ?? null,
+        [characters, characterId],
+    );
+
     const resetForm = () => {
         setTitle("");
         setDescription("");
         setCategory("Travel");
         setDifficulty("guided");
-        setAiPersona("");
+        setCharacterId(null);
+        setCharacterPreviewOpen(false);
         setSetting("");
         setContextData("");
         setCheckpoints("[]");
@@ -126,7 +139,8 @@ const DialogueScenarioManagementPage: React.FC = () => {
         setDescription(s.description);
         setCategory(s.category);
         setDifficulty(s.difficulty);
-        setAiPersona(s.ai_persona);
+        setCharacterId(s.character_id ?? null);
+        setCharacterPreviewOpen(false);
         setSetting(s.setting);
         setContextData(s.context_data ?? "");
         setCheckpoints(s.checkpoints);
@@ -157,8 +171,8 @@ const DialogueScenarioManagementPage: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!title.trim() || !description.trim() || !aiPersona.trim() || !setting.trim()) {
-            setModalError("Title, description, AI persona, and setting are required.");
+        if (!title.trim() || !description.trim() || !characterId || !setting.trim()) {
+            setModalError("Title, description, character, and setting are required.");
             return;
         }
 
@@ -187,7 +201,7 @@ const DialogueScenarioManagementPage: React.FC = () => {
             description: description.trim(),
             category,
             difficulty,
-            ai_persona: aiPersona.trim(),
+            character_id: characterId,
             setting: setting.trim(),
             context_data: contextData.trim() || null,
             checkpoints: checkpoints.trim() || "[]",
@@ -422,6 +436,11 @@ const DialogueScenarioManagementPage: React.FC = () => {
                                         >
                                             {difficultyLabel(scenario.difficulty)}
                                         </span>
+                                        {scenario.ai_name && (
+                                            <span className="px-2 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200">
+                                                {scenario.ai_name}
+                                            </span>
+                                        )}
                                         <span className="text-slate-400">
                                             ~{scenario.estimated_minutes} min
                                         </span>
@@ -551,18 +570,81 @@ const DialogueScenarioManagementPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* AI Persona */}
+                            {/* Character Picker */}
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    AI Persona *
+                                    Character *
                                 </label>
-                                <textarea
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                    rows={3}
-                                    placeholder="e.g. You are a friendly waiter at a mid-range Italian restaurant..."
-                                    value={aiPersona}
-                                    onChange={(e) => setAiPersona(e.target.value)}
-                                />
+                                <select
+                                    className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
+                                    value={characterId ?? ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCharacterId(val ? Number(val) : null);
+                                        setCharacterPreviewOpen(false);
+                                    }}
+                                >
+                                    <option value="">Select a character...</option>
+                                    {activeCharacters.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} — {c.role}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* Character preview */}
+                                {selectedCharacter && (
+                                    <div className="mt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setCharacterPreviewOpen(!characterPreviewOpen)
+                                            }
+                                            className="flex items-center gap-1 text-xs text-brand hover:text-brand-dark transition"
+                                        >
+                                            {characterPreviewOpen ? (
+                                                <ChevronUp className="w-3.5 h-3.5" />
+                                            ) : (
+                                                <ChevronDown className="w-3.5 h-3.5" />
+                                            )}
+                                            {characterPreviewOpen
+                                                ? "Hide character details"
+                                                : "Show character details"}
+                                        </button>
+                                        {characterPreviewOpen && (
+                                            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 text-xs text-slate-600">
+                                                <div>
+                                                    <span className="font-semibold text-slate-700">
+                                                        Personality:
+                                                    </span>{" "}
+                                                    {selectedCharacter.personality}
+                                                </div>
+                                                <div>
+                                                    <span className="font-semibold text-slate-700">
+                                                        Speech style:
+                                                    </span>{" "}
+                                                    {selectedCharacter.speech_style}
+                                                </div>
+                                                {selectedCharacter.catchphrases && (
+                                                    <div>
+                                                        <span className="font-semibold text-slate-700">
+                                                            Catchphrases:
+                                                        </span>{" "}
+                                                        {selectedCharacter.catchphrases}
+                                                    </div>
+                                                )}
+                                                {selectedCharacter.habits && (
+                                                    <div>
+                                                        <span className="font-semibold text-slate-700">
+                                                            Habits:
+                                                        </span>{" "}
+                                                        {selectedCharacter.habits}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Setting */}

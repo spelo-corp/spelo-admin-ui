@@ -1,10 +1,10 @@
 import type { Category, CategoryListResponse, CategoryRequestDTO } from "../types/category";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
 
-// Get all categories
-async function getCategories() {
+// Get categories by parent ID
+async function getCategories(parentId: number = 0) {
     return handle<CategoryListResponse>(
-        await fetch(`${BASE_URL}/api/v1/categories?parent_id=0`, {
+        await fetch(`${BASE_URL}/api/v1/categories?parent_id=${parentId}`, {
             headers: getAuthHeaders(),
         }),
     );

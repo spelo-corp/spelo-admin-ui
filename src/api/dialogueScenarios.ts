@@ -1,4 +1,9 @@
-import type { DialogueScenarioDTO, DialogueScenarioRequest } from "../types/dialogueScenario";
+import type {
+    DialogueCharacter,
+    DialogueCharacterRequest,
+    DialogueScenarioDTO,
+    DialogueScenarioRequest,
+} from "../types/dialogueScenario";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 async function getDialogueScenarios(category?: string) {
@@ -65,6 +70,51 @@ async function deactivateDialogueScenario(id: number) {
     );
 }
 
+async function getDialogueCharacters() {
+    return handle<{ success: boolean; data: DialogueCharacter[] }>(
+        await fetch(`${BASE_URL}/api/v1/admin/dialogues/characters`, {
+            headers: getAuthHeaders(),
+        }),
+    );
+}
+
+async function getDialogueCharacter(id: number) {
+    return handle<{ success: boolean; data: DialogueCharacter }>(
+        await fetch(`${BASE_URL}/api/v1/admin/dialogues/characters/${id}`, {
+            headers: getAuthHeaders(),
+        }),
+    );
+}
+
+async function createDialogueCharacter(data: DialogueCharacterRequest) {
+    return handle<{ success: boolean; data: DialogueCharacter }>(
+        await fetch(`${BASE_URL}/api/v1/admin/dialogues/characters`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        }),
+    );
+}
+
+async function updateDialogueCharacter(id: number, data: DialogueCharacterRequest) {
+    return handle<{ success: boolean; data: DialogueCharacter }>(
+        await fetch(`${BASE_URL}/api/v1/admin/dialogues/characters/${id}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        }),
+    );
+}
+
+async function deleteDialogueCharacter(id: number) {
+    return handle<{ success: boolean; data: string }>(
+        await fetch(`${BASE_URL}/api/v1/admin/dialogues/characters/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        }),
+    );
+}
+
 export const dialogueScenariosApi = {
     getDialogueScenarios,
     getDialogueScenario,
@@ -73,4 +123,9 @@ export const dialogueScenariosApi = {
     deleteDialogueScenario,
     activateDialogueScenario,
     deactivateDialogueScenario,
+    getDialogueCharacters,
+    getDialogueCharacter,
+    createDialogueCharacter,
+    updateDialogueCharacter,
+    deleteDialogueCharacter,
 };

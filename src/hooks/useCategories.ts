@@ -3,16 +3,16 @@ import { api } from "../api/client";
 import type { Category, CategoryRequestDTO } from "../types/category";
 
 // Query key for categories
-const CATEGORIES_QUERY_KEY = ["categories"];
+const CATEGORIES_QUERY_KEY = "categories";
 
 /**
  * Hook to fetch categories with automatic caching
  */
-export function useCategories() {
+export function useCategories(parentId: number = 0) {
     return useQuery({
-        queryKey: CATEGORIES_QUERY_KEY,
+        queryKey: [CATEGORIES_QUERY_KEY, parentId],
         queryFn: async () => {
-            const res = await api.getCategories();
+            const res = await api.getCategories(parentId);
             if (res.success && res.data && res.data.length > 0) {
                 // Convert CategoryListItemDTO to Category for internal use
                 const categories: Category[] = res.data.map((dto) => ({
@@ -22,6 +22,7 @@ export function useCategories() {
                     image: dto.image,
                     description: dto.description,
                     lesson_count: dto.lesson_count,
+                    child_count: dto.child_count,
                     min_level: dto.min_level,
                     max_level: dto.max_level,
                 }));
@@ -41,8 +42,8 @@ export function useCreateCategory() {
     return useMutation({
         mutationFn: (data: CategoryRequestDTO) => api.createCategory(data),
         onSuccess: () => {
-            // Invalidate and refetch categories
-            queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+            // Invalidate all category queries (any parent_id)
+            queryClient.invalidateQueries({ queryKey: [CATEGORIES_QUERY_KEY] });
         },
     });
 }
@@ -57,8 +58,7 @@ export function useUpdateCategory() {
         mutationFn: ({ id, data }: { id: number; data: CategoryRequestDTO }) =>
             api.updateCategory(id, data),
         onSuccess: () => {
-            // Invalidate and refetch categories
-            queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: [CATEGORIES_QUERY_KEY] });
         },
     });
 }
@@ -72,8 +72,7 @@ export function useDeleteCategory() {
     return useMutation({
         mutationFn: (id: number) => api.deleteCategory(id),
         onSuccess: () => {
-            // Invalidate and refetch categories
-            queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: [CATEGORIES_QUERY_KEY] });
         },
     });
 }

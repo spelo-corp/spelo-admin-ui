@@ -4,7 +4,9 @@ export interface DialogueScenarioDTO {
     description: string;
     category: string;
     difficulty: string;
-    ai_persona: string;
+    ai_name: string;
+    ai_role: string;
+    character_id: number;
     setting: string;
     context_data: string | null;
     checkpoints: string;
@@ -26,7 +28,7 @@ export interface DialogueScenarioRequest {
     description: string;
     category: string;
     difficulty: string;
-    ai_persona: string;
+    character_id: number;
     setting: string;
     context_data?: string | null;
     checkpoints: string;
@@ -39,4 +41,27 @@ export interface DialogueScenarioRequest {
     icon_url?: string | null;
     is_active?: boolean;
     sort_order?: number;
+}
+
+export interface DialogueCharacter {
+    id: number;
+    name: string;
+    role: string;
+    personality: string;
+    speech_style: string;
+    catchphrases: string | null;
+    habits: string | null;
+    avatar_url: string | null;
+    is_active: boolean;
+}
+
+export interface DialogueCharacterRequest {
+    name: string;
+    role: string;
+    personality: string;
+    speech_style: string;
+    catchphrases?: string | null;
+    habits?: string | null;
+    avatar_url?: string | null;
+    is_active?: boolean;
 }

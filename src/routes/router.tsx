@@ -19,9 +19,10 @@ import BookListPage from "../pages/books/BookListPage";
 import BookUploadPage from "../pages/books/BookUploadPage";
 import CategoryManagementPage from "../pages/CategoryManagementPage";
 import CollectionsPage from "../pages/CollectionsPage";
-import DialogueScenarioManagementPage from "../pages/DialogueScenarioManagementPage";
 import CollectionWordsPage from "../pages/CollectionWordsPage";
 import DashboardPage from "../pages/DashboardPage";
+import DialogueCharacterManagementPage from "../pages/DialogueCharacterManagementPage";
+import DialogueScenarioManagementPage from "../pages/DialogueScenarioManagementPage";
 import DictionaryPage from "../pages/DictionaryPage.tsx";
 import JobsDashboardPage from "../pages/jobs/JobsDashboardPage";
 import YoutubeJobOverviewPage from "../pages/jobs/YoutubeJobOverviewPage";
@@ -170,6 +171,14 @@ export const AppRoutes = () => {
                     element={
                         <RouteErrorBoundary routeName="Dialogue Scenarios">
                             <DialogueScenarioManagementPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="dialogues/characters"
+                    element={
+                        <RouteErrorBoundary routeName="Dialogue Characters">
+                            <DialogueCharacterManagementPage />
                         </RouteErrorBoundary>
                     }
                 />

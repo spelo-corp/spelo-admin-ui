@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Loader2, Pencil, X } from "lucide-react";
+import { AlertCircle, Check, ImageIcon, Loader2, Pencil, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { booksApi } from "../../api/books";
@@ -63,6 +63,51 @@ function buildMetadata(
     };
     return result;
 }
+
+const ImagePreview: React.FC<{ objectName: string; alt: string }> = ({ objectName, alt }) => {
+    const [src, setSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (objectName.startsWith("http")) {
+            setSrc(objectName);
+            return;
+        }
+        // Strip path prefix if stored as full download path
+        const prefix = "/api/v1/file/download/spelo-content/";
+        const cleanName = objectName.startsWith(prefix)
+            ? objectName.slice(prefix.length)
+            : objectName;
+        let cancelled = false;
+        booksApi
+            .getPresignedUrl("spelo-content", cleanName)
+            .then((url) => {
+                if (!cancelled) setSrc(url);
+            })
+            .catch(() => {
+                if (!cancelled) setSrc(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [objectName]);
+
+    if (!src) {
+        return (
+            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Loading image...
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className="max-w-md max-h-48 rounded-lg border border-slate-200 object-cover"
+        />
+    );
+};
 
 const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onSaved }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -271,16 +316,53 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                     </span>
                 </div>
                 <div className="flex-1 space-y-1">
-                    <p className="text-[15px] leading-relaxed text-slate-700 font-medium tracking-wide">
-                        {sentence.text}
-                    </p>
-                    {sentence.metadata?.translation && (
-                        <p className="text-[13px] text-slate-400 italic">
-                            {sentence.metadata.translation}
+                    {sentence.blockType === "image" ? (
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                                <ImageIcon className="w-3 h-3" />
+                                Image
+                            </div>
+                            <ImagePreview
+                                objectName={sentence.text}
+                                alt={
+                                    (sentence.metadata?.caption as string) ||
+                                    "Content image"
+                                }
+                            />
+                            {sentence.metadata?.caption && (
+                                <p className="text-[13px] text-slate-500 italic">
+                                    {sentence.metadata.caption as string}
+                                </p>
+                            )}
+                        </div>
+                    ) : sentence.blockType === "heading" ? (
+                        <p className="text-lg font-bold text-slate-900">
+                            {sentence.text}
+                        </p>
+                    ) : sentence.blockType === "quote" ? (
+                        <blockquote className="border-l-3 border-slate-300 pl-3 text-[15px] italic text-slate-600 leading-relaxed">
+                            {sentence.text}
+                        </blockquote>
+                    ) : (
+                        <p className="text-[15px] leading-relaxed text-slate-700 font-medium tracking-wide">
+                            {sentence.text}
                         </p>
                     )}
+                    {sentence.blockType !== "image" &&
+                        sentence.metadata?.translation && (
+                            <p className="text-[13px] text-slate-400 italic">
+                                {sentence.metadata.translation}
+                            </p>
+                        )}
                     <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                        {sentence.tokenCount > 0 && <span>tokens: {sentence.tokenCount}</span>}
+                        {sentence.blockType !== "text" && (
+                            <span className="text-amber-600">
+                                {sentence.blockType}
+                            </span>
+                        )}
+                        {sentence.tokenCount > 0 && (
+                            <span>tokens: {sentence.tokenCount}</span>
+                        )}
                         {hasMetadata && (
                             <span className="text-brand-500">
                                 {sentence.metadata?.words?.length ?? 0} words

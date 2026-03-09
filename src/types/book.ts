@@ -51,6 +51,7 @@ export interface ContentSentence {
     sourceId: number;
     sequence: number;
     text: string;
+    blockType: string;
     paragraphIndex: number;
     charOffset: number;
     tokenCount: number;
