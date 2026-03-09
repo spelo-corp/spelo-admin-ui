@@ -263,22 +263,21 @@ const BookDetailPage: React.FC = () => {
                 text = await booksApi.uploadContentImage(newBlockFile);
             }
 
-            const metadata: SentenceMetadata | null =
-                isImage
-                    ? ({
-                          translation: null,
-                          contains_latex: null,
-                          words: [],
-                          caption: newBlockCaption.trim() || null,
-                      } as SentenceMetadata)
-                    : newBlockType === "heading"
-                      ? ({
-                            translation: null,
-                            contains_latex: null,
-                            words: [],
-                            heading_level: 2,
-                        } as SentenceMetadata)
-                      : null;
+            const metadata: SentenceMetadata | null = isImage
+                ? ({
+                      translation: null,
+                      contains_latex: null,
+                      words: [],
+                      caption: newBlockCaption.trim() || null,
+                  } as SentenceMetadata)
+                : newBlockType === "heading"
+                  ? ({
+                        translation: null,
+                        contains_latex: null,
+                        words: [],
+                        heading_level: 2,
+                    } as SentenceMetadata)
+                  : null;
 
             await booksApi.createSentence(addingBlock.sectionId, {
                 text,
@@ -286,9 +285,7 @@ const BookDetailPage: React.FC = () => {
                 block_type: newBlockType,
                 metadata,
             });
-            const sentences = await booksApi.getSectionSentences(
-                addingBlock.sectionId,
-            );
+            const sentences = await booksApi.getSectionSentences(addingBlock.sectionId);
             setSectionSentences((prev) => ({
                 ...prev,
                 [addingBlock.sectionId]: sentences,
@@ -787,7 +784,8 @@ const BookDetailPage: React.FC = () => {
                                         />
                                         {newBlockFile && (
                                             <p className="text-xs text-slate-500 mt-1">
-                                                {newBlockFile.name} ({(newBlockFile.size / 1024).toFixed(0)} KB)
+                                                {newBlockFile.name} (
+                                                {(newBlockFile.size / 1024).toFixed(0)} KB)
                                             </p>
                                         )}
                                     </div>
@@ -802,7 +800,8 @@ const BookDetailPage: React.FC = () => {
                                                 setNewBlockText(e.target.value);
                                                 if (e.target.value) {
                                                     setNewBlockFile(null);
-                                                    if (fileInputRef.current) fileInputRef.current.value = "";
+                                                    if (fileInputRef.current)
+                                                        fileInputRef.current.value = "";
                                                 }
                                             }}
                                             placeholder="https://..."

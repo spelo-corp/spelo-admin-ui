@@ -186,10 +186,7 @@ export const booksApi = {
         return objectName;
     },
 
-    async getPresignedUrl(
-        bucketName: string,
-        objectName: string,
-    ): Promise<string> {
+    async getPresignedUrl(bucketName: string, objectName: string): Promise<string> {
         const res = await fetch(
             `${BASE_URL}/api/v1/file/presigned_url/${bucketName}/${objectName}`,
             { headers: getAuthHeaders() },

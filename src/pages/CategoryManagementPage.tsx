@@ -1,7 +1,9 @@
 import {
     BookOpen,
+    ChevronRight,
     CircleAlert,
     Edit,
+    FolderOpen,
     Layers,
     Plus,
     Search,
@@ -10,7 +12,7 @@ import {
     X,
 } from "lucide-react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
@@ -24,11 +26,24 @@ import {
 } from "../hooks/useCategories";
 import type { Category } from "../types/category";
 
+interface BreadcrumbItem {
+    id: number;
+    name: string;
+}
+
 const CategoryManagementPage: React.FC = () => {
     const navigate = useNavigate();
 
-    // Use React Query for categories
-    const { data: categories = [], isLoading: loading } = useCategories();
+    // Breadcrumb state for hierarchical navigation
+    const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([
+        { id: 0, name: "All Categories" },
+    ]);
+
+    const currentParent = breadcrumb[breadcrumb.length - 1];
+    const currentParentId = currentParent.id;
+
+    // Use React Query for categories at current level
+    const { data: categories = [], isLoading: loading } = useCategories(currentParentId);
     const createCategoryMutation = useCreateCategory();
     const updateCategoryMutation = useUpdateCategory();
     const deleteCategoryMutation = useDeleteCategory();
@@ -42,7 +57,6 @@ const CategoryManagementPage: React.FC = () => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [image, setImage] = useState("");
-    const [parentId, setParentId] = useState(0);
     const [status, setStatus] = useState(1);
 
     // delete confirm modal
@@ -54,7 +68,6 @@ const CategoryManagementPage: React.FC = () => {
         setName("");
         setDescription("");
         setImage("");
-        setParentId(0);
         setStatus(1);
         setEditingCategory(null);
         setModalError(null);
@@ -70,7 +83,6 @@ const CategoryManagementPage: React.FC = () => {
         setName(category.name);
         setDescription(category.description ?? "");
         setImage(category.image ?? "");
-        setParentId(category.parent_id ?? 0);
         setStatus(category.status ?? 1);
         setModalError(null);
         setModalOpen(true);
@@ -114,7 +126,7 @@ const CategoryManagementPage: React.FC = () => {
             name: trimmedName,
             description: description || undefined,
             image: image || undefined,
-            parent_id: parentId,
+            parent_id: editingCategory ? (editingCategory.parent_id ?? 0) : currentParentId,
             status,
         };
 
@@ -132,6 +144,17 @@ const CategoryManagementPage: React.FC = () => {
             setModalError(message);
         }
     };
+
+    // Breadcrumb navigation
+    const navigateToBreadcrumb = useCallback((index: number) => {
+        setBreadcrumb((prev) => prev.slice(0, index + 1));
+        setSearch("");
+    }, []);
+
+    const drillIntoCategory = useCallback((category: Category) => {
+        setBreadcrumb((prev) => [...prev, { id: category.id, name: category.name }]);
+        setSearch("");
+    }, []);
 
     const filteredCategories = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -190,6 +213,36 @@ const CategoryManagementPage: React.FC = () => {
                 </div>
             </PageHeader>
 
+            {/* BREADCRUMB */}
+            {breadcrumb.length > 1 && (
+                <nav className="bg-white rounded-card shadow-card border border-slate-100 px-5 py-3">
+                    <ol className="flex items-center gap-1 text-sm flex-wrap">
+                        {breadcrumb.map((item, index) => {
+                            const isLast = index === breadcrumb.length - 1;
+                            return (
+                                <li key={item.id} className="flex items-center gap-1">
+                                    {index > 0 && (
+                                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    )}
+                                    {isLast ? (
+                                        <span className="font-semibold text-slate-800">
+                                            {item.name}
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => navigateToBreadcrumb(index)}
+                                            className="text-brand hover:text-brand/80 hover:underline transition font-medium"
+                                        >
+                                            {item.name}
+                                        </button>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ol>
+                </nav>
+            )}
+
             {/* FILTERS */}
             <div className="bg-white rounded-card shadow-card border border-slate-100 p-4 flex flex-col gap-3">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
@@ -216,7 +269,7 @@ const CategoryManagementPage: React.FC = () => {
                         </div>
                         <div>
                             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                                Categories
+                                {currentParent.name}
                             </p>
                             <p className="text-sm text-slate-600">
                                 {filteredCategories.length} showing
@@ -245,11 +298,24 @@ const CategoryManagementPage: React.FC = () => {
                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                                 <Layers className="w-6 h-6" />
                             </div>
-                            <p className="font-medium text-slate-700">No categories found yet.</p>
-                            <p className="text-sm text-slate-500">
-                                Create your first category to get started.
+                            <p className="font-medium text-slate-700">
+                                {currentParentId === 0
+                                    ? "No categories found yet."
+                                    : "No sub-categories in this category."}
                             </p>
-                            <div className="flex justify-center pt-1">
+                            <p className="text-sm text-slate-500">
+                                {currentParentId === 0
+                                    ? "Create your first category to get started."
+                                    : "Create a sub-category or go back."}
+                            </p>
+                            <div className="flex justify-center gap-2 pt-1">
+                                {currentParentId !== 0 && (
+                                    <Btn.Secondary
+                                        onClick={() => navigateToBreadcrumb(breadcrumb.length - 2)}
+                                    >
+                                        Go Back
+                                    </Btn.Secondary>
+                                )}
                                 <Btn.Primary onClick={openCreateModal} className="px-5">
                                     <Plus className="w-4 h-4" />
                                     Create Category
@@ -265,72 +331,91 @@ const CategoryManagementPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {filteredCategories.map((category) => (
-                                <div
-                                    key={category.id}
-                                    className="bg-white rounded-card border border-slate-100 p-5 shadow-sm hover:shadow-md transition space-y-4"
-                                >
-                                    {/* Image */}
-                                    {category.image && (
-                                        <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-100">
-                                            <img
-                                                src={category.image}
-                                                alt={category.name}
-                                                className="w-full h-full object-cover"
-                                            />
+                            {filteredCategories.map((category) => {
+                                const hasChildren = (category.child_count ?? 0) > 0;
+                                return (
+                                    <div
+                                        key={category.id}
+                                        className={`bg-white rounded-card border border-slate-100 p-5 shadow-sm hover:shadow-md transition space-y-4 ${hasChildren ? "cursor-pointer" : ""}`}
+                                        onClick={() => {
+                                            if (hasChildren) drillIntoCategory(category);
+                                        }}
+                                    >
+                                        {/* Image */}
+                                        {category.image && (
+                                            <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-100">
+                                                <img
+                                                    src={category.image}
+                                                    alt={category.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Info */}
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-semibold text-slate-800">
+                                                    {category.name}
+                                                </h3>
+                                                {hasChildren && (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5 border border-indigo-100">
+                                                        <FolderOpen className="w-3 h-3" />
+                                                        {category.child_count} sub-topics
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {category.description && (
+                                                <p className="text-sm text-slate-500 line-clamp-2">
+                                                    {category.description}
+                                                </p>
+                                            )}
                                         </div>
-                                    )}
 
-                                    {/* Info */}
-                                    <div>
-                                        <h3 className="font-semibold text-slate-800 mb-1">
-                                            {category.name}
-                                        </h3>
-                                        {category.description && (
-                                            <p className="text-sm text-slate-500 line-clamp-2">
-                                                {category.description}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div className="flex items-center gap-3 text-xs text-slate-600">
-                                        <span className="inline-flex items-center gap-1">
-                                            <BookOpen className="w-4 h-4" />
-                                            {category.lesson_count ?? 0} lessons
-                                        </span>
-                                        {category.min_level && category.max_level && (
-                                            <span>
-                                                {category.min_level} - {category.max_level}
+                                        {/* Stats */}
+                                        <div className="flex items-center gap-3 text-xs text-slate-600">
+                                            <span className="inline-flex items-center gap-1">
+                                                <BookOpen className="w-4 h-4" />
+                                                {category.lesson_count ?? 0} lessons
                                             </span>
-                                        )}
-                                    </div>
+                                            {category.min_level && category.max_level && (
+                                                <span>
+                                                    {category.min_level} - {category.max_level}
+                                                </span>
+                                            )}
+                                        </div>
 
-                                    {/* Actions */}
-                                    <div className="flex gap-2 pt-2">
-                                        <button
-                                            onClick={() =>
-                                                navigate(`/admin/lessons?category=${category.id}`)
-                                            }
-                                            className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition"
+                                        {/* Actions */}
+                                        <div
+                                            className="flex gap-2 pt-2"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
-                                            View Lessons
-                                        </button>
-                                        <button
-                                            onClick={() => openEditModal(category)}
-                                            className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(category)}
-                                            className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                            <button
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/admin/lessons?category=${category.id}`,
+                                                    )
+                                                }
+                                                className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition"
+                                            >
+                                                View Lessons
+                                            </button>
+                                            <button
+                                                onClick={() => openEditModal(category)}
+                                                className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => openDeleteModal(category)}
+                                                className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -374,6 +459,14 @@ const CategoryManagementPage: React.FC = () => {
                                 </div>
                             )}
 
+                            {/* PARENT CONTEXT */}
+                            {!editingCategory && currentParentId !== 0 && (
+                                <div className="px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs">
+                                    Creating inside:{" "}
+                                    <span className="font-semibold">{currentParent.name}</span>
+                                </div>
+                            )}
+
                             {/* NAME */}
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -403,18 +496,19 @@ const CategoryManagementPage: React.FC = () => {
                                 <Input value={image} onChange={(e) => setImage(e.target.value)} />
                             </div>
 
-                            {/* PARENT ID & STATUS */}
+                            {/* PARENT & STATUS */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-600 mb-1">
-                                        Parent ID
+                                        Parent
                                     </label>
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        value={parentId}
-                                        onChange={(e) => setParentId(Number(e.target.value) || 0)}
-                                    />
+                                    <div className="w-full rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                                        {editingCategory
+                                            ? `ID: ${editingCategory.parent_id ?? 0}`
+                                            : currentParentId === 0
+                                              ? "Root (top-level)"
+                                              : currentParent.name}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -513,7 +607,7 @@ const CategoryManagementPage: React.FC = () => {
                                     className="bg-rose-600 hover:bg-rose-700"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    {deleting ? "Deleting…" : "Delete category"}
+                                    {deleting ? "Deleting..." : "Delete category"}
                                 </Btn.Primary>
                             </div>
                         </div>

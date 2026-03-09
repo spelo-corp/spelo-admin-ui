@@ -205,9 +205,7 @@ function NavSection({
             <button
                 onClick={() => setOpen(!open)}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg text-[14px] font-medium transition-colors w-full ${
-                    active
-                        ? "text-slate-800"
-                        : "text-slate-500 hover:text-slate-700 hover:bg-white"
+                    active ? "text-slate-800" : "text-slate-500 hover:text-slate-700 hover:bg-white"
                 }`}
             >
                 <span className="flex-1 text-left">{group.label}</span>

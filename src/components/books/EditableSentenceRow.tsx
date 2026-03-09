@@ -324,10 +324,7 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                             </div>
                             <ImagePreview
                                 objectName={sentence.text}
-                                alt={
-                                    (sentence.metadata?.caption as string) ||
-                                    "Content image"
-                                }
+                                alt={(sentence.metadata?.caption as string) || "Content image"}
                             />
                             {sentence.metadata?.caption && (
                                 <p className="text-[13px] text-slate-500 italic">
@@ -336,9 +333,7 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                             )}
                         </div>
                     ) : sentence.blockType === "heading" ? (
-                        <p className="text-lg font-bold text-slate-900">
-                            {sentence.text}
-                        </p>
+                        <p className="text-lg font-bold text-slate-900">{sentence.text}</p>
                     ) : sentence.blockType === "quote" ? (
                         <blockquote className="border-l-3 border-slate-300 pl-3 text-[15px] italic text-slate-600 leading-relaxed">
                             {sentence.text}
@@ -348,21 +343,16 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                             {sentence.text}
                         </p>
                     )}
-                    {sentence.blockType !== "image" &&
-                        sentence.metadata?.translation && (
-                            <p className="text-[13px] text-slate-400 italic">
-                                {sentence.metadata.translation}
-                            </p>
-                        )}
+                    {sentence.blockType !== "image" && sentence.metadata?.translation && (
+                        <p className="text-[13px] text-slate-400 italic">
+                            {sentence.metadata.translation}
+                        </p>
+                    )}
                     <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                         {sentence.blockType !== "text" && (
-                            <span className="text-amber-600">
-                                {sentence.blockType}
-                            </span>
+                            <span className="text-amber-600">{sentence.blockType}</span>
                         )}
-                        {sentence.tokenCount > 0 && (
-                            <span>tokens: {sentence.tokenCount}</span>
-                        )}
+                        {sentence.tokenCount > 0 && <span>tokens: {sentence.tokenCount}</span>}
                         {hasMetadata && (
                             <span className="text-brand-500">
                                 {sentence.metadata?.words?.length ?? 0} words
