@@ -3,6 +3,8 @@
 import {
     AlertCircle,
     Check,
+    ChevronDown,
+    ChevronRight,
     Loader2,
     Music,
     Pencil,
@@ -24,18 +26,24 @@ import type { ListeningLessonDTO } from "../../types";
 import type { LessonOutletContext } from "../LessonViewPage";
 
 const LessonAudioSkeleton = () => (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[500px]">
         {/* Audio Skeleton */}
-        <div className="bg-white border rounded-xl p-4 space-y-4">
-            <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
-            <div className="h-[80px] bg-slate-200 rounded animate-pulse" />
-            <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2" />
+        <div className="w-[400px] shrink-0 flex flex-col gap-4">
+            <div className="bg-white border rounded-xl p-4 space-y-4">
+                <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                <div className="h-[80px] bg-slate-200 rounded animate-pulse" />
+                <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2" />
+            </div>
+            <div className="bg-white border rounded-xl p-4 space-y-3">
+                <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+                <div className="h-8 bg-slate-200 rounded animate-pulse w-2/3" />
+            </div>
         </div>
 
         {/* Sentence Skeleton */}
-        <div className="bg-white border rounded-xl p-4 space-y-4 flex flex-col">
-            <div className="h-4 w-28 bg-slate-200 rounded animate-pulse" />
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+        <div className="flex-1 min-w-0 flex flex-col">
+            <div className="h-4 w-28 bg-slate-200 rounded animate-pulse mb-3" />
+            <div className="space-y-3 flex-1 overflow-y-auto pr-1">
                 {Array.from({ length: 7 }).map((_, i) => (
                     <div
                         key={i}
@@ -1065,21 +1073,29 @@ const LessonAudioPage = () => {
     const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
+    const [audioSectionOpen, setAudioSectionOpen] = useState(false);
+    const [audioTab, setAudioTab] = useState<"upload" | "youtube">("upload");
+
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const listeningLessons = lessonDetail?.lesson_details ?? [];
+    const mainAudioUrl = listeningLessons.length > 0 ? listeningLessons[0].data?.audio : null;
+
+    // Auto-open audio section when no audio exists
+    useEffect(() => {
+        if (!mainAudioUrl) {
+            setAudioSectionOpen(true);
+        }
+    }, [mainAudioUrl]);
 
     if (loading) return <LessonAudioSkeleton />;
     if (!lessonDetail) {
         return <div className="p-4 text-rose-600">Lesson not found.</div>;
     }
 
-    const listeningLessons = lessonDetail.lesson_details ?? [];
-
-    // Extract main audio URL from the first sentence (all sentences share the same audio URL)
-    const mainAudioUrl = listeningLessons.length > 0 ? listeningLessons[0].data?.audio : null;
-
     // Refresh lesson detail
     const refreshLessonDetail = async () => {
-        const res = await api.getLessonDetail(lessonDetail.lesson_id);
+        const res = await api.getLessonDetail(lessonDetail.lesson_id, { size: 100 });
         if (res.success && res.lesson) {
             setLessonDetail(res.lesson);
         }
@@ -1138,176 +1154,233 @@ const LessonAudioPage = () => {
 
     return (
         <>
-            <div className="space-y-4">
-                {/* Main Audio Editor Section */}
-                <MainAudioEditor
-                    audioUrl={mainAudioUrl}
-                    lessonId={lessonDetail.lesson_id}
-                    onUpdate={refreshLessonDetail}
-                />
+            <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[500px]">
+                {/* ══ LEFT COLUMN: Audio Control Panel ══ */}
+                <div className="w-[400px] shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+                    {/* Main Audio Editor */}
+                    <MainAudioEditor
+                        audioUrl={mainAudioUrl}
+                        lessonId={lessonDetail.lesson_id}
+                        onUpdate={refreshLessonDetail}
+                    />
 
-                {/* Upload Section */}
-                <div className="bg-white border rounded-xl p-4 shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <h3 className="text-sm font-semibold text-slate-900 mb-2">
-                                Upload New Audio for Entire Lesson
-                            </h3>
-                            <p className="text-xs text-slate-600 mb-3">
-                                Upload an audio file. You will be able to review and cut the audio
-                                before updating.
-                            </p>
-
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="audio/*"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                                id="audio-upload"
-                            />
-
-                            <label
-                                htmlFor="audio-upload"
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-slate-900 text-white hover:bg-slate-800"
-                            >
-                                <Upload className="w-4 h-4" />
-                                Select Audio File
-                            </label>
-
-                            {/* Success Message */}
-                            {uploadSuccess && (
-                                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-700">
-                                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm">{uploadSuccess}</span>
-                                </div>
+                    {/* Collapsible Add / Replace Audio */}
+                    <div className="bg-white border rounded-xl shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => setAudioSectionOpen((o) => !o)}
+                            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
+                        >
+                            {audioSectionOpen ? (
+                                <ChevronDown className="w-4 h-4 text-slate-500" />
+                            ) : (
+                                <ChevronRight className="w-4 h-4 text-slate-500" />
                             )}
+                            Add / Replace Audio
+                        </button>
 
-                            {/* Error Message */}
-                            {uploadError && (
-                                <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-700">
-                                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm">{uploadError}</span>
+                        {audioSectionOpen && (
+                            <div className="border-t px-4 pb-4">
+                                {/* Tab Toggle */}
+                                <div className="flex gap-1 mt-3 mb-4 bg-slate-100 rounded-lg p-1 w-fit">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAudioTab("upload")}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                            audioTab === "upload"
+                                                ? "bg-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        <Upload className="w-3.5 h-3.5" />
+                                        Upload
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAudioTab("youtube")}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                            audioTab === "youtube"
+                                                ? "bg-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        <Youtube className="w-3.5 h-3.5" />
+                                        YouTube
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Upload Tab Content */}
+                                {audioTab === "upload" && (
+                                    <div>
+                                        <p className="text-xs text-slate-600 mb-3">
+                                            Upload an audio file. You will be able to review and cut
+                                            the audio before updating.
+                                        </p>
+
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="audio/*"
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                            id="audio-upload"
+                                        />
+
+                                        <label
+                                            htmlFor="audio-upload"
+                                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-slate-900 text-white hover:bg-slate-800"
+                                        >
+                                            <Upload className="w-4 h-4" />
+                                            Select Audio File
+                                        </label>
+
+                                        {/* Success Message */}
+                                        {uploadSuccess && (
+                                            <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-700">
+                                                <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                                <span className="text-sm">{uploadSuccess}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Error Message */}
+                                        {uploadError && (
+                                            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-700">
+                                                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                                <span className="text-sm">{uploadError}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* YouTube Tab Content */}
+                                {audioTab === "youtube" && (
+                                    <YouTubeSection
+                                        lessonId={lessonDetail.lesson_id}
+                                        onJobCreated={refreshLessonDetail}
+                                    />
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* YouTube Section */}
-                <YouTubeSection
-                    lessonId={lessonDetail.lesson_id}
-                    onJobCreated={refreshLessonDetail}
-                />
+                {/* ══ RIGHT COLUMN: Sentences ══ */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3 shrink-0">
+                        Sentences ({listeningLessons.length})
+                    </h3>
 
-                {/* Sentences List */}
-                {listeningLessons.length === 0 ? (
-                    <div className="p-4 bg-white border rounded-xl text-sm text-slate-600">
-                        No listening lessons have been created for this lesson yet.
-                    </div>
-                ) : (
-                    listeningLessons.map((detail) => {
-                        const transcript =
-                            detail.str_script ||
-                            (detail.script || [])
-                                .map((word) => word.w)
-                                .filter((word): word is string => Boolean(word))
-                                .join(" ");
+                    {listeningLessons.length === 0 ? (
+                        <div className="p-4 bg-white border rounded-xl text-sm text-slate-600">
+                            No listening lessons have been created for this lesson yet.
+                        </div>
+                    ) : (
+                        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                            {listeningLessons.map((detail) => {
+                                const transcript =
+                                    detail.str_script ||
+                                    (detail.script || [])
+                                        .map((word) => word.w)
+                                        .filter((word): word is string => Boolean(word))
+                                        .join(" ");
 
-                        return (
-                            <div
-                                key={detail.id}
-                                className="bg-white border rounded-xl p-4 space-y-3 shadow-sm"
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                                            Exercise #{detail.id} • Type {detail.type}
-                                        </p>
-                                        <p className="text-sm font-semibold text-slate-900">
-                                            {transcript || "No transcript provided"}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-700">
-                                            Status {detail.status}
-                                        </div>
-                                        <button
-                                            onClick={() => setCuttingSentence(detail)}
-                                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Cut audio"
-                                            disabled={!detail.data?.audio}
-                                        >
-                                            <Scissors
-                                                className={`w-4 h-4 ${detail.data?.audio ? "text-blue-600" : "text-slate-300"}`}
-                                            />
-                                        </button>
-                                        <button
-                                            onClick={() => setEditingSentence(detail)}
-                                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                            title="Edit sentence"
-                                        >
-                                            <Pencil className="w-4 h-4 text-slate-600" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {detail.type === 3 && detail.data?.youtube_video_id ? (
-                                    <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
-                                        <Youtube className="w-4 h-4" />
-                                        YouTube: {detail.data.youtube_video_id}
-                                    </div>
-                                ) : (
-                                    <PresignedAudioPlayer src={detail.data?.audio} />
-                                )}
-
-                                {(detail.data?.start !== undefined ||
-                                    detail.data?.end !== undefined) && (
-                                    <div className="text-xs text-slate-500">
-                                        {detail.data?.start ?? "—"}s → {detail.data?.end ?? "—"}s
-                                    </div>
-                                )}
-
-                                <div className="grid md:grid-cols-2 gap-3 text-sm">
-                                    <div className="p-3 rounded-lg bg-slate-50">
-                                        <p className="text-[11px] uppercase text-slate-500 mb-1">
-                                            Transcript
-                                        </p>
-                                        <p className="text-slate-800 leading-relaxed">
-                                            {transcript || "—"}
-                                        </p>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-slate-50">
-                                        <p className="text-[11px] uppercase text-slate-500 mb-1">
-                                            Translation
-                                        </p>
-                                        <p className="text-slate-800 leading-relaxed">
-                                            {detail.translated_script || "—"}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {detail.new_words?.length ? (
-                                    <div className="p-3 rounded-lg bg-slate-50 space-y-2">
-                                        <p className="text-[11px] uppercase text-slate-500">
-                                            New Words
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {detail.new_words.map((word) => (
-                                                <span
-                                                    key={word.id}
-                                                    className="text-xs px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-700"
+                                return (
+                                    <div
+                                        key={detail.id}
+                                        className="bg-white border rounded-xl p-4 space-y-3 shadow-sm"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                                                    Exercise #{detail.id} • Type {detail.type}
+                                                </p>
+                                                <p className="text-sm font-semibold text-slate-900">
+                                                    {transcript || "No transcript provided"}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                                                    Status {detail.status}
+                                                </div>
+                                                <button
+                                                    onClick={() => setCuttingSentence(detail)}
+                                                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Cut audio"
+                                                    disabled={!detail.data?.audio}
                                                 >
-                                                    {word.word}
-                                                </span>
-                                            ))}
+                                                    <Scissors
+                                                        className={`w-4 h-4 ${detail.data?.audio ? "text-blue-600" : "text-slate-300"}`}
+                                                    />
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingSentence(detail)}
+                                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                                    title="Edit sentence"
+                                                >
+                                                    <Pencil className="w-4 h-4 text-slate-600" />
+                                                </button>
+                                            </div>
                                         </div>
+
+                                        {detail.type === 3 && detail.data?.youtube_video_id ? (
+                                            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+                                                <Youtube className="w-4 h-4" />
+                                                YouTube: {detail.data.youtube_video_id}
+                                            </div>
+                                        ) : (
+                                            <PresignedAudioPlayer src={detail.data?.audio} />
+                                        )}
+
+                                        {(detail.data?.start !== undefined ||
+                                            detail.data?.end !== undefined) && (
+                                            <div className="text-xs text-slate-500">
+                                                {detail.data?.start ?? "\u2014"}s →{" "}
+                                                {detail.data?.end ?? "\u2014"}s
+                                            </div>
+                                        )}
+
+                                        <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                            <div className="p-3 rounded-lg bg-slate-50">
+                                                <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                                    Transcript
+                                                </p>
+                                                <p className="text-slate-800 leading-relaxed">
+                                                    {transcript || "\u2014"}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-slate-50">
+                                                <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                                    Translation
+                                                </p>
+                                                <p className="text-slate-800 leading-relaxed">
+                                                    {detail.translated_script || "\u2014"}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {detail.new_words?.length ? (
+                                            <div className="p-3 rounded-lg bg-slate-50 space-y-2">
+                                                <p className="text-[11px] uppercase text-slate-500">
+                                                    New Words
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {detail.new_words.map((word) => (
+                                                        <span
+                                                            key={word.id}
+                                                            className="text-xs px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-700"
+                                                        >
+                                                            {word.word}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : null}
                                     </div>
-                                ) : null}
-                            </div>
-                        );
-                    })
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {editingSentence && (

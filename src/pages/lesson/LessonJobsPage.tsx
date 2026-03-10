@@ -1,4 +1,4 @@
-import { ExternalLink, FolderOpen, Loader2, RefreshCcw } from "lucide-react";
+import { ExternalLink, FolderOpen, Loader2, RefreshCw } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
@@ -181,13 +181,7 @@ const LessonJobsPage: React.FC = () => {
         );
     }, [processingJobs, audioJobs]);
 
-    const stats = useMemo(() => {
-        return [
-            { label: "Total Jobs", value: totalElements + processingJobs.length },
-            { label: "Legacy Jobs", value: processingJobs.length },
-            { label: "Audio Jobs", value: totalElements },
-        ];
-    }, [totalElements, processingJobs]);
+    const totalJobCount = totalElements + processingJobs.length;
 
     if (lessonLoading && loading) {
         return (
@@ -198,38 +192,16 @@ const LessonJobsPage: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header Actions */}
+        <div className="space-y-4">
+            {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-semibold text-slate-900">
-                        Jobs for {lessonMeta?.name || `Lesson #${lessonId}`}
-                    </h2>
-                    <p className="text-sm text-slate-600 mt-1">
-                        All processing jobs associated with this lesson
-                    </p>
-                </div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                    Jobs <span className="text-slate-400 font-normal">({totalJobCount})</span>
+                </h2>
                 <Btn.Secondary onClick={handleRefresh} disabled={refreshing}>
-                    <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
                     Refresh
                 </Btn.Secondary>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-                {stats.map((stat) => (
-                    <div
-                        key={stat.label}
-                        className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-3 shadow-sm"
-                    >
-                        <div className="text-xs uppercase tracking-wide text-slate-500">
-                            {stat.label}
-                        </div>
-                        <div className="text-2xl font-semibold text-slate-900 mt-1">
-                            {stat.value}
-                        </div>
-                    </div>
-                ))}
             </div>
 
             {error && (
@@ -240,16 +212,6 @@ const LessonJobsPage: React.FC = () => {
 
             {/* Jobs List */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
-                    <div className="flex items-center gap-2">
-                        <FolderOpen className="w-4 h-4 text-slate-500" />
-                        <h3 className="text-sm font-semibold text-slate-900">All Jobs</h3>
-                        <span className="text-xs text-slate-500">
-                            ({allJobs.length} loaded{hasMore ? ", more available" : ""})
-                        </span>
-                    </div>
-                </div>
-
                 {loading ? (
                     <div className="px-5 py-10 flex items-center justify-center gap-2 text-slate-500">
                         <Loader2 className="w-4 h-4 animate-spin" />

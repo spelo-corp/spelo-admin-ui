@@ -1,7 +1,16 @@
 // src/pages/lesson/LessonVocabPage.tsx
 
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCcw, Save, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    AlertTriangle,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Loader2,
+    RefreshCcw,
+    Save,
+    Sparkles,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { Btn } from "../../components/ui/Btn";
@@ -90,6 +99,13 @@ const LessonVocabPage = () => {
     const [wordsByLessonId, setWordsByLessonId] = useState<Record<number, VocabWord[]>>({});
     const [wordSearch, setWordSearch] = useState("");
     const [wordSelections, setWordSelections] = useState<Record<number, string[]>>({});
+    const [toolsOpen, setToolsOpen] = useState(false);
+    const [toolsTab, setToolsTab] = useState<"extract" | "map" | "job">("extract");
+    const [dictOpen, setDictOpen] = useState(false);
+    const [extractBanner, setExtractBanner] = useState<string | null>(null);
+    const [mapBanner, setMapBanner] = useState<string | null>(null);
+    const extractBannerTimer = useRef<ReturnType<typeof setTimeout>>();
+    const mapBannerTimer = useRef<ReturnType<typeof setTimeout>>();
     const [savingNewWords, setSavingNewWords] = useState<Record<number, boolean>>({});
     const [newWordErrors, setNewWordErrors] = useState<Record<number, string | null>>({});
     const [newWordSuccess, setNewWordSuccess] = useState<Record<number, string | null>>({});
@@ -157,7 +173,7 @@ const LessonVocabPage = () => {
 
     const refreshLessonDetail = useCallback(async () => {
         if (!Number.isFinite(numericLessonId) || numericLessonId <= 0) return;
-        const res = await api.getLessonDetail(numericLessonId);
+        const res = await api.getLessonDetail(numericLessonId, { size: 100 });
         if (res.success && res.lesson) {
             setLessonDetail(res.lesson);
         }
@@ -210,7 +226,26 @@ const LessonVocabPage = () => {
             setExtractResult(res.data);
             const nextJobId = res.data.job_id ?? res.data.jobId ?? null;
             setJobId(nextJobId);
-            if (nextJobId) setJobTitle("Vocab Enrichment Job");
+            if (nextJobId) {
+                setJobTitle("Vocab Enrichment Job");
+                setToolsOpen(true);
+                setToolsTab("job");
+            } else {
+                setToolsOpen(true);
+                setToolsTab("extract");
+            }
+
+            const normalizedJobId = nextJobId;
+            const extractedTotal =
+                res.data.extracted_words_total ?? res.data.extractedWordsTotal ?? 0;
+            const newTotal = res.data.new_words_total ?? res.data.newWordsTotal ?? 0;
+            const existingTotal = res.data.existing_words_total ?? res.data.existingWordsTotal ?? 0;
+            const bannerMsg = normalizedJobId
+                ? `Extracted ${extractedTotal} words \u2022 ${newTotal} new \u2022 ${existingTotal} existing \u2022 Job #${normalizedJobId} queued`
+                : `Extracted ${extractedTotal} words \u2022 ${newTotal} new \u2022 ${existingTotal} existing`;
+            clearTimeout(extractBannerTimer.current);
+            setExtractBanner(bannerMsg);
+            extractBannerTimer.current = setTimeout(() => setExtractBanner(null), 10000);
         } catch (err: unknown) {
             setExtractError(
                 err instanceof Error ? err.message : "Failed to extract vocab from lesson.",
@@ -257,7 +292,22 @@ const LessonVocabPage = () => {
 
             const nextJobId = res.data.job_id ?? res.data.jobId ?? null;
             setJobId(nextJobId);
-            if (nextJobId) setJobTitle("Vocab Script Map Job");
+            if (nextJobId) {
+                setJobTitle("Vocab Script Map Job");
+                setToolsOpen(true);
+                setToolsTab("job");
+            } else {
+                setToolsOpen(true);
+                setToolsTab("map");
+            }
+
+            const totalLessons = res.data.total_lessons ?? res.data.totalLessons ?? null;
+            const mapBannerMsg = nextJobId
+                ? `Map Script job #${nextJobId} queued${totalLessons != null ? ` \u2022 ${totalLessons} lessons` : ""}`
+                : `Script mapping complete${totalLessons != null ? ` \u2022 ${totalLessons} lessons` : ""}`;
+            clearTimeout(mapBannerTimer.current);
+            setMapBanner(mapBannerMsg);
+            mapBannerTimer.current = setTimeout(() => setMapBanner(null), 10000);
         } catch (err: unknown) {
             setMapError(
                 err instanceof Error ? err.message : "Failed to map script tokens to vocab IDs.",
@@ -457,267 +507,57 @@ const LessonVocabPage = () => {
         return "bg-amber-50 text-amber-700 border-amber-100";
     })();
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    void headerTitle; // kept for potential future use
+
     return (
-        <div className="space-y-4">
-            <div className="p-4 bg-white border rounded-xl space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <h2 className="text-lg font-semibold text-slate-900">Vocabulary</h2>
-                        <p className="text-slate-600 text-sm">
-                            Extract vocabulary from transcripts in{" "}
-                            <span className="font-semibold">{headerTitle}</span>.
-                        </p>
-                    </div>
-
-                    <Btn.Primary onClick={handleExtract} disabled={extracting || !numericLessonId}>
-                        {extracting ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Extracting…
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-4 h-4" />
-                                Extract From Lesson
-                            </>
+        <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[500px]">
+            {/* ══ LEFT COLUMN: Sentences (scrollable) ══ */}
+            <div className="flex-1 min-w-0 flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Sentences ({listeningLessons.length})
+                    </h2>
+                    {/* Inline banners */}
+                    <div className="flex items-center gap-2">
+                        {extractBanner && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-xs text-emerald-700">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                {extractBanner}
+                                <button
+                                    type="button"
+                                    onClick={() => setExtractBanner(null)}
+                                    className="ml-1 text-emerald-400 hover:text-emerald-600"
+                                >
+                                    ×
+                                </button>
+                            </div>
                         )}
-                    </Btn.Primary>
+                        {mapBanner && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-xs text-blue-700">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                {mapBanner}
+                                <button
+                                    type="button"
+                                    onClick={() => setMapBanner(null)}
+                                    className="ml-1 text-blue-400 hover:text-blue-600"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                        type="checkbox"
-                        checked={includeStopWords}
-                        onChange={(e) => setIncludeStopWords(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
-                    />
-                    Include stop words
-                </label>
-
-                {extractError && (
-                    <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
-                        <AlertTriangle className="w-4 h-4" />
-                        {extractError}
-                    </div>
-                )}
-
-                {normalized && (
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                                    Extracted
-                                </div>
-                                <div className="text-xl font-semibold text-slate-900">
-                                    {normalized.extractedTotal}
-                                </div>
-                            </div>
-                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-emerald-700">
-                                    New
-                                </div>
-                                <div className="text-xl font-semibold text-emerald-700">
-                                    {normalized.newTotal}
-                                </div>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 bg-white p-3">
-                                <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                                    Existing
-                                </div>
-                                <div className="text-xl font-semibold text-slate-900">
-                                    {normalized.existingTotal}
-                                </div>
-                            </div>
+                {/* Scrollable sentence list */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+                    {listeningLessons.length === 0 ? (
+                        <div className="p-4 bg-white border rounded-xl text-sm text-slate-500">
+                            No listening lessons found for this lesson.
                         </div>
-
-                        <div className="grid gap-3 md:grid-cols-2">
-                            <details className="rounded-xl border border-slate-200 bg-white p-3">
-                                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                                    New words ({normalized.newWords.length})
-                                </summary>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    {normalized.newWords.length ? (
-                                        normalized.newWords.map((w) => (
-                                            <span
-                                                key={w}
-                                                className="text-xs px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700"
-                                            >
-                                                {w}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-slate-500">None</span>
-                                    )}
-                                </div>
-                            </details>
-
-                            <details className="rounded-xl border border-slate-200 bg-white p-3">
-                                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                                    Existing words ({normalized.existingWords.length})
-                                </summary>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    {normalized.existingWords.length ? (
-                                        normalized.existingWords.map((w) => (
-                                            <span
-                                                key={w}
-                                                className="text-xs px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700"
-                                            >
-                                                {w}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-slate-500">None</span>
-                                    )}
-                                </div>
-                            </details>
-                        </div>
-
-                        {normalized.jobId ? (
-                            <div className="text-sm text-slate-600">
-                                Vocab enrichment job queued:{" "}
-                                <span className="font-semibold">#{normalized.jobId}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg">
-                                <CheckCircle2 className="w-4 h-4" />
-                                No new words to enrich.
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <div className="p-4 bg-white border rounded-xl space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold text-slate-900">
-                            Map Script Tokens
-                        </h3>
-                        <p className="text-slate-600 text-sm">
-                            Rebuild `listening_lessons.script` by mapping transcript tokens to
-                            existing vocab IDs.
-                        </p>
-                    </div>
-
-                    <Btn.Primary onClick={handleMapScript} disabled={mapping || !numericLessonId}>
-                        {mapping ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Mapping…
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-4 h-4" />
-                                Map Script
-                            </>
-                        )}
-                    </Btn.Primary>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-600">
-                        Listening lesson IDs (optional, comma separated)
-                    </label>
-                    <Input
-                        value={mapIdsInput}
-                        onChange={(e) => setMapIdsInput(e.target.value)}
-                        placeholder="20, 21"
-                    />
-                    <p className="text-xs text-slate-500">
-                        Leave empty to process all listening lessons under this lesson.
-                    </p>
-
-                    {availableListeningLessonIds.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                            {availableListeningLessonIds.slice(0, 18).map((id) => {
-                                const selected = parsedMapIds.includes(id);
-                                return (
-                                    <button
-                                        key={id}
-                                        type="button"
-                                        onClick={() => {
-                                            setMapIdsInput((prev) => {
-                                                const current = new Set(
-                                                    prev
-                                                        .split(/[,\s]+/)
-                                                        .map((raw) => Number(raw))
-                                                        .filter((n) => Number.isFinite(n) && n > 0),
-                                                );
-                                                if (current.has(id)) {
-                                                    current.delete(id);
-                                                } else {
-                                                    current.add(id);
-                                                }
-                                                return Array.from(current)
-                                                    .sort((a, b) => a - b)
-                                                    .join(", ");
-                                            });
-                                        }}
-                                        className={`
-                                            px-3 py-1 rounded-full text-xs font-semibold border transition
-                                            ${
-                                                selected
-                                                    ? "bg-brand text-white border-brand"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            }
-                                        `}
-                                    >
-                                        #{id}
-                                    </button>
-                                );
-                            })}
-                            {availableListeningLessonIds.length > 18 && (
-                                <span className="text-xs text-slate-500 self-center">
-                                    +{availableListeningLessonIds.length - 18} more
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {mapError && (
-                    <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
-                        <AlertTriangle className="w-4 h-4" />
-                        {mapError}
-                    </div>
-                )}
-
-                {normalizedMap && (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 space-y-1">
-                        <div>
-                            Job queued:{" "}
-                            <span className="font-semibold">#{normalizedMap.jobId ?? "—"}</span>
-                        </div>
-                        {normalizedMap.totalLessons !== null && (
-                            <div>
-                                Total lessons:{" "}
-                                <span className="font-semibold">{normalizedMap.totalLessons}</span>
-                            </div>
-                        )}
-                        {normalizedMap.listeningLessonIds.length > 0 && (
-                            <div className="text-xs text-slate-500">
-                                Listening lesson IDs: {normalizedMap.listeningLessonIds.join(", ")}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <div className="p-4 bg-white border rounded-xl space-y-4">
-                <div className="space-y-1">
-                    <h3 className="text-base font-semibold text-slate-900">Sentence New Words</h3>
-                    <p className="text-slate-600 text-sm">
-                        Choose which words in each sentence should be marked as new vocabulary.
-                    </p>
-                </div>
-
-                {listeningLessons.length === 0 ? (
-                    <div className="text-sm text-slate-500">
-                        No listening lessons found for this lesson.
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {listeningLessons.map((detail) => {
+                    ) : (
+                        listeningLessons.map((detail) => {
                             const transcript = getSentenceTranscript(detail);
                             const candidates = buildWordCandidates(detail, transcript);
                             const selectedKeys = wordSelections[detail.id] ?? [];
@@ -728,7 +568,7 @@ const LessonVocabPage = () => {
                             return (
                                 <div
                                     key={detail.id}
-                                    className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3"
+                                    className="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
@@ -739,16 +579,16 @@ const LessonVocabPage = () => {
                                                 {transcript || "No transcript provided"}
                                             </p>
                                         </div>
-                                        <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                                        <span className="text-[11px] px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600">
                                             Status {detail.status}
                                         </span>
                                     </div>
 
                                     <div className="text-xs text-slate-600">
-                                        {detail.translated_script || "—"}
+                                        {detail.translated_script || "\u2014"}
                                     </div>
 
-                                    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
                                         <div className="flex items-center justify-between gap-2">
                                             <p className="text-[11px] uppercase text-slate-500">
                                                 New Words
@@ -759,7 +599,7 @@ const LessonVocabPage = () => {
                                         </div>
 
                                         {candidates.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
+                                            <div className="flex flex-wrap gap-1.5">
                                                 {candidates.map((candidate) => {
                                                     const isSelected = selectedKeys.includes(
                                                         candidate.key,
@@ -808,7 +648,7 @@ const LessonVocabPage = () => {
                                                 ) : (
                                                     <>
                                                         <Save className="w-3.5 h-3.5" />
-                                                        Save new words
+                                                        Save
                                                     </>
                                                 )}
                                             </button>
@@ -819,7 +659,7 @@ const LessonVocabPage = () => {
                                                     className="text-xs text-slate-500 hover:text-slate-700"
                                                     disabled={savingWords}
                                                 >
-                                                    Clear selection
+                                                    Clear
                                                 </button>
                                             )}
                                             {saveSuccess && (
@@ -827,141 +667,277 @@ const LessonVocabPage = () => {
                                                     {saveSuccess}
                                                 </span>
                                             )}
+                                            {saveError && (
+                                                <span className="text-xs text-rose-600">
+                                                    {saveError}
+                                                </span>
+                                            )}
                                         </div>
-
-                                        {saveError && (
-                                            <div className="text-xs text-rose-600">{saveError}</div>
-                                        )}
                                     </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
+                        })
+                    )}
+                </div>
             </div>
 
-            <div className="p-4 bg-white border rounded-xl space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold text-slate-900">Lesson Words</h3>
-                        <p className="text-slate-600 text-sm">
-                            Fetch vocab words referenced by mapped scripts (after Map Script).
-                        </p>
-                    </div>
+            {/* ══ RIGHT COLUMN: Tools panel (sticky) ══ */}
+            <div className="w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
+                {/* ── Actions ── */}
+                <div className="bg-white border rounded-xl p-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-900">Actions</h3>
 
-                    <Btn.Primary
-                        onClick={handleLoadWords}
-                        disabled={wordsLoading || !numericLessonId}
-                    >
-                        {wordsLoading ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Loading…
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-4 h-4" />
-                                Load Words
-                            </>
-                        )}
-                    </Btn.Primary>
-                </div>
+                    <div className="space-y-2">
+                        <Btn.Primary
+                            onClick={handleExtract}
+                            disabled={extracting || !numericLessonId}
+                        >
+                            {extracting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Extracting...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4" />
+                                    Extract Vocab
+                                </>
+                            )}
+                        </Btn.Primary>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-600">
-                            Listening lesson IDs (optional)
+                        <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={includeStopWords}
+                                onChange={(e) => setIncludeStopWords(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-brand focus:ring-brand/40"
+                            />
+                            Include stop words
                         </label>
-                        <Input
-                            value={wordIdsInput}
-                            onChange={(e) => setWordIdsInput(e.target.value)}
-                            placeholder="20, 21 (leave empty to load all)"
-                        />
-                        <p className="text-[11px] text-slate-500">
-                            API supports up to 10 IDs per request; the frontend batches
-                            automatically.
-                        </p>
-                    </div>
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-600">Search words</label>
-                        <Input
-                            value={wordSearch}
-                            onChange={(e) => setWordSearch(e.target.value)}
-                            placeholder="Search by word…"
-                        />
+                        <div className="border-t border-slate-100 pt-2">
+                            <Btn.Primary
+                                onClick={handleMapScript}
+                                disabled={mapping || !numericLessonId}
+                            >
+                                {mapping ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Mapping...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        Map Script
+                                    </>
+                                )}
+                            </Btn.Primary>
+                        </div>
                     </div>
                 </div>
 
-                {availableListeningLessonIds.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                        {availableListeningLessonIds.slice(0, 18).map((id) => {
-                            const selected = parsedWordIds.includes(id);
-                            return (
-                                <button
-                                    key={id}
-                                    type="button"
-                                    onClick={() => {
-                                        setWordIdsInput((prev) => {
-                                            const current = new Set(
-                                                prev
-                                                    .split(/[,\s]+/)
-                                                    .map((raw) => Number(raw))
-                                                    .filter((n) => Number.isFinite(n) && n > 0),
-                                            );
-                                            if (current.has(id)) {
-                                                current.delete(id);
-                                            } else {
-                                                current.add(id);
-                                            }
-                                            return Array.from(current)
-                                                .sort((a, b) => a - b)
-                                                .join(", ");
-                                        });
-                                    }}
-                                    className={`
-                                        px-3 py-1 rounded-full text-xs font-semibold border transition
-                                        ${
-                                            selected
-                                                ? "bg-brand text-white border-brand"
-                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                        }
-                                    `}
-                                >
-                                    #{id}
-                                </button>
-                            );
-                        })}
-                        {availableListeningLessonIds.length > 18 && (
-                            <span className="text-xs text-slate-500 self-center">
-                                +{availableListeningLessonIds.length - 18} more
+                {/* ── Error banners ── */}
+                {extractError && (
+                    <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        {extractError}
+                    </div>
+                )}
+                {mapError && (
+                    <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        {mapError}
+                    </div>
+                )}
+
+                {/* ── Extract results (inline) ── */}
+                {normalized && (
+                    <div className="bg-white border rounded-xl p-3 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+                            <span className="font-semibold">
+                                Extracted: {normalized.extractedTotal}
                             </span>
+                            <span className="text-slate-300">&bull;</span>
+                            <span className="text-emerald-700 font-semibold">
+                                New: {normalized.newTotal}
+                            </span>
+                            <span className="text-slate-300">&bull;</span>
+                            <span>Existing: {normalized.existingTotal}</span>
+                        </div>
+                        <details className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                            <summary className="cursor-pointer text-xs font-semibold text-slate-700">
+                                Words ({normalized.newWords.length} new,{" "}
+                                {normalized.existingWords.length} existing)
+                            </summary>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                {normalized.newWords.map((w) => (
+                                    <span
+                                        key={w}
+                                        className="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700"
+                                    >
+                                        {w}
+                                    </span>
+                                ))}
+                                {normalized.existingWords.map((w) => (
+                                    <span
+                                        key={w}
+                                        className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600"
+                                    >
+                                        {w}
+                                    </span>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                )}
+
+                {/* ── Map Script options ── */}
+                <details className="rounded-xl border border-slate-200 bg-white">
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700">
+                        Map Script Options
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 space-y-2">
+                        <Input
+                            value={mapIdsInput}
+                            onChange={(e) => setMapIdsInput(e.target.value)}
+                            placeholder="Listening lesson IDs (optional)"
+                        />
+                        {availableListeningLessonIds.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {availableListeningLessonIds.slice(0, 12).map((id) => {
+                                    const selected = parsedMapIds.includes(id);
+                                    return (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            onClick={() => {
+                                                setMapIdsInput((prev) => {
+                                                    const current = new Set(
+                                                        prev
+                                                            .split(/[,\s]+/)
+                                                            .map((r) => Number(r))
+                                                            .filter(
+                                                                (n) => Number.isFinite(n) && n > 0,
+                                                            ),
+                                                    );
+                                                    if (current.has(id)) {
+                                                        current.delete(id);
+                                                    } else {
+                                                        current.add(id);
+                                                    }
+                                                    return Array.from(current)
+                                                        .sort((a, b) => a - b)
+                                                        .join(", ");
+                                                });
+                                            }}
+                                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border transition ${
+                                                selected
+                                                    ? "bg-brand text-white border-brand"
+                                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                            }`}
+                                        >
+                                            #{id}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {normalizedMap && (
+                            <div className="text-xs text-slate-600 bg-slate-50 rounded-lg px-2 py-1.5">
+                                Job #{normalizedMap.jobId ?? "\u2014"}
+                                {normalizedMap.totalLessons !== null &&
+                                    ` \u2022 ${normalizedMap.totalLessons} lessons`}
+                            </div>
+                        )}
+                    </div>
+                </details>
+
+                {/* ── Job Status ── */}
+                {jobId && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-slate-900">{jobTitle}</span>
+                            <button
+                                type="button"
+                                onClick={handleRefreshJob}
+                                disabled={refreshingJob}
+                                className="text-xs text-slate-500 hover:text-slate-700"
+                            >
+                                <RefreshCcw
+                                    className={`w-3.5 h-3.5 ${refreshingJob ? "animate-spin" : ""}`}
+                                />
+                            </button>
+                        </div>
+                        {job ? (
+                            <>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <span
+                                        className={`px-2 py-0.5 rounded-full border font-semibold ${jobStatusClass}`}
+                                    >
+                                        {job.status}
+                                    </span>
+                                    <span className="text-slate-500">
+                                        {jobTotals.completed}/{jobTotals.total}
+                                    </span>
+                                </div>
+                                <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div
+                                        className="h-1.5 bg-brand transition-all"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Loading...
+                            </div>
                         )}
                     </div>
                 )}
 
-                {wordsError && (
-                    <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg">
-                        <AlertTriangle className="w-4 h-4" />
-                        {wordsError}
+                {/* ── Word Dictionary ── */}
+                <div className="rounded-xl border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-2 px-3 py-2">
+                        <button
+                            type="button"
+                            onClick={() => setDictOpen((prev) => !prev)}
+                            className="flex items-center gap-1.5 text-left"
+                        >
+                            {dictOpen ? (
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                            ) : (
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                            )}
+                            <span className="text-xs font-semibold text-slate-900">
+                                Dictionary ({uniqueWords.length})
+                            </span>
+                        </button>
+                        <Btn.Primary
+                            onClick={handleLoadWords}
+                            disabled={wordsLoading || !numericLessonId}
+                        >
+                            {wordsLoading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <span className="text-xs">Load</span>
+                            )}
+                        </Btn.Primary>
                     </div>
-                )}
-
-                {Object.keys(wordsByLessonId).length > 0 && (
-                    <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-                            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
-                                {uniqueWords.length} unique words
-                            </span>
-                            <span className="text-xs">
-                                from {Object.keys(wordsByLessonId).length} listening lesson(s)
-                            </span>
-                        </div>
-
-                        {filteredWords.length === 0 ? (
-                            <div className="text-sm text-slate-500">No words found.</div>
-                        ) : (
-                            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {dictOpen && (
+                        <div className="px-3 pb-3 space-y-2">
+                            <Input
+                                value={wordSearch}
+                                onChange={(e) => setWordSearch(e.target.value)}
+                                placeholder="Search..."
+                            />
+                            {wordsError && (
+                                <div className="text-xs text-rose-600">{wordsError}</div>
+                            )}
+                            {filteredWords.length === 0 && uniqueWords.length > 0 && (
+                                <div className="text-xs text-slate-500">No matches.</div>
+                            )}
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                                 {filteredWords.map((w) => {
                                     const def = getWordDef(w);
                                     const meaning = def?.meaning ?? {
@@ -971,129 +947,50 @@ const LessonVocabPage = () => {
                                     };
                                     const pronunciations = def?.pronunciations ?? [];
                                     const top = pronunciations[0];
-
                                     return (
                                         <div
                                             key={w.id}
-                                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2"
+                                            className="rounded-lg border border-slate-100 bg-slate-50 p-2.5 space-y-1"
                                         >
-                                            <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center justify-between gap-2">
                                                 <div>
-                                                    <div className="text-sm font-semibold text-slate-900">
+                                                    <span className="text-xs font-semibold text-slate-900">
                                                         {w.lemma || w.word}
-                                                    </div>
-                                                    {top?.ipa ? (
-                                                        <div className="text-xs text-slate-500">
+                                                    </span>
+                                                    {top?.ipa && (
+                                                        <span className="text-[11px] text-slate-400 ml-1.5">
                                                             {top.ipa}
-                                                        </div>
-                                                    ) : null}
+                                                        </span>
+                                                    )}
                                                 </div>
-
-                                                {top?.audio ? (
+                                                {top?.audio && (
                                                     <button
                                                         type="button"
                                                         onClick={() => playAudio(top.audio)}
-                                                        className="px-3 py-1 rounded-full border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                                        className="text-[11px] text-brand hover:underline"
                                                     >
                                                         Play
                                                     </button>
-                                                ) : null}
+                                                )}
                                             </div>
-
-                                            {meaning.translation ? (
-                                                <div className="text-sm font-semibold text-brand">
-                                                    → {meaning.translation}
+                                            {meaning.translation && (
+                                                <div className="text-xs font-medium text-brand">
+                                                    {meaning.translation}
                                                 </div>
-                                            ) : null}
-                                            {meaning.definition ? (
-                                                <div className="text-sm text-slate-700 line-clamp-3">
+                                            )}
+                                            {meaning.definition && (
+                                                <div className="text-[11px] text-slate-600 line-clamp-2">
                                                     {meaning.definition}
-                                                </div>
-                                            ) : (
-                                                <div className="text-sm text-slate-400">
-                                                    No definition
                                                 </div>
                                             )}
                                         </div>
                                     );
                                 })}
                             </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {jobId && (
-                <div className="p-4 bg-white border rounded-xl space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="space-y-1">
-                            <h3 className="text-base font-semibold text-slate-900">{jobTitle}</h3>
-                            <p className="text-xs text-slate-500">
-                                Polling `/api/v1/vocab/jobs/{jobId}` for progress.
-                            </p>
-                        </div>
-
-                        <Btn.Secondary onClick={handleRefreshJob} disabled={refreshingJob}>
-                            <RefreshCcw
-                                className={`w-4 h-4 ${refreshingJob ? "animate-spin" : ""}`}
-                            />
-                            Refresh
-                        </Btn.Secondary>
-                    </div>
-
-                    {job ? (
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <span
-                                    className={`px-3 py-1 rounded-full border text-xs font-semibold ${jobStatusClass}`}
-                                >
-                                    {job.status}
-                                </span>
-                                <span className="text-slate-600">
-                                    {jobTotals.completed}/{jobTotals.total} completed •{" "}
-                                    {jobTotals.failed} failed
-                                </span>
-                            </div>
-
-                            <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                                <div
-                                    className="h-2 bg-brand transition-all"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-
-                            {job.items?.length ? (
-                                <details className="rounded-xl border border-slate-200 bg-white p-3">
-                                    <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                                        Items ({job.items.length})
-                                    </summary>
-                                    <div className="mt-3 space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                        {job.items.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center justify-between gap-3 text-sm border border-slate-100 rounded-lg px-3 py-2 bg-slate-50"
-                                            >
-                                                <span className="font-medium text-slate-900">
-                                                    {(item as unknown as { word?: string }).word ||
-                                                        `Item #${item.id}`}
-                                                </span>
-                                                <span className="text-xs text-slate-600">
-                                                    {item.status}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </details>
-                            ) : null}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Loading job…
                         </div>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
