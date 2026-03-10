@@ -1328,7 +1328,11 @@ const LessonAudioPage = () => {
                                                 YouTube: {detail.data.youtube_video_id}
                                             </div>
                                         ) : (
-                                            <PresignedAudioPlayer src={detail.data?.audio} />
+                                            <PresignedAudioPlayer
+                                                src={detail.data?.audio}
+                                                startTime={detail.data?.start}
+                                                endTime={detail.data?.end}
+                                            />
                                         )}
 
                                         {(detail.data?.start !== undefined ||
