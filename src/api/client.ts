@@ -2,6 +2,7 @@ import { audioApi } from "./audioProcessing";
 import { booksApi } from "./books";
 import { categoriesApi } from "./categories";
 import { collectionsApi } from "./collections";
+import { comprehensionApi } from "./comprehension";
 import { dashboardApi } from "./dashboard";
 import { dialogueScenariosApi } from "./dialogueScenarios";
 import { filesApi } from "./files";
@@ -22,6 +23,7 @@ export const api = {
     ...booksApi,
     ...pipelinesApi,
     ...dialogueScenariosApi,
+    ...comprehensionApi,
 };
 
 export {
@@ -36,4 +38,5 @@ export {
     booksApi,
     pipelinesApi,
     dialogueScenariosApi,
+    comprehensionApi,
 };
