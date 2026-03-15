@@ -55,15 +55,6 @@ function statusBadge(status: string) {
     }
 }
 
-function parseDistractorCount(distractors: string): number {
-    try {
-        const parsed = JSON.parse(distractors);
-        return Array.isArray(parsed) ? parsed.length : 0;
-    } catch {
-        return 0;
-    }
-}
-
 function formatDate(value: string): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
@@ -75,8 +66,7 @@ function formatDate(value: string): string {
 
 const LessonExercisesPage = () => {
     const { lessonId: lessonIdParam } = useParams<{ lessonId: string }>();
-    const { lessonMeta, lessonDetail } =
-        useOutletContext<LessonOutletContext>();
+    const { lessonMeta } = useOutletContext<LessonOutletContext>();
     const lessonId = lessonIdParam ? Number(lessonIdParam) : undefined;
 
     const [activeTab, setActiveTab] = useState<StatusTab>("ALL");
@@ -91,7 +81,6 @@ const LessonExercisesPage = () => {
 
     // Generate modal
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
-    const [generateTranscript, setGenerateTranscript] = useState("");
     const [generateCount, setGenerateCount] = useState(5);
     const [generateDifficulty, setGenerateDifficulty] = useState("B1");
     const [generateError, setGenerateError] = useState<string | null>(null);
@@ -114,7 +103,7 @@ const LessonExercisesPage = () => {
 
     const pendingCount = useMemo(
         () =>
-            questions.filter((q) => q.approval_status === "PENDING").length,
+            questions.filter((q) => q.approvalStatus === "PENDING").length,
         [questions],
     );
 
@@ -122,27 +111,11 @@ const LessonExercisesPage = () => {
     const isFilterEmpty = questions.length === 0 && activeTab !== "ALL";
     const hasQuestions = total > 0 || activeTab !== "ALL";
 
-    // Transcript from lesson data
-    const lessonTranscript = useMemo(() => {
-        if (!lessonDetail?.lesson_details) return "";
-        return lessonDetail.lesson_details
-            .map(
-                (d) =>
-                    d.str_script ||
-                    (d.script || [])
-                        .map((w) => w.w)
-                        .filter(Boolean)
-                        .join(" "),
-            )
-            .filter(Boolean)
-            .join("\n\n");
-    }, [lessonDetail]);
-
     const openEditModal = (question: ComprehensionQuestion) => {
         setEditingQuestion(question);
         setEditForm({
-            question_text: question.question_text,
-            correct_answer: question.correct_answer,
+            question_text: question.questionText,
+            correct_answer: question.correctAnswer,
             distractors: question.distractors,
             explanation: question.explanation ?? "",
         });
@@ -168,7 +141,6 @@ const LessonExercisesPage = () => {
     };
 
     const openGenerateModal = () => {
-        setGenerateTranscript(lessonTranscript);
         setGenerateCount(5);
         setGenerateDifficulty(lessonMeta?.level ?? "B1");
         setGenerateError(null);
@@ -180,16 +152,11 @@ const LessonExercisesPage = () => {
             setGenerateError("Lesson ID is missing.");
             return;
         }
-        if (!generateTranscript.trim()) {
-            setGenerateError("Transcript is required.");
-            return;
-        }
         setGenerateError(null);
         try {
             await generateMutation.mutateAsync({
                 lessonId,
                 data: {
-                    transcript: generateTranscript.trim(),
                     question_count: generateCount,
                     difficulty: generateDifficulty,
                 },
@@ -349,26 +316,26 @@ const LessonExercisesPage = () => {
                                         <td className="px-4 py-2.5">
                                             <p
                                                 className="text-slate-800 text-sm line-clamp-2"
-                                                title={q.question_text}
+                                                title={q.questionText}
                                             >
-                                                {q.question_text}
+                                                {q.questionText}
                                             </p>
                                         </td>
                                         <td className="px-4 py-2.5 text-slate-600 text-sm max-w-[180px]">
                                             <span className="truncate block">
-                                                {q.correct_answer}
+                                                {q.correctAnswer}
                                             </span>
                                         </td>
                                         <td className="px-4 py-2.5">
-                                            {statusBadge(q.approval_status)}
+                                            {statusBadge(q.approvalStatus)}
                                         </td>
                                         <td className="px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
-                                            {formatDate(q.created_at)}
+                                            {formatDate(q.createdAt)}
                                         </td>
                                         {/* HOVER-REVEAL ACTIONS */}
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
-                                                {q.approval_status !==
+                                                {q.approvalStatus !==
                                                     "APPROVED" && (
                                                     <button
                                                         onClick={() =>
@@ -385,7 +352,7 @@ const LessonExercisesPage = () => {
                                                         <Check className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
-                                                {q.approval_status !==
+                                                {q.approvalStatus !==
                                                     "REJECTED" && (
                                                     <button
                                                         onClick={() =>
@@ -606,20 +573,6 @@ const LessonExercisesPage = () => {
                                     {generateError}
                                 </div>
                             )}
-                            <div>
-                                <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Transcript
-                                </label>
-                                <textarea
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                                    rows={6}
-                                    value={generateTranscript}
-                                    onChange={(e) =>
-                                        setGenerateTranscript(e.target.value)
-                                    }
-                                    placeholder="Paste the lesson transcript here..."
-                                />
-                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-600 mb-1">

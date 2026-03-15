@@ -1,17 +1,17 @@
 export interface ComprehensionQuestion {
     id: number;
-    source_type: string;
-    source_id: number;
-    question_text: string;
-    correct_answer: string;
+    sourceType: string;
+    sourceId: number;
+    questionText: string;
+    correctAnswer: string;
     distractors: string; // JSON string
     explanation: string | null;
-    approval_status: "PENDING" | "APPROVED" | "REJECTED";
-    audio_start_time: number | null;
-    audio_end_time: number | null;
-    question_order: number;
-    created_at: string;
-    updated_at: string;
+    approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+    audioStartTime: number | null;
+    audioEndTime: number | null;
+    questionOrder: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface ComprehensionQuestionsPage {
@@ -30,7 +30,6 @@ export interface EditQuestionRequest {
 }
 
 export interface GenerateComprehensionRequest {
-    transcript: string;
     question_count?: number;
     difficulty?: string;
 }

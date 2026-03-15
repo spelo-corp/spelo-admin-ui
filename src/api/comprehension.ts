@@ -13,14 +13,14 @@ async function listComprehensionQuestions(params: {
     size?: number;
 }) {
     const query = new URLSearchParams();
-    if (params.lessonId) query.set("lesson_id", String(params.lessonId));
+    if (params.lessonId) query.set("lessonId", String(params.lessonId));
     if (params.status) query.set("status", params.status);
     if (params.page !== undefined) query.set("page", String(params.page));
     if (params.size !== undefined) query.set("size", String(params.size));
 
     return handle<ComprehensionQuestionsPage>(
         await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension-questions?${query.toString()}`,
+            `${BASE_URL}/api/v1/admin/comprehension/questions?${query.toString()}`,
             { headers: getAuthHeaders() },
         ),
     );
@@ -30,9 +30,9 @@ async function listComprehensionQuestions(params: {
 async function approveQuestion(id: number) {
     return handle<{ success: boolean }>(
         await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension-questions/${id}/approve`,
+            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}/approve`,
             {
-                method: "PATCH",
+                method: "PUT",
                 headers: getAuthHeaders(),
             },
         ),
@@ -43,9 +43,9 @@ async function approveQuestion(id: number) {
 async function rejectQuestion(id: number) {
     return handle<{ success: boolean }>(
         await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension-questions/${id}/reject`,
+            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}/reject`,
             {
-                method: "PATCH",
+                method: "PUT",
                 headers: getAuthHeaders(),
             },
         ),
@@ -56,7 +56,7 @@ async function rejectQuestion(id: number) {
 async function editQuestion(id: number, data: EditQuestionRequest) {
     return handle<{ success: boolean }>(
         await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension-questions/${id}`,
+            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}`,
             {
                 method: "PUT",
                 headers: getAuthHeaders(),
@@ -73,7 +73,7 @@ async function generateComprehensionQuestions(
 ) {
     return handle<{ success: boolean; message: string }>(
         await fetch(
-            `${BASE_URL}/api/v1/admin/lessons/${lessonId}/comprehension-questions/generate`,
+            `${BASE_URL}/api/v1/admin/comprehension/lessons/${lessonId}/generate`,
             {
                 method: "POST",
                 headers: getAuthHeaders(),
