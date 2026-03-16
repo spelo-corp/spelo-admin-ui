@@ -2,6 +2,7 @@
 
 import {
     Check,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Edit,
@@ -10,7 +11,7 @@ import {
     Sparkles,
     X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Btn } from "../../components/ui/Btn";
 import { Input } from "../../components/ui/Input";
@@ -58,10 +59,23 @@ function statusBadge(status: string) {
 function formatDate(value: string): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-    });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatTimestamp(seconds: number | null): string {
+    if (seconds == null) return "\u2014";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function parseDistractors(raw: string): string[] {
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return raw ? [raw] : [];
+    }
 }
 
 const LessonExercisesPage = () => {
@@ -71,6 +85,7 @@ const LessonExercisesPage = () => {
 
     const [activeTab, setActiveTab] = useState<StatusTab>("ALL");
     const [page, setPage] = useState(0);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
     // Edit modal
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -84,6 +99,11 @@ const LessonExercisesPage = () => {
     const [generateCount, setGenerateCount] = useState(5);
     const [generateDifficulty, setGenerateDifficulty] = useState("B1");
     const [generateError, setGenerateError] = useState<string | null>(null);
+
+    // Reset expanded row on page/tab change
+    useEffect(() => {
+        setExpandedId(null);
+    }, [page, activeTab]);
 
     const { data, isLoading } = useComprehensionQuestions({
         lessonId,
@@ -110,6 +130,10 @@ const LessonExercisesPage = () => {
     const isTrulyEmpty = questions.length === 0 && activeTab === "ALL";
     const isFilterEmpty = questions.length === 0 && activeTab !== "ALL";
     const hasQuestions = total > 0 || activeTab !== "ALL";
+
+    const toggleExpand = (id: number) => {
+        setExpandedId((prev) => (prev === id ? null : id));
+    };
 
     const openEditModal = (question: ComprehensionQuestion) => {
         setEditingQuestion(question);
@@ -173,7 +197,7 @@ const LessonExercisesPage = () => {
 
     return (
         <div className="space-y-4">
-            {/* HEADER — Generate button only when questions exist */}
+            {/* HEADER */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-base font-semibold text-slate-900">
@@ -183,7 +207,7 @@ const LessonExercisesPage = () => {
                         <span>{total} total</span>
                         {pendingCount > 0 && (
                             <>
-                                <span className="text-slate-300">·</span>
+                                <span className="text-slate-300">&middot;</span>
                                 <span className="text-amber-600">
                                     {pendingCount} pending review
                                 </span>
@@ -199,24 +223,15 @@ const LessonExercisesPage = () => {
                 )}
             </div>
 
-            {/* UNDERLINE TABS — only show when questions exist */}
+            {/* TABS */}
             {hasQuestions && (
                 <div className="flex items-center gap-0 border-b border-slate-100">
                     {(
                         [
                             { label: "All", value: "ALL" as StatusTab },
-                            {
-                                label: "Pending",
-                                value: "PENDING" as StatusTab,
-                            },
-                            {
-                                label: "Approved",
-                                value: "APPROVED" as StatusTab,
-                            },
-                            {
-                                label: "Rejected",
-                                value: "REJECTED" as StatusTab,
-                            },
+                            { label: "Pending", value: "PENDING" as StatusTab },
+                            { label: "Approved", value: "APPROVED" as StatusTab },
+                            { label: "Rejected", value: "REJECTED" as StatusTab },
                         ] as const
                     ).map((tab) => (
                         <button
@@ -247,14 +262,10 @@ const LessonExercisesPage = () => {
                 {isLoading ? (
                     <div className="p-6 space-y-3">
                         {[...Array(4)].map((_, i) => (
-                            <Skeleton
-                                key={`skeleton-${i}`}
-                                className="h-10 w-full"
-                            />
+                            <Skeleton key={`skeleton-${i}`} className="h-10 w-full" />
                         ))}
                     </div>
                 ) : isTrulyEmpty ? (
-                    /* TRUE EMPTY — no questions at all */
                     <div className="text-center py-16 space-y-3">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
                             <MessageSquareText className="w-6 h-6" />
@@ -263,8 +274,7 @@ const LessonExercisesPage = () => {
                             No comprehension questions yet
                         </p>
                         <p className="text-xs text-slate-400 max-w-[280px] mx-auto">
-                            Generate MCQ questions from the lesson transcript
-                            using AI.
+                            Generate MCQ questions from the lesson transcript using AI.
                         </p>
                         <div className="pt-2">
                             <Btn.Primary onClick={openGenerateModal}>
@@ -274,120 +284,243 @@ const LessonExercisesPage = () => {
                         </div>
                     </div>
                 ) : isFilterEmpty ? (
-                    /* FILTER EMPTY — questions exist but not for this filter */
                     <div className="text-center py-12">
                         <p className="text-sm text-slate-400">
                             No {activeTab.toLowerCase()} questions.
                         </p>
                     </div>
                 ) : (
-                    /* TABLE */
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-slate-100 text-left text-[11px] uppercase tracking-wider text-slate-400">
-                                    <th className="px-4 py-2.5 font-medium w-[44px]">
-                                        #
-                                    </th>
-                                    <th className="px-4 py-2.5 font-medium">
-                                        Question
-                                    </th>
-                                    <th className="px-4 py-2.5 font-medium">
-                                        Answer
-                                    </th>
-                                    <th className="px-4 py-2.5 font-medium w-[80px]">
-                                        Status
-                                    </th>
-                                    <th className="px-4 py-2.5 font-medium w-[80px]">
-                                        Created
-                                    </th>
+                                    <th className="pl-4 pr-1 py-2.5 font-medium w-[28px]" />
+                                    <th className="px-2 py-2.5 font-medium w-[44px]">#</th>
+                                    <th className="px-4 py-2.5 font-medium">Question</th>
+                                    <th className="px-4 py-2.5 font-medium">Answer</th>
+                                    <th className="px-4 py-2.5 font-medium w-[80px]">Status</th>
+                                    <th className="px-4 py-2.5 font-medium w-[80px]">Created</th>
                                     <th className="px-4 py-2.5 font-medium w-[90px]" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {questions.map((q) => (
-                                    <tr
-                                        key={q.id}
-                                        className="group hover:bg-slate-50/60 focus-within:bg-slate-50/60 transition"
-                                    >
-                                        <td className="px-4 py-2.5 text-slate-400 font-mono text-xs">
-                                            {q.id}
-                                        </td>
-                                        <td className="px-4 py-2.5">
-                                            <p
-                                                className="text-slate-800 text-sm line-clamp-2"
-                                                title={q.questionText}
+                                {questions.map((q) => {
+                                    const isExpanded = expandedId === q.id;
+                                    const distractors = parseDistractors(q.distractors);
+
+                                    return (
+                                        <Fragment key={q.id}>
+                                            {/* Summary row */}
+                                            <tr
+                                                onClick={() => toggleExpand(q.id)}
+                                                className={`group cursor-pointer transition-colors ${
+                                                    isExpanded
+                                                        ? "bg-slate-50/80"
+                                                        : "hover:bg-slate-50/60"
+                                                }`}
                                             >
-                                                {q.questionText}
-                                            </p>
-                                        </td>
-                                        <td className="px-4 py-2.5 text-slate-600 text-sm max-w-[180px]">
-                                            <span className="truncate block">
-                                                {q.correctAnswer}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-2.5">
-                                            {statusBadge(q.approvalStatus)}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
-                                            {formatDate(q.createdAt)}
-                                        </td>
-                                        {/* HOVER-REVEAL ACTIONS */}
-                                        <td className="px-4 py-2.5">
-                                            <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
-                                                {q.approvalStatus !==
-                                                    "APPROVED" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            approveMutation.mutate(
-                                                                q.id,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            approveMutation.isPending
-                                                        }
-                                                        className="p-1.5 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-50"
-                                                        title="Approve"
+                                                <td className="pl-4 pr-1 py-2.5 text-slate-400">
+                                                    {isExpanded ? (
+                                                        <ChevronDown className="w-3.5 h-3.5" />
+                                                    ) : (
+                                                        <ChevronRight className="w-3.5 h-3.5" />
+                                                    )}
+                                                </td>
+                                                <td className="px-2 py-2.5 text-slate-400 font-mono text-xs">
+                                                    {q.id}
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    <p
+                                                        className="text-slate-800 text-sm line-clamp-1"
+                                                        title={q.questionText}
                                                     >
-                                                        <Check className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                                {q.approvalStatus !==
-                                                    "REJECTED" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            rejectMutation.mutate(
-                                                                q.id,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            rejectMutation.isPending
-                                                        }
-                                                        className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-50"
-                                                        title="Reject"
+                                                        {q.questionText}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-2.5 text-slate-600 text-sm max-w-[180px]">
+                                                    <span className="truncate block">
+                                                        {q.correctAnswer}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    {statusBadge(q.approvalStatus)}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
+                                                    {formatDate(q.createdAt)}
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    <div
+                                                        className={`flex items-center justify-end gap-0.5 transition-opacity duration-150 ${
+                                                            isExpanded
+                                                                ? "opacity-0 pointer-events-none"
+                                                                : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                                                        }`}
                                                     >
-                                                        <X className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() =>
-                                                        openEditModal(q)
-                                                    }
-                                                    className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                        {q.approvalStatus !== "APPROVED" && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    approveMutation.mutate(q.id);
+                                                                }}
+                                                                disabled={approveMutation.isPending}
+                                                                className="p-1.5 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-50"
+                                                                title="Approve"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                        {q.approvalStatus !== "REJECTED" && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    rejectMutation.mutate(q.id);
+                                                                }}
+                                                                disabled={rejectMutation.isPending}
+                                                                className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-50"
+                                                                title="Reject"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openEditModal(q);
+                                                            }}
+                                                            className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                                                            title="Edit"
+                                                        >
+                                                            <Edit className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            {/* Expanded detail panel */}
+                                            {isExpanded && (
+                                                <tr>
+                                                    <td colSpan={7} className="px-4 pb-4 pt-0 bg-slate-50/80">
+                                                        <div className="ml-7 p-4 bg-white border border-slate-100 rounded-xl space-y-4">
+                                                            {/* Question */}
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
+                                                                    Question
+                                                                </p>
+                                                                <p className="text-sm text-slate-800 leading-relaxed">
+                                                                    {q.questionText}
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Answer + Distractors */}
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
+                                                                        Correct Answer
+                                                                    </p>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                                                                        <span className="text-sm font-medium text-emerald-700">
+                                                                            {q.correctAnswer}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
+                                                                        Distractors
+                                                                    </p>
+                                                                    {distractors.length > 0 ? (
+                                                                        <ul className="space-y-1">
+                                                                            {distractors.map((d, i) => (
+                                                                                <li
+                                                                                    key={`${q.id}-d-${i}`}
+                                                                                    className="flex items-center gap-1.5 text-sm text-slate-600"
+                                                                                >
+                                                                                    <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
+                                                                                    {d}
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    ) : (
+                                                                        <span className="text-xs text-slate-400 italic">
+                                                                            No distractors
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Explanation */}
+                                                            {q.explanation && (
+                                                                <div>
+                                                                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
+                                                                        Explanation
+                                                                    </p>
+                                                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                                                        {q.explanation}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Audio timestamps */}
+                                                            {(q.audioStartTime != null || q.audioEndTime != null) && (
+                                                                <div>
+                                                                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
+                                                                        Audio Range
+                                                                    </p>
+                                                                    <span className="text-sm text-slate-600 font-mono">
+                                                                        {formatTimestamp(q.audioStartTime)} &mdash; {formatTimestamp(q.audioEndTime)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Actions */}
+                                                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
+                                                                {q.approvalStatus !== "APPROVED" && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            approveMutation.mutate(q.id);
+                                                                        }}
+                                                                        disabled={approveMutation.isPending}
+                                                                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-50"
+                                                                    >
+                                                                        Approve
+                                                                    </button>
+                                                                )}
+                                                                {q.approvalStatus !== "REJECTED" && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            rejectMutation.mutate(q.id);
+                                                                        }}
+                                                                        disabled={rejectMutation.isPending}
+                                                                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 transition disabled:opacity-50"
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openEditModal(q);
+                                                                    }}
+                                                                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                 )}
 
-                {/* PAGINATION — icon-only */}
+                {/* PAGINATION */}
                 {totalPages > 1 && questions.length > 0 && (
                     <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-50">
                         <p className="text-xs text-slate-400">
@@ -395,20 +528,14 @@ const LessonExercisesPage = () => {
                         </p>
                         <div className="flex items-center gap-1.5">
                             <button
-                                onClick={() =>
-                                    setPage((p) => Math.max(0, p - 1))
-                                }
+                                onClick={() => setPage((p) => Math.max(0, p - 1))}
                                 disabled={page === 0}
                                 className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition disabled:opacity-40"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() =>
-                                    setPage((p) =>
-                                        Math.min(totalPages - 1, p + 1),
-                                    )
-                                }
+                                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                                 disabled={page >= totalPages - 1}
                                 className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition disabled:opacity-40"
                             >
@@ -532,9 +659,7 @@ const LessonExercisesPage = () => {
                                 onClick={handleSaveEdit}
                                 disabled={editMutation.isPending}
                             >
-                                {editMutation.isPending
-                                    ? "Saving..."
-                                    : "Save"}
+                                {editMutation.isPending ? "Saving..." : "Save"}
                             </Btn.Primary>
                         </div>
                     </div>
@@ -584,9 +709,7 @@ const LessonExercisesPage = () => {
                                         max={20}
                                         value={generateCount}
                                         onChange={(e) =>
-                                            setGenerateCount(
-                                                Number(e.target.value),
-                                            )
+                                            setGenerateCount(Number(e.target.value))
                                         }
                                     />
                                 </div>
@@ -598,9 +721,7 @@ const LessonExercisesPage = () => {
                                         className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
                                         value={generateDifficulty}
                                         onChange={(e) =>
-                                            setGenerateDifficulty(
-                                                e.target.value,
-                                            )
+                                            setGenerateDifficulty(e.target.value)
                                         }
                                     >
                                         <option value="A1">A1</option>
@@ -623,9 +744,7 @@ const LessonExercisesPage = () => {
                             </Btn.Secondary>
                             <Btn.Primary
                                 onClick={handleGenerate}
-                                disabled={
-                                    generateMutation.isPending || !lessonId
-                                }
+                                disabled={generateMutation.isPending || !lessonId}
                             >
                                 {generateMutation.isPending ? (
                                     <>
