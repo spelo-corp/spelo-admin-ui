@@ -8,7 +8,9 @@ import {
     Edit,
     Loader2,
     MessageSquareText,
+    Plus,
     Sparkles,
+    Trash2,
     X,
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -92,6 +94,7 @@ const LessonExercisesPage = () => {
     const [editingQuestion, setEditingQuestion] =
         useState<ComprehensionQuestion | null>(null);
     const [editForm, setEditForm] = useState<EditQuestionRequest>({});
+    const [editDistractors, setEditDistractors] = useState<string[]>([]);
     const [editError, setEditError] = useState<string | null>(null);
 
     // Generate modal
@@ -140,9 +143,9 @@ const LessonExercisesPage = () => {
         setEditForm({
             question_text: question.questionText,
             correct_answer: question.correctAnswer,
-            distractors: question.distractors,
             explanation: question.explanation ?? "",
         });
+        setEditDistractors(parseDistractors(question.distractors));
         setEditError(null);
         setEditModalOpen(true);
     };
@@ -151,9 +154,10 @@ const LessonExercisesPage = () => {
         if (!editingQuestion) return;
         setEditError(null);
         try {
+            const filtered = editDistractors.filter((d) => d.trim() !== "");
             await editMutation.mutateAsync({
                 id: editingQuestion.id,
-                data: editForm,
+                data: { ...editForm, distractors: JSON.stringify(filtered) },
             });
             setEditModalOpen(false);
             setEditingQuestion(null);
@@ -612,20 +616,46 @@ const LessonExercisesPage = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-600 mb-1">
-                                    Distractors (JSON array)
+                                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                                    Distractors (wrong answers)
                                 </label>
-                                <textarea
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
-                                    rows={3}
-                                    value={editForm.distractors ?? ""}
-                                    onChange={(e) =>
-                                        setEditForm((f) => ({
-                                            ...f,
-                                            distractors: e.target.value,
-                                        }))
-                                    }
-                                />
+                                <div className="space-y-2">
+                                    {editDistractors.map((d, i) => (
+                                        <div key={`distractor-${i}`} className="flex items-center gap-2">
+                                            <span className="text-xs text-slate-400 w-4 text-center flex-shrink-0">
+                                                {String.fromCharCode(65 + i)}
+                                            </span>
+                                            <Input
+                                                value={d}
+                                                onChange={(e) => {
+                                                    const updated = [...editDistractors];
+                                                    updated[i] = e.target.value;
+                                                    setEditDistractors(updated);
+                                                }}
+                                                placeholder={`Distractor ${i + 1}`}
+                                            />
+                                            {editDistractors.length > 1 && (
+                                                <button
+                                                    onClick={() =>
+                                                        setEditDistractors((ds) =>
+                                                            ds.filter((_, j) => j !== i),
+                                                        )
+                                                    }
+                                                    className="p-1.5 rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition flex-shrink-0"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setEditDistractors((ds) => [...ds, ""])}
+                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition mt-1"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Add distractor
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">
