@@ -1,7 +1,8 @@
 import { Library, Loader2, PlusCircle, RefreshCcw, Search } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
 import PageHeader from "../../components/common/PageHeader";
@@ -13,35 +14,23 @@ type StatusFilter = "ALL" | ContentSource["status"];
 
 const statusFilters: StatusFilter[] = ["ALL", "PROCESSING", "READY", "DRAFT"];
 
+export const BOOKS_QUERY_KEY = ["content-sources"] as const;
+
 const BookListPage: React.FC = () => {
-    const [books, setBooks] = useState<ContentSource[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [search, setSearch] = useState("");
 
-    const loadBooks = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
+    const { data: books = [], isLoading: loading, error, isRefetching: refreshing } = useQuery({
+        queryKey: BOOKS_QUERY_KEY,
+        queryFn: async () => {
             const payload = await api.getContentSources();
-            setBooks(payload.content ?? []);
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to load books.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+            return payload.content ?? [];
+        },
+    });
 
-    useEffect(() => {
-        void loadBooks();
-    }, [loadBooks]);
-
-    const handleRefresh = async () => {
-        setRefreshing(true);
-        await loadBooks();
-        setRefreshing(false);
+    const handleRefresh = () => {
+        queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY });
     };
 
     const filteredBooks = useMemo(() => {
@@ -172,7 +161,7 @@ const BookListPage: React.FC = () => {
 
                     {error && (
                         <div className="px-5 py-3 text-sm text-rose-600 bg-rose-50 border-t border-rose-100">
-                            {error}
+                            {error instanceof Error ? error.message : "Failed to load books."}
                         </div>
                     )}
 

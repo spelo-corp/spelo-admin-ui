@@ -16,8 +16,10 @@ import {
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { booksApi } from "../../api/books";
 import { api } from "../../api/client";
+import { BOOKS_QUERY_KEY } from "./BookListPage";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
 import EditableSentenceRow from "../../components/books/EditableSentenceRow";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
@@ -44,6 +46,7 @@ const InsertBlockButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 
 const BookDetailPage: React.FC = () => {
     const { sourceId } = useParams<{ sourceId: string }>();
+    const queryClient = useQueryClient();
 
     const [book, setBook] = useState<ContentSource | null>(null);
     const [sections, setSections] = useState<ContentSection[]>([]);
@@ -328,6 +331,7 @@ const BookDetailPage: React.FC = () => {
         setIsDeleting(true);
         try {
             await booksApi.deleteContentSource(book.id);
+            queryClient.invalidateQueries({ queryKey: BOOKS_QUERY_KEY });
             navigate("/admin/books");
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to delete book.");
