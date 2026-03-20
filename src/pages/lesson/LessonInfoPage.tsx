@@ -4,6 +4,7 @@ import { useOutletContext } from "react-router-dom";
 import { BASE_URL } from "../../api/base";
 import { api } from "../../api/client";
 import type { Lesson, LessonLevel } from "../../types";
+import { validateImageFile } from "../../utils/validateImageFile";
 import type { LessonOutletContext } from "../LessonViewPage";
 
 const LessonInfoPage: React.FC = () => {
@@ -358,7 +359,18 @@ const LessonInfoPage: React.FC = () => {
                                 type="file"
                                 accept="image/*"
                                 className="flex-1 min-w-0 text-sm"
-                                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0] ?? null;
+                                    if (file) {
+                                        const result = validateImageFile(file);
+                                        if (!result.valid) {
+                                            setStatus({ type: "error", message: result.error! });
+                                            e.target.value = "";
+                                            return;
+                                        }
+                                    }
+                                    setImageFile(file);
+                                }}
                                 disabled={anyBusy}
                             />
                             <button

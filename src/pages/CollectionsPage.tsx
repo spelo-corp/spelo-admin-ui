@@ -27,6 +27,7 @@ import {
     useLibraryCollections,
     useUpdateCollection,
 } from "../hooks/useCollections";
+import { validateImageFile } from "../utils/validateImageFile";
 import type { Collection } from "../types/collection";
 import { processImage } from "../utils/imageProcessing";
 
@@ -205,6 +206,12 @@ const CollectionsPage: React.FC = () => {
     const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        const result = validateImageFile(file);
+        if (!result.valid) {
+            setModalError(result.error!);
+            e.target.value = "";
+            return;
+        }
         setImageFile(file);
         // Clear remote preview if user picks a local file
         setImagePreviewUrl(null);
