@@ -162,10 +162,15 @@ const Sidebar: React.FC = () => {
 
             {/* GENERAL */}
             <div className="flex flex-col gap-0.5 border-t border-slate-100 pt-4 mt-4">
-                <button className={`${base} text-slate-500 hover:bg-white`}>
+                <NavLink
+                    to="/admin/settings"
+                    className={({ isActive }) =>
+                        `${base} ${isActive ? "text-brand bg-brand/5" : "text-slate-500 hover:bg-white"}`
+                    }
+                >
                     <Settings className="w-4.5 h-4.5" />
                     <span>Settings</span>
-                </button>
+                </NavLink>
                 <button className={`${base} text-slate-500 hover:bg-white`}>
                     <HelpCircle className="w-4.5 h-4.5" />
                     <span>Help</span>

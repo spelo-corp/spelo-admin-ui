@@ -38,6 +38,7 @@ import LessonVocabPage from "../pages/lesson/LessonVocabPage";
 import ProcessingJobsPage from "../pages/ProcessingJobsPage";
 import PipelineEditorPage from "../pages/pipelines/PipelineEditorPage";
 import PipelineListPage from "../pages/pipelines/PipelineListPage";
+import SettingsPage from "../pages/SettingsPage";
 import UsersPage from "../pages/UsersPage";
 
 export const AppRoutes = () => {
@@ -183,6 +184,7 @@ export const AppRoutes = () => {
                     }
                 />
                 <Route path="audio-files" element={<AudioFilesPage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route
                     path="dictionary"
