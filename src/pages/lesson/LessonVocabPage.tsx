@@ -99,13 +99,13 @@ const LessonVocabPage = () => {
     const [wordsByLessonId, setWordsByLessonId] = useState<Record<number, VocabWord[]>>({});
     const [wordSearch, setWordSearch] = useState("");
     const [wordSelections, setWordSelections] = useState<Record<number, string[]>>({});
-    const [toolsOpen, setToolsOpen] = useState(false);
-    const [toolsTab, setToolsTab] = useState<"extract" | "map" | "job">("extract");
+    const [, setToolsOpen] = useState(false);
+    const [, setToolsTab] = useState<"extract" | "map" | "job">("extract");
     const [dictOpen, setDictOpen] = useState(false);
     const [extractBanner, setExtractBanner] = useState<string | null>(null);
     const [mapBanner, setMapBanner] = useState<string | null>(null);
-    const extractBannerTimer = useRef<ReturnType<typeof setTimeout>>();
-    const mapBannerTimer = useRef<ReturnType<typeof setTimeout>>();
+    const extractBannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+    const mapBannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
     const [savingNewWords, setSavingNewWords] = useState<Record<number, boolean>>({});
     const [newWordErrors, setNewWordErrors] = useState<Record<number, string | null>>({});
     const [newWordSuccess, setNewWordSuccess] = useState<Record<number, string | null>>({});

@@ -5,7 +5,7 @@ import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type WaveSurfer from "wavesurfer.js";
-import { api } from "../api/client";
+import { api, jobsApi } from "../api/client";
 import { WaveformRegionsPlayer } from "../components/audio/WaveformRegionsPlayer";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
@@ -73,7 +73,7 @@ const AudioReviewPage: React.FC = () => {
     ) => {
         if (!jobId || !job) return;
 
-        await api.updateSentence(Number(jobId), index, {
+        await jobsApi.updateSentence(Number(jobId), index, {
             text: field === "text" ? value : job.sentences[index].text,
             translated_text:
                 field === "translated_text" ? value : job.sentences[index].translated_text,

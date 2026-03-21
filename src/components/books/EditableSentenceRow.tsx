@@ -58,6 +58,7 @@ function buildMetadata(
 
     const result: SentenceMetadata = {
         ...(original || {}),
+        contains_latex: original?.contains_latex ?? null,
         translation: hasTranslation ? translation.trim() : null,
         words: draftWordsToMeta(words),
     };
@@ -326,9 +327,9 @@ const EditableSentenceRow: React.FC<EditableSentenceRowProps> = ({ sentence, onS
                                 objectName={sentence.text}
                                 alt={(sentence.metadata?.caption as string) || "Content image"}
                             />
-                            {sentence.metadata?.caption && (
+                            {!!sentence.metadata?.caption && (
                                 <p className="text-[13px] text-slate-500 italic">
-                                    {sentence.metadata.caption as string}
+                                    {String(sentence.metadata.caption)}
                                 </p>
                             )}
                         </div>

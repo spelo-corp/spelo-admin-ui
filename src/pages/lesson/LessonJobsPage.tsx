@@ -22,7 +22,7 @@ type AllJobs = {
 
 const LessonJobsPage: React.FC = () => {
     const { lessonId } = useParams();
-    const { lessonMeta, loading: lessonLoading } = useOutletContext<LessonOutletContext>();
+    const { loading: lessonLoading } = useOutletContext<LessonOutletContext>();
 
     const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
     const [audioJobs, setAudioJobs] = useState<AudioJob[]>([]);
