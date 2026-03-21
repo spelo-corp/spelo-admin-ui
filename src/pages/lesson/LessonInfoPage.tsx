@@ -1,8 +1,8 @@
 // src/pages/lesson/LessonInfoPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { BASE_URL } from "../../api/base";
 import { api } from "../../api/client";
+import { usePresignedImageUrl } from "../../hooks/usePresignedImageUrl";
 import type { Lesson, LessonLevel } from "../../types";
 import { validateImageFile } from "../../utils/validateImageFile";
 import type { LessonOutletContext } from "../LessonViewPage";
@@ -54,14 +54,7 @@ const LessonInfoPage: React.FC = () => {
         setStatus({ type: null, message: "" });
     }, [baseLesson]);
 
-    const resolvedImage = useMemo(() => {
-        if (!image.trim()) return "";
-        try {
-            return new URL(image.trim(), BASE_URL).toString();
-        } catch {
-            return image.trim();
-        }
-    }, [image]);
+    const resolvedImage = usePresignedImageUrl(image.trim() || null);
 
     const saveLesson = async () => {
         if (!baseLesson || !baseLesson.category_id) {

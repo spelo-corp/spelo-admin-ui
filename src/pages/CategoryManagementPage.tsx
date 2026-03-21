@@ -14,6 +14,7 @@ import {
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePresignedImageUrl } from "../hooks/usePresignedImageUrl";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input.tsx";
@@ -343,13 +344,7 @@ const CategoryManagementPage: React.FC = () => {
                                     >
                                         {/* Image */}
                                         {category.image && (
-                                            <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-100">
-                                                <img
-                                                    src={category.image}
-                                                    alt={category.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
+                                            <CategoryImage objectKey={category.image} alt={category.name} />
                                         )}
 
                                         {/* Info */}
@@ -617,5 +612,15 @@ const CategoryManagementPage: React.FC = () => {
         </div>
     );
 };
+
+function CategoryImage({ objectKey, alt }: { objectKey: string; alt: string }) {
+    const url = usePresignedImageUrl(objectKey);
+    if (!url) return null;
+    return (
+        <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-100">
+            <img src={url} alt={alt} className="w-full h-full object-cover" />
+        </div>
+    );
+}
 
 export default CategoryManagementPage;

@@ -9,6 +9,7 @@ import {
     Trash2,
 } from "lucide-react";
 import type React from "react";
+import { usePresignedImageUrl } from "../../hooks/usePresignedImageUrl";
 import type { Lesson } from "../../types";
 
 interface LessonCardProps {
@@ -27,6 +28,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
     onDelete,
 }) => {
     const isActive = lesson.status === 1;
+    const imageUrl = usePresignedImageUrl(lesson.image);
 
     // Get solid color based on lesson level for variety
     const getLevelColor = (level: string) => {
@@ -48,10 +50,10 @@ const LessonCard: React.FC<LessonCardProps> = ({
 
             {/* IMAGE/SOLID COLOR HEADER */}
             <div className="relative h-36 overflow-hidden">
-                {lesson.image ? (
+                {imageUrl ? (
                     <>
                         <img
-                            src={lesson.image}
+                            src={imageUrl}
                             alt={lesson.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
