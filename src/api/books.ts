@@ -6,6 +6,7 @@ import type {
     SentenceMetadata,
 } from "../types/book";
 import type { Job } from "../types/jobService";
+import { type ImageProcessingOptions, processImage } from "../utils/imageProcessing";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
 
 export const booksApi = {
@@ -192,6 +193,26 @@ export const booksApi = {
             { headers: getAuthHeaders() },
         );
         return handle<{ data: string }>(res).then((r) => r.data);
+    },
+
+    async uploadCoverImage(
+        sourceId: number,
+        file: File,
+        options?: ImageProcessingOptions,
+    ): Promise<ContentSource> {
+        const processedFile = await processImage(file, options || {});
+        const form = new FormData();
+        form.append("file", processedFile);
+
+        const res = await fetch(
+            `${BASE_URL}/api/v1/content/sources/${sourceId}/cover-image/upload`,
+            {
+                method: "PATCH",
+                headers: getAuthHeaders({ contentType: null }),
+                body: form,
+            },
+        );
+        return handle<{ data: ContentSource }>(res).then((r) => r.data);
     },
 
     async reorderSentences(sectionId: number, sentenceIds: number[]): Promise<ContentSentence[]> {

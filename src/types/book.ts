@@ -8,6 +8,7 @@ export interface ContentSource {
     status: "PROCESSING" | "READY" | "DRAFT";
     totalSections: number;
     totalSentences: number;
+    coverImage: string | null;
     createdBy: number;
     createdAt: string;
     updatedAt: string;
