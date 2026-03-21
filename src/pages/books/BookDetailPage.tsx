@@ -7,6 +7,7 @@ import {
     Edit3,
     FileText,
     Globe,
+    ImagePlus,
     Loader2,
     Pencil,
     Plus,
@@ -83,6 +84,10 @@ const BookDetailPage: React.FC = () => {
     const [savingBlock, setSavingBlock] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+    const coverInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (!sourceId) return;
 
@@ -125,6 +130,38 @@ const BookDetailPage: React.FC = () => {
 
         void load();
     }, [sourceId]);
+
+    // Fetch cover image presigned URL when book loads
+    useEffect(() => {
+        if (!book?.coverImage) {
+            setCoverPreviewUrl(null);
+            return;
+        }
+        let cancelled = false;
+        booksApi.getPresignedUrl("spelo-images", book.coverImage).then((url) => {
+            if (!cancelled) setCoverPreviewUrl(url);
+        }).catch(() => {
+            // ignore
+        });
+        return () => { cancelled = true; };
+    }, [book?.coverImage]);
+
+    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !book) return;
+        // Reset input so the same file can be re-selected
+        e.target.value = "";
+
+        setUploadingCover(true);
+        try {
+            const updated = await booksApi.uploadCoverImage(book.id, file);
+            setBook(updated);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to upload cover image.");
+        } finally {
+            setUploadingCover(false);
+        }
+    };
 
     const handleSelectSection = async (sectionId: number) => {
         setSelectedSectionId(sectionId);
@@ -391,6 +428,44 @@ const BookDetailPage: React.FC = () => {
                 {/* Book Meta & Quick Actions Panel */}
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex flex-wrap items-center gap-6 text-sm">
+                        {/* Cover Image */}
+                        <button
+                            type="button"
+                            onClick={() => coverInputRef.current?.click()}
+                            disabled={uploadingCover}
+                            className="relative w-16 h-20 rounded-lg border border-slate-200 overflow-hidden shrink-0 hover:border-brand/50 hover:shadow-sm transition-all group cursor-pointer bg-slate-50"
+                            title={book.coverImage ? "Change cover image" : "Upload cover image"}
+                        >
+                            {uploadingCover ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                                    <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                                </div>
+                            ) : coverPreviewUrl ? (
+                                <>
+                                    <img
+                                        src={coverPreviewUrl}
+                                        alt="Cover"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                        <ImagePlus className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-slate-400 group-hover:text-brand transition-colors">
+                                    <ImagePlus className="w-5 h-5" />
+                                    <span className="text-[9px] mt-0.5 font-medium">Cover</span>
+                                </div>
+                            )}
+                        </button>
+                        <input
+                            ref={coverInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleCoverUpload}
+                        />
+                        <div className="w-px h-8 bg-slate-200 hidden sm:block"></div>
                         <div className="flex flex-col">
                             <span className="text-slate-500 text-[11px] font-medium uppercase tracking-wider mb-0.5">
                                 Language
