@@ -2,7 +2,9 @@ import {
     ArrowLeft,
     BookOpen,
     Check,
+    ImagePlus,
     Loader2,
+    Pencil,
     Plus,
     Search,
     Sparkles,
@@ -10,7 +12,7 @@ import {
     X,
 } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -23,7 +25,11 @@ import {
     useAddTerminologiesToCollection,
     useCollections,
     useCollectionTerminologies,
+    useDeleteCollection,
     useDeleteWordFromCollection,
+    useGroupedLibraryCollections,
+    useUpdateCollection,
+    useUploadCollectionImage,
 } from "../hooks/useCollections";
 import type { VocabWord } from "../types";
 import type { CollectionTerminologyDTO } from "../types/collection";
@@ -111,10 +117,19 @@ const CollectionWordsPage: React.FC = () => {
     const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
 
     const { data: collections = [], isLoading: collectionsLoading } = useCollections();
-    const collection = useMemo(
-        () => collections.find((item) => item.id === parsedId),
-        [collections, parsedId],
-    );
+    const { data: groupedLibraryResponse } = useGroupedLibraryCollections();
+    const groupedLibraryGroups = groupedLibraryResponse?.data ?? [];
+    const collection = useMemo(() => {
+        // First check user's own collections
+        const own = collections.find((item) => item.id === parsedId);
+        if (own) return own;
+        // Then check library collections (book vocab)
+        for (const group of groupedLibraryGroups) {
+            const found = group.collections?.find((c) => c.id === parsedId);
+            if (found) return { id: found.id, name: found.name, word_count: found.word_count };
+        }
+        return undefined;
+    }, [collections, groupedLibraryGroups, parsedId]);
 
     const {
         data: terminologies = [],
@@ -124,8 +139,20 @@ const CollectionWordsPage: React.FC = () => {
 
     const addTerminologiesMutation = useAddTerminologiesToCollection();
     const deleteWordMutation = useDeleteWordFromCollection();
+    const deleteCollectionMutation = useDeleteCollection();
+    const updateCollectionMutation = useUpdateCollection();
+    const uploadImageMutation = useUploadCollectionImage();
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [collectionSearch, setCollectionSearch] = useState("");
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editError, setEditError] = useState<string | null>(null);
+    const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
+    const [deleteCollectionError, setDeleteCollectionError] = useState<string | null>(null);
+    const [uploadImageError, setUploadImageError] = useState<string | null>(null);
+    const [uploadImageSuccess, setUploadImageSuccess] = useState(false);
     const [wordSearch, setWordSearch] = useState("");
     const [wordResults, setWordResults] = useState<VocabWord[]>([]);
     const [wordSearchLoading, setWordSearchLoading] = useState(false);
@@ -136,6 +163,59 @@ const CollectionWordsPage: React.FC = () => {
 
     const [deleteTarget, setDeleteTarget] = useState<CollectionTerminologyDTO | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const handleOpenEdit = () => {
+        setEditName(collection?.name ?? "");
+        setEditError(null);
+        setShowEditModal(true);
+    };
+
+    const handleEditSave = async () => {
+        const trimmed = editName.trim();
+        if (!trimmed) {
+            setEditError("Collection name cannot be empty.");
+            return;
+        }
+        setEditError(null);
+        try {
+            await updateCollectionMutation.mutateAsync({
+                id: parsedId,
+                data: { collection_name: trimmed },
+            });
+            setShowEditModal(false);
+        } catch (e) {
+            setEditError(e instanceof Error ? e.message : "Failed to update collection.");
+        }
+    };
+
+    const handleDeleteCollection = async () => {
+        setDeleteCollectionError(null);
+        try {
+            await deleteCollectionMutation.mutateAsync(parsedId);
+            setShowDeleteCollectionModal(false);
+            navigate("/admin/collections");
+        } catch (e) {
+            setDeleteCollectionError(
+                e instanceof Error ? e.message : "Failed to delete collection.",
+            );
+        }
+    };
+
+    const handleUploadImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadImageError(null);
+        setUploadImageSuccess(false);
+        try {
+            await uploadImageMutation.mutateAsync({ id: parsedId, file });
+            setUploadImageSuccess(true);
+            setTimeout(() => setUploadImageSuccess(false), 3000);
+        } catch (err) {
+            setUploadImageError(err instanceof Error ? err.message : "Failed to upload image.");
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
 
     const handleSearchWords = async () => {
         const term = wordSearch.trim();
@@ -280,10 +360,57 @@ const CollectionWordsPage: React.FC = () => {
                 }
                 description="Browse current words in this collection and search the dictionary to add more."
                 actions={
-                    <Btn.Secondary onClick={() => navigate("/admin/collections")}>
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to collections
-                    </Btn.Secondary>
+                    <>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleUploadImageChange}
+                        />
+                        <Btn.HeroSecondary
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadImageMutation.isPending}
+                            title="Upload collection image"
+                        >
+                            {uploadImageMutation.isPending ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Uploading…
+                                </>
+                            ) : uploadImageSuccess ? (
+                                <>
+                                    <Check className="w-4 h-4" />
+                                    Uploaded
+                                </>
+                            ) : (
+                                <>
+                                    <ImagePlus className="w-4 h-4" />
+                                    Upload Image
+                                </>
+                            )}
+                        </Btn.HeroSecondary>
+                        <Btn.HeroSecondary onClick={handleOpenEdit} title="Edit collection name">
+                            <Pencil className="w-4 h-4" />
+                            Edit
+                        </Btn.HeroSecondary>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDeleteCollectionError(null);
+                                setShowDeleteCollectionModal(true);
+                            }}
+                            className="px-4 py-2 rounded-full bg-rose-500/20 border border-rose-300/30 text-white font-semibold hover:bg-rose-500/40 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                            title="Delete collection"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                        </button>
+                        <Btn.HeroSecondary onClick={() => navigate("/admin/collections")}>
+                            <ArrowLeft className="w-4 h-4" />
+                            Back
+                        </Btn.HeroSecondary>
+                    </>
                 }
             />
 
@@ -636,6 +763,130 @@ const CollectionWordsPage: React.FC = () => {
                 isDestructive
                 isConfirming={deletingWord}
             />
+
+            <ConfirmModal
+                isOpen={showDeleteCollectionModal}
+                onClose={() => {
+                    if (!deleteCollectionMutation.isPending) {
+                        setShowDeleteCollectionModal(false);
+                        setDeleteCollectionError(null);
+                    }
+                }}
+                onConfirm={handleDeleteCollection}
+                title="Delete collection"
+                description={
+                    <span>
+                        Permanently delete{" "}
+                        <span className="font-semibold text-slate-800">
+                            {collection?.name ?? `Collection #${parsedId}`}
+                        </span>
+                        ? This will remove the collection and all its words. This action cannot be
+                        undone.
+                        {deleteCollectionError ? (
+                            <span className="block mt-3 text-rose-600 text-sm">
+                                {deleteCollectionError}
+                            </span>
+                        ) : null}
+                    </span>
+                }
+                confirmText="Delete collection"
+                cancelText="Cancel"
+                isDestructive
+                isConfirming={deleteCollectionMutation.isPending}
+            />
+
+            {showEditModal ? (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-semibold text-slate-900">
+                                    Edit collection
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!updateCollectionMutation.isPending) {
+                                            setShowEditModal(false);
+                                            setEditError(null);
+                                        }
+                                    }}
+                                    className="text-slate-400 hover:text-slate-500 hover:bg-slate-100 p-1.5 rounded-full transition-colors"
+                                    disabled={updateCollectionMutation.isPending}
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="edit-collection-name"
+                                    className="block text-sm font-medium text-slate-700"
+                                >
+                                    Collection name
+                                </label>
+                                <Input
+                                    id="edit-collection-name"
+                                    value={editName}
+                                    onChange={(e) => {
+                                        setEditName(e.target.value);
+                                        if (editError) setEditError(null);
+                                    }}
+                                    placeholder="Enter collection name"
+                                    className="rounded-xl"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleEditSave();
+                                    }}
+                                    disabled={updateCollectionMutation.isPending}
+                                />
+                                {editError ? (
+                                    <p className="text-xs text-rose-600">{editError}</p>
+                                ) : null}
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                            <Btn.Secondary
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setEditError(null);
+                                }}
+                                disabled={updateCollectionMutation.isPending}
+                            >
+                                Cancel
+                            </Btn.Secondary>
+                            <Btn.Primary
+                                onClick={handleEditSave}
+                                disabled={updateCollectionMutation.isPending}
+                            >
+                                {updateCollectionMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Saving…
+                                    </>
+                                ) : (
+                                    "Save"
+                                )}
+                            </Btn.Primary>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {uploadImageError ? (
+                <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-200">
+                    <span>{uploadImageError}</span>
+                    <button
+                        type="button"
+                        onClick={() => setUploadImageError(null)}
+                        className="text-rose-400 hover:text-rose-600"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : null}
         </div>
     );
 };
