@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { api, booksApi } from "../api/client";
 import type {
     Collection,
     CollectionListItemDTO,
@@ -36,6 +36,13 @@ export function useCollections() {
             }
             return [];
         },
+    });
+}
+
+export function useGroupedLibraryCollections() {
+    return useQuery({
+        queryKey: ["collections", "library", "grouped"],
+        queryFn: () => api.getGroupedLibraryCollections(),
     });
 }
 
@@ -142,6 +149,30 @@ export function useGenerateCollection() {
             };
         }) => api.generateCollection(payload),
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COLLECTIONS_QUERY_KEY });
+        },
+    });
+}
+
+export function useUploadCollectionImage() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, file }: { id: number; file: File }) =>
+            api.uploadCollectionImage(id, file),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COLLECTIONS_QUERY_KEY });
+        },
+    });
+}
+
+export function useDeleteVocabCollections() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (sourceId: number) => booksApi.deleteVocabCollections(sourceId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["collections", "library", "grouped"] });
             queryClient.invalidateQueries({ queryKey: COLLECTIONS_QUERY_KEY });
         },
     });

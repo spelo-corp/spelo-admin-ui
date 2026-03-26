@@ -1,9 +1,12 @@
 import {
     BookOpen,
+    ChevronDown,
+    ChevronRight,
     CircleAlert,
     Edit,
     Folder,
     ImagePlus,
+    LayoutGrid,
     Loader2,
     Plus,
     Search,
@@ -23,12 +26,15 @@ import { Skeleton } from "../components/ui/Skeleton";
 import {
     useCreateCollection,
     useDeleteCollection,
+    useDeleteVocabCollections,
     useGenerateCollection,
+    useGroupedLibraryCollections,
     useLibraryCollections,
     useUpdateCollection,
+    useUploadCollectionImage,
 } from "../hooks/useCollections";
 import { validateImageFile } from "../utils/validateImageFile";
-import type { Collection } from "../types/collection";
+import type { BookCollectionGroup, Collection } from "../types/collection";
 import { processImage } from "../utils/imageProcessing";
 
 const formatDate = (value?: string) => {
@@ -42,10 +48,18 @@ const CollectionsPage: React.FC = () => {
     const navigate = useNavigate();
     // Default to managing library collections
     const { data: collections = [], isLoading, error } = useLibraryCollections(0, 100);
+    const {
+        data: groupedData,
+        isLoading: groupedLoading,
+        error: groupedError,
+    } = useGroupedLibraryCollections();
+    const [libraryView, setLibraryView] = useState<"grouped" | "flat">("grouped");
     const createCollectionMutation = useCreateCollection();
     const updateCollectionMutation = useUpdateCollection();
     const deleteCollectionMutation = useDeleteCollection();
     const generateCollectionMutation = useGenerateCollection();
+    const uploadImageMutation = useUploadCollectionImage();
+    const deleteVocabCollectionsMutation = useDeleteVocabCollections();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
@@ -69,6 +83,34 @@ const CollectionsPage: React.FC = () => {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    // Grouped view — delete collection (chapter row)
+    const [groupedDeleteTarget, setGroupedDeleteTarget] = useState<{
+        id: number;
+        name: string;
+    } | null>(null);
+    const [groupedDeleteError, setGroupedDeleteError] = useState<string | null>(null);
+
+    // Grouped view — edit collection (chapter row)
+    const [groupedEditTarget, setGroupedEditTarget] = useState<{
+        id: number;
+        name: string;
+    } | null>(null);
+    const [groupedEditName, setGroupedEditName] = useState("");
+    const [groupedEditDescription, setGroupedEditDescription] = useState("");
+    const [groupedEditError, setGroupedEditError] = useState<string | null>(null);
+
+    // Grouped view — delete all collections for a book
+    const [deleteAllTarget, setDeleteAllTarget] = useState<{
+        sourceId: number;
+        bookTitle: string;
+    } | null>(null);
+    const [deleteAllError, setDeleteAllError] = useState<string | null>(null);
+
+    // Grouped view — upload image for a collection
+    const [imageUploadTargetId, setImageUploadTargetId] = useState<number | null>(null);
+    const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+    const groupedImageInputRef = useRef<HTMLInputElement>(null);
 
     // Generate modal state
     const [generateOpen, setGenerateOpen] = useState(false);
@@ -351,6 +393,67 @@ const CollectionsPage: React.FC = () => {
         }
     };
 
+    const handleGroupedDeleteCollection = async () => {
+        if (!groupedDeleteTarget) return;
+        setGroupedDeleteError(null);
+        try {
+            await deleteCollectionMutation.mutateAsync(groupedDeleteTarget.id);
+            setGroupedDeleteTarget(null);
+        } catch (e) {
+            setGroupedDeleteError(e instanceof Error ? e.message : "Failed to delete collection.");
+        }
+    };
+
+    const handleGroupedEditSave = async () => {
+        if (!groupedEditTarget) return;
+        const trimmedName = groupedEditName.trim();
+        if (!trimmedName) {
+            setGroupedEditError("Collection name is required.");
+            return;
+        }
+        setGroupedEditError(null);
+        try {
+            await updateCollectionMutation.mutateAsync({
+                id: groupedEditTarget.id,
+                data: { collection_name: trimmedName, description: groupedEditDescription.trim() || undefined },
+            });
+            setGroupedEditTarget(null);
+        } catch (e) {
+            setGroupedEditError(e instanceof Error ? e.message : "Failed to update collection.");
+        }
+    };
+
+    const handleDeleteAllCollections = async () => {
+        if (!deleteAllTarget) return;
+        setDeleteAllError(null);
+        try {
+            await deleteVocabCollectionsMutation.mutateAsync(deleteAllTarget.sourceId);
+            setDeleteAllTarget(null);
+        } catch (e) {
+            setDeleteAllError(
+                e instanceof Error ? e.message : "Failed to delete book collections.",
+            );
+        }
+    };
+
+    const handleGroupedImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !imageUploadTargetId) return;
+        e.target.value = "";
+        const result = validateImageFile(file);
+        if (!result.valid) {
+            setImageUploadError(result.error!);
+            return;
+        }
+        setImageUploadError(null);
+        try {
+            await uploadImageMutation.mutateAsync({ id: imageUploadTargetId, file });
+            setImageUploadTargetId(null);
+        } catch (err) {
+            setImageUploadError(err instanceof Error ? err.message : "Failed to upload image.");
+        }
+    };
+
     const filteredCollections = useMemo(() => {
         const term = collectionSearch.trim().toLowerCase();
         if (!term) return collections;
@@ -419,151 +522,228 @@ const CollectionsPage: React.FC = () => {
                                 Library
                             </p>
                             <p className="text-sm text-slate-600">
-                                {filteredCollections.length} showing
+                                {libraryView === "grouped"
+                                    ? `${groupedData?.data?.length ?? 0} book groups`
+                                    : `${filteredCollections.length} showing`}
                             </p>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
+                        <button
+                            onClick={() => setLibraryView("grouped")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                                libraryView === "grouped"
+                                    ? "bg-brand text-white"
+                                    : "text-slate-500 hover:text-slate-700"
+                            }`}
+                        >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            By Book
+                        </button>
+                        <button
+                            onClick={() => setLibraryView("flat")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                                libraryView === "flat"
+                                    ? "bg-brand text-white"
+                                    : "text-slate-500 hover:text-slate-700"
+                            }`}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            All
+                        </button>
                     </div>
                 </div>
 
                 <div className="p-6">
-                    {error ? (
-                        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                            {error instanceof Error ? error.message : "Failed to load collections."}
-                        </div>
-                    ) : null}
-
-                    {isLoading ? (
-                        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {[...Array(6)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="bg-white rounded-card border border-slate-100 p-4 space-y-4 shadow-sm"
-                                >
-                                    <Skeleton className="h-4 w-2/3" />
-                                    <Skeleton className="h-3 w-full" />
-                                    <Skeleton className="h-3 w-5/6" />
-                                    <Skeleton className="h-10 w-full rounded-xl" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : collections.length === 0 ? (
-                        <div className="text-center py-12 space-y-3">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-                                <Folder className="w-6 h-6" />
-                            </div>
-                            <p className="font-medium text-slate-700">
-                                No library collections found.
-                            </p>
-                            <p className="text-sm text-slate-500">
-                                Create a collection to make it available in the library.
-                            </p>
-                            <div className="flex justify-center pt-1">
-                                <Btn.Primary onClick={openCreateModal} className="px-5">
-                                    <Plus className="w-4 h-4" />
-                                    Create Collection
-                                </Btn.Primary>
-                            </div>
-                        </div>
-                    ) : filteredCollections.length === 0 ? (
-                        <div className="text-center py-10 space-y-2 text-sm text-slate-500">
-                            <p className="text-lg text-slate-700 font-semibold">
-                                No collections match your search.
-                            </p>
-                            <p>Try a different search term.</p>
-                        </div>
+                    {libraryView === "grouped" ? (
+                        <>
+                            {/* Hidden file input for grouped view image uploads */}
+                            <input
+                                ref={groupedImageInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleGroupedImageUpload}
+                            />
+                            <GroupedLibraryView
+                                groups={groupedData?.data ?? []}
+                                isLoading={groupedLoading}
+                                error={groupedError}
+                                onNavigate={(id) => navigate(`/admin/collections/${id}`)}
+                                onDeleteCollection={(id, name) => {
+                                    setGroupedDeleteTarget({ id, name });
+                                    setGroupedDeleteError(null);
+                                }}
+                                onEditCollection={(id, name) => {
+                                    setGroupedEditTarget({ id, name });
+                                    setGroupedEditName(name);
+                                    setGroupedEditDescription("");
+                                    setGroupedEditError(null);
+                                }}
+                                onUploadImage={(id) => {
+                                    setImageUploadTargetId(id);
+                                    setImageUploadError(null);
+                                    groupedImageInputRef.current?.click();
+                                }}
+                                onDeleteAllCollections={(sourceId, bookTitle) => {
+                                    setDeleteAllTarget({ sourceId, bookTitle });
+                                    setDeleteAllError(null);
+                                }}
+                                uploadingImageId={
+                                    uploadImageMutation.isPending ? imageUploadTargetId : null
+                                }
+                            />
+                        </>
                     ) : (
-                        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {filteredCollections.map((collection) => {
-                                const updatedLabel = formatDate(
-                                    collection.updated_at ?? collection.created_at,
-                                );
-                                return (
-                                    <div
-                                        key={collection.id}
-                                        className="bg-white rounded-card border border-slate-100 p-5 shadow-sm hover:shadow-md transition space-y-4"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
-                                                        {collection.type}
-                                                    </span>
-                                                    {collection.price && collection.price > 0 ? (
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">
-                                                            {collection.price} gems
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-                                                            Free
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <h3
-                                                    className="font-semibold text-slate-800 line-clamp-1"
-                                                    title={collection.name}
-                                                >
-                                                    {collection.name}
-                                                </h3>
-                                            </div>
-                                            <CollectionThumbnail
-                                                imageKey={collection.image}
-                                                bgColor={collection.bg_color}
-                                            />
-                                        </div>
+                        <>
+                            {error ? (
+                                <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                    {error instanceof Error
+                                        ? error.message
+                                        : "Failed to load collections."}
+                                </div>
+                            ) : null}
 
-                                        <p className="text-sm text-slate-500 line-clamp-2 h-10">
-                                            {collection.description || "No description provided."}
-                                        </p>
-
-                                        <div className="space-y-1 text-xs text-slate-500">
-                                            <div className="flex items-center justify-between">
-                                                <span>Words</span>
-                                                <span className="font-medium text-slate-700">
-                                                    {collection.total_words ?? 0}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span>Updated</span>
-                                                <span className="font-medium text-slate-700">
-                                                    {updatedLabel || "N/A"}
-                                                </span>
-                                            </div>
+                            {isLoading ? (
+                                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {[...Array(6)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="bg-white rounded-card border border-slate-100 p-4 space-y-4 shadow-sm"
+                                        >
+                                            <Skeleton className="h-4 w-2/3" />
+                                            <Skeleton className="h-3 w-full" />
+                                            <Skeleton className="h-3 w-5/6" />
+                                            <Skeleton className="h-10 w-full rounded-xl" />
                                         </div>
-
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            <button
-                                                onClick={() =>
-                                                    navigate(`/admin/collections/${collection.id}`)
-                                                }
-                                                className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition inline-flex items-center justify-center gap-2"
-                                            >
-                                                <BookOpen className="w-4 h-4" />
-                                                Manage
-                                            </button>
-                                            <button
-                                                onClick={() => openEditModal(collection)}
-                                                className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => openGenerateModal(collection)}
-                                                title="Enrich with AI"
-                                                className="px-3 py-2 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 transition"
-                                            >
-                                                <Sparkles className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => openDeleteModal(collection)}
-                                                className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                    ))}
+                                </div>
+                            ) : collections.length === 0 ? (
+                                <div className="text-center py-12 space-y-3">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+                                        <Folder className="w-6 h-6" />
                                     </div>
-                                );
-                            })}
-                        </div>
+                                    <p className="font-medium text-slate-700">
+                                        No library collections found.
+                                    </p>
+                                    <p className="text-sm text-slate-500">
+                                        Create a collection to make it available in the library.
+                                    </p>
+                                    <div className="flex justify-center pt-1">
+                                        <Btn.Primary onClick={openCreateModal} className="px-5">
+                                            <Plus className="w-4 h-4" />
+                                            Create Collection
+                                        </Btn.Primary>
+                                    </div>
+                                </div>
+                            ) : filteredCollections.length === 0 ? (
+                                <div className="text-center py-10 space-y-2 text-sm text-slate-500">
+                                    <p className="text-lg text-slate-700 font-semibold">
+                                        No collections match your search.
+                                    </p>
+                                    <p>Try a different search term.</p>
+                                </div>
+                            ) : (
+                                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {filteredCollections.map((collection) => {
+                                        const updatedLabel = formatDate(
+                                            collection.updated_at ?? collection.created_at,
+                                        );
+                                        return (
+                                            <div
+                                                key={collection.id}
+                                                className="bg-white rounded-card border border-slate-100 p-5 shadow-sm hover:shadow-md transition space-y-4"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
+                                                                {collection.type}
+                                                            </span>
+                                                            {collection.price &&
+                                                            collection.price > 0 ? (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">
+                                                                    {collection.price} gems
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+                                                                    Free
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <h3
+                                                            className="font-semibold text-slate-800 line-clamp-1"
+                                                            title={collection.name}
+                                                        >
+                                                            {collection.name}
+                                                        </h3>
+                                                    </div>
+                                                    <CollectionThumbnail
+                                                        imageKey={collection.image}
+                                                        bgColor={collection.bg_color}
+                                                    />
+                                                </div>
+
+                                                <p className="text-sm text-slate-500 line-clamp-2 h-10">
+                                                    {collection.description ||
+                                                        "No description provided."}
+                                                </p>
+
+                                                <div className="space-y-1 text-xs text-slate-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Words</span>
+                                                        <span className="font-medium text-slate-700">
+                                                            {collection.total_words ?? 0}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span>Updated</span>
+                                                        <span className="font-medium text-slate-700">
+                                                            {updatedLabel || "N/A"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    <button
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/admin/collections/${collection.id}`,
+                                                            )
+                                                        }
+                                                        className="flex-1 px-3 py-2 rounded-xl bg-brand/10 text-brand text-sm font-medium hover:bg-brand/20 transition inline-flex items-center justify-center gap-2"
+                                                    >
+                                                        <BookOpen className="w-4 h-4" />
+                                                        Manage
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openEditModal(collection)}
+                                                        className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            openGenerateModal(collection)
+                                                        }
+                                                        title="Enrich with AI"
+                                                        className="px-3 py-2 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 transition"
+                                                    >
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openDeleteModal(collection)}
+                                                        className="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -1114,6 +1294,204 @@ const CollectionsPage: React.FC = () => {
         </div>
     );
 };
+
+const INITIAL_CHAPTERS_SHOWN = 5;
+
+function BookGroupCard({
+    group,
+    onNavigate,
+}: {
+    group: BookCollectionGroup;
+    onNavigate: (id: number) => void;
+}) {
+    const [expanded, setExpanded] = useState(true);
+    const [showAll, setShowAll] = useState(false);
+
+    const sorted = useMemo(
+        () =>
+            [...group.collections].sort(
+                (a, b) => (a.section_sequence ?? 0) - (b.section_sequence ?? 0),
+            ),
+        [group.collections],
+    );
+
+    const visibleItems = showAll ? sorted : sorted.slice(0, INITIAL_CHAPTERS_SHOWN);
+    const hiddenCount = sorted.length - INITIAL_CHAPTERS_SHOWN;
+    const isOtherGroup = group.source_id === null;
+
+    return (
+        <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            {/* Book header */}
+            <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="w-full flex items-center gap-3 px-5 py-4 bg-slate-50 hover:bg-slate-100 transition text-left"
+            >
+                <div
+                    className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${
+                        isOtherGroup ? "bg-slate-200 text-slate-500" : "bg-brand/10 text-brand"
+                    }`}
+                >
+                    <BookOpen className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p
+                        className="font-semibold text-slate-800 truncate"
+                        title={group.book_title}
+                    >
+                        {group.book_title}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        {group.book_author ? `${group.book_author} · ` : ""}
+                        {group.total_collections} collection
+                        {group.total_collections !== 1 ? "s" : ""} · {group.total_words} words
+                    </p>
+                </div>
+                <div className="shrink-0 text-slate-400">
+                    {expanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                    ) : (
+                        <ChevronRight className="w-4 h-4" />
+                    )}
+                </div>
+            </button>
+
+            {/* Chapter list */}
+            {expanded && (
+                <div className="divide-y divide-slate-100">
+                    {visibleItems.map((item, idx) => {
+                        const isLast = idx === visibleItems.length - 1 && !showAll && !hiddenCount;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => onNavigate(item.id)}
+                                className={`w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-brand/5 transition group ${
+                                    isLast ? "rounded-b-2xl" : ""
+                                }`}
+                            >
+                                <span className="w-5 shrink-0 text-center text-xs text-slate-400 font-mono">
+                                    {item.section_sequence ?? idx + 1}
+                                </span>
+                                <span
+                                    className="flex-1 text-sm text-slate-700 truncate group-hover:text-brand transition"
+                                    title={item.name}
+                                >
+                                    {item.name}
+                                </span>
+                                <span className="shrink-0 text-xs text-slate-400">
+                                    {item.word_count} words
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-300 group-hover:text-brand transition" />
+                            </button>
+                        );
+                    })}
+
+                    {!showAll && hiddenCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAll(true);
+                            }}
+                            className="w-full px-5 py-3 text-xs text-brand font-medium hover:bg-brand/5 transition text-left rounded-b-2xl"
+                        >
+                            Show all {sorted.length} chapters
+                        </button>
+                    )}
+
+                    {showAll && hiddenCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAll(false);
+                            }}
+                            className="w-full px-5 py-3 text-xs text-slate-500 font-medium hover:bg-slate-50 transition text-left rounded-b-2xl"
+                        >
+                            Show fewer
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function GroupedLibraryView({
+    groups,
+    isLoading,
+    error,
+    onNavigate,
+}: {
+    groups: BookCollectionGroup[];
+    isLoading: boolean;
+    error: Error | null;
+    onNavigate: (id: number) => void;
+}) {
+    if (isLoading) {
+        return (
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-100 overflow-hidden">
+                        <div className="px-5 py-4 bg-slate-50 flex items-center gap-3">
+                            <Skeleton className="h-9 w-9 rounded-xl" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-48" />
+                                <Skeleton className="h-3 w-32" />
+                            </div>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {[...Array(3)].map((_, j) => (
+                                <div key={j} className="px-5 py-3 flex items-center gap-3">
+                                    <Skeleton className="h-3 w-4" />
+                                    <Skeleton className="h-3 flex-1" />
+                                    <Skeleton className="h-3 w-14" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {error instanceof Error ? error.message : "Failed to load grouped collections."}
+            </div>
+        );
+    }
+
+    if (groups.length === 0) {
+        return (
+            <div className="text-center py-12 space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+                    <BookOpen className="w-6 h-6" />
+                </div>
+                <p className="font-medium text-slate-700">No grouped collections found.</p>
+            </div>
+        );
+    }
+
+    // Put "Other Collections" (source_id === null) at the bottom
+    const bookGroups = groups.filter((g) => g.source_id !== null);
+    const otherGroups = groups.filter((g) => g.source_id === null);
+    const ordered = [...bookGroups, ...otherGroups];
+
+    return (
+        <div className="space-y-4">
+            {ordered.map((group, idx) => (
+                <BookGroupCard
+                    key={group.source_id ?? `other-${idx}`}
+                    group={group}
+                    onNavigate={onNavigate}
+                />
+            ))}
+        </div>
+    );
+}
 
 function CollectionThumbnail({
     imageKey,

@@ -2,6 +2,7 @@ import type {
     CollectionListResponse,
     CollectionRequestDTO,
     CollectionTerminologyDTO,
+    GroupedLibraryCollectionsResponse,
 } from "../types/collection";
 import { type ImageProcessingOptions, processImage } from "../utils/imageProcessing";
 import { BASE_URL, getAuthHeaders, handle } from "./base";
@@ -37,6 +38,15 @@ async function getLibraryCollections(page = 0, size = 20) {
     const query = new URLSearchParams({ page: String(page), size: String(size) });
     return handle<CollectionListResponse>(
         await fetch(`${BASE_URL}/api/v1/collections/library?${query.toString()}`, {
+            method: "GET",
+            headers: getAuthHeaders(),
+        }),
+    );
+}
+
+async function getGroupedLibraryCollections() {
+    return handle<GroupedLibraryCollectionsResponse>(
+        await fetch(`${BASE_URL}/api/v1/collections/library/grouped`, {
             method: "GET",
             headers: getAuthHeaders(),
         }),
@@ -129,6 +139,7 @@ async function generateCollection(payload: {
 export const collectionsApi = {
     getCollections,
     getLibraryCollections,
+    getGroupedLibraryCollections,
     createCollection,
     updateCollection,
     deleteCollection,

@@ -47,6 +47,28 @@ export interface CollectionRequestDTO {
     status?: number;
 }
 
+export interface BookCollectionItem {
+    id: number;
+    name: string;
+    word_count: number;
+    section_sequence?: number;
+}
+
+export interface BookCollectionGroup {
+    source_id: number | null;
+    book_title: string;
+    book_author?: string;
+    cover_image?: string;
+    total_collections: number;
+    total_words: number;
+    collections: BookCollectionItem[];
+}
+
+export interface GroupedLibraryCollectionsResponse {
+    success: boolean;
+    data: BookCollectionGroup[];
+}
+
 export interface CollectionTerminologyExampleDTO {
     sentence?: string;
     translation?: string;
