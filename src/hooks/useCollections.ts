@@ -111,6 +111,20 @@ export function useCollectionTerminologies(collectionId?: number, enabled = fals
     });
 }
 
+export function useDeleteWordFromCollection() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ collectionId, wordId }: { collectionId: number; wordId: number }) =>
+            api.deleteWordFromCollection(collectionId, wordId),
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ["collections", "terminologies", variables.collectionId],
+            });
+        },
+    });
+}
+
 export function useGenerateCollection() {
     const queryClient = useQueryClient();
 

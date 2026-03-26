@@ -47,6 +47,11 @@ export interface CollectionRequestDTO {
     status?: number;
 }
 
+export interface CollectionTerminologyExampleDTO {
+    sentence?: string;
+    translation?: string;
+}
+
 export interface CollectionTerminologyDTO {
     terminology: string;
     word_id: number;
@@ -54,4 +59,8 @@ export interface CollectionTerminologyDTO {
     definition?: {
         answer?: string;
     };
+    pos?: string;
+    ipa?: string;
+    translation?: string;
+    examples?: CollectionTerminologyExampleDTO[];
 }

@@ -1,9 +1,20 @@
-import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search, Sparkles, X } from "lucide-react";
+import {
+    ArrowLeft,
+    BookOpen,
+    Check,
+    Loader2,
+    Plus,
+    Search,
+    Sparkles,
+    Trash2,
+    X,
+} from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
+import { ConfirmModal } from "../components/common/ConfirmModal";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input";
@@ -12,12 +23,85 @@ import {
     useAddTerminologiesToCollection,
     useCollections,
     useCollectionTerminologies,
+    useDeleteWordFromCollection,
 } from "../hooks/useCollections";
 import type { VocabWord } from "../types";
+import type { CollectionTerminologyDTO } from "../types/collection";
 
 const getWordMeaning = (word: VocabWord) => {
     const sense = word.senses?.[0];
     return sense?.definition ?? sense?.translation ?? "";
+};
+
+const POS_COLORS: Record<string, string> = {
+    noun: "bg-sky-100 text-sky-700",
+    verb: "bg-emerald-100 text-emerald-700",
+    adjective: "bg-violet-100 text-violet-700",
+    adverb: "bg-amber-100 text-amber-700",
+    phrasal_verb: "bg-orange-100 text-orange-700",
+    idiom: "bg-rose-100 text-rose-700",
+};
+
+const posColor = (pos?: string) => {
+    if (!pos) return "bg-slate-100 text-slate-600";
+    return POS_COLORS[pos.toLowerCase()] ?? "bg-slate-100 text-slate-600";
+};
+
+interface TerminologyDetailPanelProps {
+    item: CollectionTerminologyDTO;
+}
+
+const TerminologyDetailPanel: React.FC<TerminologyDetailPanelProps> = ({ item }) => {
+    const definition = item.definition?.answer ?? "";
+    const translation = item.translation;
+    const ipa = item.ipa;
+    const pos = item.pos;
+    const examples = item.examples ?? [];
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-start gap-3 flex-wrap">
+                <span className="text-lg font-bold text-slate-900">{item.terminology}</span>
+                {pos ? (
+                    <span
+                        className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${posColor(pos)}`}
+                    >
+                        {pos}
+                    </span>
+                ) : null}
+            </div>
+
+            {ipa ? <p className="text-sm text-slate-500 font-mono">/{ipa}/</p> : null}
+
+            {definition ? (
+                <p className="text-sm text-slate-700 leading-relaxed">{definition}</p>
+            ) : (
+                <p className="text-sm text-slate-400 italic">No definition available.</p>
+            )}
+
+            {translation ? (
+                <p className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">Translation:</span> {translation}
+                </p>
+            ) : null}
+
+            {examples.length > 0 ? (
+                <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                        Examples
+                    </p>
+                    {examples.slice(0, 3).map((ex) => (
+                        <div key={ex.sentence ?? ex.translation} className="space-y-0.5">
+                            <p className="text-xs text-slate-600 italic">"{ex.sentence}"</p>
+                            {ex.translation ? (
+                                <p className="text-xs text-slate-400">{ex.translation}</p>
+                            ) : null}
+                        </div>
+                    ))}
+                </div>
+            ) : null}
+        </div>
+    );
 };
 
 const CollectionWordsPage: React.FC = () => {
@@ -39,6 +123,7 @@ const CollectionWordsPage: React.FC = () => {
     } = useCollectionTerminologies(parsedId, hasValidId);
 
     const addTerminologiesMutation = useAddTerminologiesToCollection();
+    const deleteWordMutation = useDeleteWordFromCollection();
 
     const [collectionSearch, setCollectionSearch] = useState("");
     const [wordSearch, setWordSearch] = useState("");
@@ -48,6 +133,9 @@ const CollectionWordsPage: React.FC = () => {
     const [selectedWords, setSelectedWords] = useState<VocabWord[]>([]);
     const [addError, setAddError] = useState<string | null>(null);
     const [selectedTerminologyId, setSelectedTerminologyId] = useState<number | null>(null);
+
+    const [deleteTarget, setDeleteTarget] = useState<CollectionTerminologyDTO | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const handleSearchWords = async () => {
         const term = wordSearch.trim();
@@ -106,14 +194,33 @@ const CollectionWordsPage: React.FC = () => {
         }
     };
 
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleteError(null);
+        try {
+            await deleteWordMutation.mutateAsync({
+                collectionId: deleteTarget.collection_id,
+                wordId: deleteTarget.word_id,
+            });
+            if (selectedTerminologyId === deleteTarget.word_id) {
+                setSelectedTerminologyId(null);
+            }
+            setDeleteTarget(null);
+        } catch (e) {
+            setDeleteError(e instanceof Error ? e.message : "Failed to remove word.");
+        }
+    };
+
     const filteredTerminologies = useMemo(() => {
         const term = collectionSearch.trim().toLowerCase();
         if (!term) return terminologies;
         return terminologies.filter((item) => {
             const definition = item.definition?.answer ?? "";
+            const translation = item.translation ?? "";
             return (
                 item.terminology.toLowerCase().includes(term) ||
-                definition.toLowerCase().includes(term)
+                definition.toLowerCase().includes(term) ||
+                translation.toLowerCase().includes(term)
             );
         });
     }, [collectionSearch, terminologies]);
@@ -137,6 +244,7 @@ const CollectionWordsPage: React.FC = () => {
     );
 
     const addingWords = addTerminologiesMutation.isPending;
+    const deletingWord = deleteWordMutation.isPending;
 
     if (!hasValidId) {
         return (
@@ -206,32 +314,25 @@ const CollectionWordsPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-2">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                            Meaning
+                    {/* Word detail panel */}
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400 mb-3">
+                            Word detail
                         </p>
                         {selectedTerminology ? (
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between text-sm text-slate-700">
-                                    <span className="font-semibold">
-                                        {selectedTerminology.terminology}
-                                    </span>
-                                    <span className="text-xs text-slate-400">
-                                        ID #{selectedTerminology.word_id}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-slate-600">
-                                    {selectedTerminology.definition?.answer
-                                        ? selectedTerminology.definition.answer
-                                        : "No definition available for this word."}
-                                </p>
-                            </div>
+                            <TerminologyDetailPanel item={selectedTerminology} />
                         ) : (
                             <p className="text-sm text-slate-500">
-                                Select a word to see its meaning.
+                                Select a word to see its details.
                             </p>
                         )}
                     </div>
+
+                    {deleteError ? (
+                        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                            {deleteError}
+                        </div>
+                    ) : null}
 
                     {terminologiesError ? (
                         <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -243,8 +344,8 @@ const CollectionWordsPage: React.FC = () => {
 
                     {terminologiesLoading || collectionsLoading ? (
                         <div className="space-y-2">
-                            {[...Array(6)].map((_, i) => (
-                                <Skeleton key={i} className="h-12 w-full" />
+                            {["s1", "s2", "s3", "s4", "s5", "s6"].map((k) => (
+                                <Skeleton key={k} className="h-14 w-full" />
                             ))}
                         </div>
                     ) : filteredTerminologies.length === 0 ? (
@@ -253,36 +354,69 @@ const CollectionWordsPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-                            {filteredTerminologies.map((item) => (
-                                <div
-                                    key={`${item.word_id}-${item.terminology}`}
-                                    className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2 transition ${
-                                        selectedTerminologyId === item.word_id
-                                            ? "border-brand/40 bg-brand/10"
-                                            : "border-slate-100 bg-slate-50/60 hover:bg-slate-50"
-                                    }`}
-                                    onClick={() => setSelectedTerminologyId(item.word_id)}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                            setSelectedTerminologyId(item.word_id);
-                                        }
-                                    }}
-                                >
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-semibold text-slate-800">
-                                            {item.terminology}
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            Word ID #{item.word_id}
-                                        </p>
+                            {filteredTerminologies.map((item) => {
+                                const isSelected = selectedTerminologyId === item.word_id;
+                                const definition = item.definition?.answer ?? "";
+                                const pos = item.pos;
+                                const translation = item.translation;
+                                const ipa = item.ipa;
+
+                                return (
+                                    <div
+                                        key={`${item.word_id}-${item.terminology}`}
+                                        className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-2.5 transition ${
+                                            isSelected
+                                                ? "border-brand/40 bg-brand/10"
+                                                : "border-slate-100 bg-slate-50/60 hover:bg-slate-50"
+                                        }`}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="min-w-0 flex-1 text-left"
+                                            onClick={() => setSelectedTerminologyId(item.word_id)}
+                                        >
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="text-sm font-semibold text-slate-800">
+                                                    {item.terminology}
+                                                </p>
+                                                {pos ? (
+                                                    <span
+                                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${posColor(pos)}`}
+                                                    >
+                                                        {pos}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            {ipa ? (
+                                                <p className="text-[11px] text-slate-400 font-mono">
+                                                    /{ipa}/
+                                                </p>
+                                            ) : null}
+                                            {definition ? (
+                                                <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">
+                                                    {definition}
+                                                </p>
+                                            ) : null}
+                                            {!definition && translation ? (
+                                                <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                                                    {translation}
+                                                </p>
+                                            ) : null}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDeleteTarget(item);
+                                                setDeleteError(null);
+                                            }}
+                                            className="shrink-0 rounded-full p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition"
+                                            title="Remove from collection"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
-                                    <span className="shrink-0 rounded-full bg-brand/10 text-brand text-[11px] px-2.5 py-1">
-                                        #{item.collection_id}
-                                    </span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </section>
@@ -354,16 +488,31 @@ const CollectionWordsPage: React.FC = () => {
                                     (item) => item.id === word.id,
                                 );
                                 const meaning = getWordMeaning(word);
+                                const wordPos = word.senses?.[0]?.pos;
+                                const wordIpa = word.pronunciations?.[0]?.ipa;
                                 return (
                                     <div
                                         key={word.id}
                                         className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2"
                                     >
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800">
-                                                {word.lemma}
-                                            </p>
-                                            <p className="text-xs text-slate-400">ID #{word.id}</p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="text-sm font-semibold text-slate-800">
+                                                    {word.lemma}
+                                                </p>
+                                                {wordPos ? (
+                                                    <span
+                                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${posColor(wordPos)}`}
+                                                    >
+                                                        {wordPos}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            {wordIpa ? (
+                                                <p className="text-[11px] text-slate-400 font-mono">
+                                                    /{wordIpa}/
+                                                </p>
+                                            ) : null}
                                             {meaning ? (
                                                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">
                                                     {meaning}
@@ -371,6 +520,7 @@ const CollectionWordsPage: React.FC = () => {
                                             ) : null}
                                         </div>
                                         <button
+                                            type="button"
                                             onClick={() => handleSelectWord(word)}
                                             disabled={isSelected}
                                             className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
@@ -422,7 +572,7 @@ const CollectionWordsPage: React.FC = () => {
                                         >
                                             <div className="min-w-0">
                                                 <p className="text-sm font-semibold text-slate-800">
-                                                    {word.word}
+                                                    {word.word ?? word.lemma}
                                                 </p>
                                                 <p className="text-xs text-slate-400">
                                                     ID #{word.id}
@@ -434,6 +584,7 @@ const CollectionWordsPage: React.FC = () => {
                                                 ) : null}
                                             </div>
                                             <button
+                                                type="button"
                                                 onClick={() => handleRemoveSelectedWord(word.id)}
                                                 className="shrink-0 rounded-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
                                             >
@@ -455,6 +606,36 @@ const CollectionWordsPage: React.FC = () => {
                     </div>
                 </section>
             </div>
+
+            <ConfirmModal
+                isOpen={deleteTarget !== null}
+                onClose={() => {
+                    if (!deletingWord) {
+                        setDeleteTarget(null);
+                        setDeleteError(null);
+                    }
+                }}
+                onConfirm={handleDeleteConfirm}
+                title="Remove word from collection"
+                description={
+                    deleteTarget ? (
+                        <span>
+                            Remove{" "}
+                            <span className="font-semibold text-slate-800">
+                                {deleteTarget.terminology}
+                            </span>{" "}
+                            from this collection? The word itself will not be deleted from the
+                            dictionary.
+                        </span>
+                    ) : (
+                        ""
+                    )
+                }
+                confirmText="Remove"
+                cancelText="Cancel"
+                isDestructive
+                isConfirming={deletingWord}
+            />
         </div>
     );
 };
