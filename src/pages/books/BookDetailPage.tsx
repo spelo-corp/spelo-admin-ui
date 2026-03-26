@@ -8,6 +8,7 @@ import {
     FileText,
     Globe,
     ImagePlus,
+    Library,
     Loader2,
     Pencil,
     Plus,
@@ -15,9 +16,9 @@ import {
     Trash2,
 } from "lucide-react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { booksApi } from "../../api/books";
 import { api } from "../../api/client";
 import { BOOKS_QUERY_KEY } from "./BookListPage";
@@ -88,6 +89,13 @@ const BookDetailPage: React.FC = () => {
     const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
 
+    // Vocab collections job state
+    const [vocabJobId, setVocabJobId] = useState<number | null>(null);
+    const [vocabJobStatus, setVocabJobStatus] = useState<string | null>(null);
+    const [vocabJobError, setVocabJobError] = useState<string | null>(null);
+    const [vocabCollectionsExist, setVocabCollectionsExist] = useState(false);
+    const vocabPollRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+
     useEffect(() => {
         if (!sourceId) return;
 
@@ -145,6 +153,89 @@ const BookDetailPage: React.FC = () => {
         });
         return () => { cancelled = true; };
     }, [book?.coverImage]);
+
+    // Poll vocab job status
+    const stopVocabPoll = useCallback(() => {
+        if (vocabPollRef.current !== null) {
+            window.clearInterval(vocabPollRef.current);
+            vocabPollRef.current = null;
+        }
+    }, []);
+
+    const startVocabPoll = useCallback(
+        (jobId: number) => {
+            stopVocabPoll();
+            const poll = async () => {
+                try {
+                    const job = await booksApi.getBookIngestJob(jobId);
+                    setVocabJobStatus(job.status);
+                    if (job.status === "COMPLETED") {
+                        stopVocabPoll();
+                        setVocabJobId(null);
+                        setVocabCollectionsExist(true);
+                        setVocabJobError(null);
+                    } else if (job.status === "FAILED") {
+                        stopVocabPoll();
+                        setVocabJobId(null);
+                        setVocabJobError(job.current_step ?? "Job failed.");
+                    }
+                } catch {
+                    // ignore transient errors
+                }
+            };
+            void poll();
+            vocabPollRef.current = window.setInterval(poll, 2000);
+        },
+        [stopVocabPoll],
+    );
+
+    useEffect(() => () => stopVocabPoll(), [stopVocabPoll]);
+
+    const createVocabMutation = useMutation({
+        mutationFn: (id: number) => booksApi.createVocabCollections(id),
+        onSuccess: ({ jobId }) => {
+            setVocabJobId(jobId);
+            setVocabJobStatus("PENDING");
+            setVocabJobError(null);
+            startVocabPoll(jobId);
+        },
+        onError: (err: unknown) => {
+            setVocabJobError(err instanceof Error ? err.message : "Failed to start job.");
+        },
+    });
+
+    const deleteVocabMutation = useMutation({
+        mutationFn: (id: number) => booksApi.deleteVocabCollections(id),
+        onSuccess: () => {
+            setVocabCollectionsExist(false);
+            setVocabJobError(null);
+        },
+        onError: (err: unknown) => {
+            setVocabJobError(err instanceof Error ? err.message : "Failed to delete collections.");
+        },
+    });
+
+    const handleCreateVocabCollections = () => {
+        if (!book) return;
+        createVocabMutation.mutate(book.id);
+    };
+
+    const handleRecreateVocabCollections = async () => {
+        if (!book) return;
+        if (
+            !confirm(
+                "This will delete all existing vocab collections for this book and recreate them. Continue?",
+            )
+        )
+            return;
+        try {
+            await booksApi.deleteVocabCollections(book.id);
+            setVocabCollectionsExist(false);
+            createVocabMutation.mutate(book.id);
+        } catch (err: unknown) {
+            setVocabJobError(err instanceof Error ? err.message : "Failed to delete collections.");
+        }
+    };
 
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -503,7 +594,7 @@ const BookDetailPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 xl:pl-4">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 xl:pl-4">
                         <button
                             type="button"
                             onClick={() => handleAction("Edit")}
@@ -520,6 +611,64 @@ const BookDetailPage: React.FC = () => {
                             <Globe className="w-4 h-4 text-white/80" />
                             Publish
                         </button>
+                        <span className="w-px h-6 bg-slate-200 mx-1"></span>
+
+                        {/* Vocab Collections */}
+                        {book.status === "READY" && (
+                            <>
+                                {vocabCollectionsExist ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 rounded-full">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            Vocab Collections Created
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={handleRecreateVocabCollections}
+                                            disabled={
+                                                createVocabMutation.isPending ||
+                                                deleteVocabMutation.isPending ||
+                                                vocabJobId !== null
+                                            }
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                            Recreate
+                                        </button>
+                                    </div>
+                                ) : vocabJobId !== null ? (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        {vocabJobStatus === "RUNNING"
+                                            ? "Building collections…"
+                                            : "Starting…"}
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleCreateVocabCollections}
+                                        disabled={
+                                            createVocabMutation.isPending ||
+                                            deleteVocabMutation.isPending
+                                        }
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 hover:border-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {createVocabMutation.isPending ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Library className="w-4 h-4" />
+                                        )}
+                                        Create Vocab Collections
+                                    </button>
+                                )}
+                                {vocabJobError && (
+                                    <span className="text-xs text-rose-600 max-w-[200px] truncate">
+                                        {vocabJobError}
+                                    </span>
+                                )}
+                            </>
+                        )}
+
                         <span className="w-px h-6 bg-slate-200 mx-1"></span>
                         <button
                             type="button"

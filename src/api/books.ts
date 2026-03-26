@@ -226,4 +226,26 @@ export const booksApi = {
         );
         return handle<{ data: ContentSentence[] }>(res).then((r) => r.data);
     },
+
+    async createVocabCollections(sourceId: number): Promise<{ jobId: number }> {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/admin/content/sources/${sourceId}/vocab-collections`,
+            {
+                method: "POST",
+                headers: getAuthHeaders(),
+            },
+        );
+        return handle<{ data: { jobId: number } }>(res).then((r) => r.data);
+    },
+
+    async deleteVocabCollections(sourceId: number): Promise<void> {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/admin/content/sources/${sourceId}/vocab-collections`,
+            {
+                method: "DELETE",
+                headers: getAuthHeaders(),
+            },
+        );
+        return handle<{ data: void }>(res).then(() => {});
+    },
 };
