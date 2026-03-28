@@ -8,6 +8,7 @@ import {
     ImagePlus,
     LayoutGrid,
     Loader2,
+    Pencil,
     Plus,
     Search,
     Sparkles,
@@ -109,7 +110,7 @@ const CollectionsPage: React.FC = () => {
 
     // Grouped view — upload image for a collection
     const [imageUploadTargetId, setImageUploadTargetId] = useState<number | null>(null);
-    const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+    const [_imageUploadError, setImageUploadError] = useState<string | null>(null);
     const groupedImageInputRef = useRef<HTMLInputElement>(null);
 
     // Generate modal state
@@ -1291,6 +1292,102 @@ const CollectionsPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Grouped view — Delete single collection confirm */}
+            {groupedDeleteTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">Delete Collection?</h3>
+                        <p className="text-sm text-slate-600">
+                            Are you sure you want to delete &quot;{groupedDeleteTarget.name}&quot;? This cannot be undone.
+                        </p>
+                        {groupedDeleteError && (
+                            <p className="text-sm text-rose-600">{groupedDeleteError}</p>
+                        )}
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setGroupedDeleteTarget(null)}
+                                className="px-4 py-2 text-sm rounded-xl border hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleGroupedDeleteCollection}
+                                disabled={deleteCollectionMutation.isPending}
+                                className="px-4 py-2 text-sm rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                            >
+                                {deleteCollectionMutation.isPending ? "Deleting…" : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Grouped view — Edit collection modal */}
+            {groupedEditTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">Edit Collection</h3>
+                        <input
+                            value={groupedEditName}
+                            onChange={(e) => setGroupedEditName(e.target.value)}
+                            placeholder="Collection name"
+                            className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleGroupedEditSave();
+                            }}
+                        />
+                        {groupedEditError && (
+                            <p className="text-sm text-rose-600">{groupedEditError}</p>
+                        )}
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setGroupedEditTarget(null)}
+                                className="px-4 py-2 text-sm rounded-xl border hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleGroupedEditSave}
+                                disabled={updateCollectionMutation.isPending}
+                                className="px-4 py-2 text-sm rounded-xl bg-brand text-white hover:bg-brand/90 disabled:opacity-50"
+                            >
+                                {updateCollectionMutation.isPending ? "Saving…" : "Save"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Grouped view — Delete all book collections confirm */}
+            {deleteAllTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">Delete All Collections?</h3>
+                        <p className="text-sm text-slate-600">
+                            Delete all vocabulary collections for &quot;{deleteAllTarget.bookTitle}&quot;? This cannot be undone.
+                        </p>
+                        {deleteAllError && (
+                            <p className="text-sm text-rose-600">{deleteAllError}</p>
+                        )}
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setDeleteAllTarget(null)}
+                                className="px-4 py-2 text-sm rounded-xl border hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteAllCollections}
+                                disabled={deleteVocabCollectionsMutation.isPending}
+                                className="px-4 py-2 text-sm rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                            >
+                                {deleteVocabCollectionsMutation.isPending ? "Deleting…" : "Delete All"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -1300,9 +1397,19 @@ const INITIAL_CHAPTERS_SHOWN = 5;
 function BookGroupCard({
     group,
     onNavigate,
+    onDeleteCollection,
+    onEditCollection,
+    onUploadImage: _onUploadImage,
+    onDeleteAllCollections,
+    uploadingImageId: _uploadingImageId,
 }: {
     group: BookCollectionGroup;
     onNavigate: (id: number) => void;
+    onDeleteCollection?: (id: number, name: string) => void;
+    onEditCollection?: (id: number, name: string) => void;
+    onUploadImage?: (id: number) => void;
+    onDeleteAllCollections?: (sourceId: number, bookTitle: string) => void;
+    uploadingImageId?: number | null;
 }) {
     const [expanded, setExpanded] = useState(true);
     const [showAll, setShowAll] = useState(false);
@@ -1347,6 +1454,19 @@ function BookGroupCard({
                         {group.total_collections !== 1 ? "s" : ""} · {group.total_words} words
                     </p>
                 </div>
+                {!isOtherGroup && onDeleteAllCollections && group.source_id !== null && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteAllCollections(group.source_id!, group.book_title);
+                        }}
+                        className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition"
+                        title="Delete all collections"
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
                 <div className="shrink-0 text-slate-400">
                     {expanded ? (
                         <ChevronDown className="w-4 h-4" />
@@ -1382,6 +1502,32 @@ function BookGroupCard({
                                 <span className="shrink-0 text-xs text-slate-400">
                                     {item.word_count} words
                                 </span>
+                                {onEditCollection && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditCollection(item.id, item.name);
+                                        }}
+                                        className="shrink-0 p-1 rounded-lg text-slate-300 hover:text-brand hover:bg-brand/10 transition opacity-0 group-hover:opacity-100"
+                                        title="Edit"
+                                    >
+                                        <Pencil className="w-3 h-3" />
+                                    </button>
+                                )}
+                                {onDeleteCollection && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteCollection(item.id, item.name);
+                                        }}
+                                        className="shrink-0 p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition opacity-0 group-hover:opacity-100"
+                                        title="Delete"
+                                    >
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
+                                )}
                                 <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-300 group-hover:text-brand transition" />
                             </button>
                         );
@@ -1423,11 +1569,21 @@ function GroupedLibraryView({
     isLoading,
     error,
     onNavigate,
+    onDeleteCollection,
+    onEditCollection,
+    onUploadImage,
+    onDeleteAllCollections,
+    uploadingImageId,
 }: {
     groups: BookCollectionGroup[];
     isLoading: boolean;
     error: Error | null;
     onNavigate: (id: number) => void;
+    onDeleteCollection?: (id: number, name: string) => void;
+    onEditCollection?: (id: number, name: string) => void;
+    onUploadImage?: (id: number) => void;
+    onDeleteAllCollections?: (sourceId: number, bookTitle: string) => void;
+    uploadingImageId?: number | null;
 }) {
     if (isLoading) {
         return (
@@ -1487,6 +1643,11 @@ function GroupedLibraryView({
                     key={group.source_id ?? `other-${idx}`}
                     group={group}
                     onNavigate={onNavigate}
+                    onDeleteCollection={onDeleteCollection}
+                    onEditCollection={onEditCollection}
+                    onUploadImage={onUploadImage}
+                    onDeleteAllCollections={onDeleteAllCollections}
+                    uploadingImageId={uploadingImageId}
                 />
             ))}
         </div>
