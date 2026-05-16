@@ -29,7 +29,7 @@ const AudioFilesPage: React.FC = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     const filtered = audioFiles.filter((f) =>
         f.file_name.toLowerCase().includes(search.toLowerCase()),

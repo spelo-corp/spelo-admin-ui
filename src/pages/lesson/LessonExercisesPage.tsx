@@ -25,10 +25,7 @@ import {
     useGenerateComprehensionQuestions,
     useRejectQuestion,
 } from "../../hooks/useComprehensionQuestions";
-import type {
-    ComprehensionQuestion,
-    EditQuestionRequest,
-} from "../../types/comprehension";
+import type { ComprehensionQuestion, EditQuestionRequest } from "../../types/comprehension";
 import type { LessonOutletContext } from "../LessonViewPage";
 
 const PAGE_SIZE = 20;
@@ -91,8 +88,7 @@ const LessonExercisesPage = () => {
 
     // Edit modal
     const [editModalOpen, setEditModalOpen] = useState(false);
-    const [editingQuestion, setEditingQuestion] =
-        useState<ComprehensionQuestion | null>(null);
+    const [editingQuestion, setEditingQuestion] = useState<ComprehensionQuestion | null>(null);
     const [editForm, setEditForm] = useState<EditQuestionRequest>({});
     const [editDistractors, setEditDistractors] = useState<string[]>([]);
     const [editError, setEditError] = useState<string | null>(null);
@@ -106,7 +102,7 @@ const LessonExercisesPage = () => {
     // Reset expanded row on page/tab change
     useEffect(() => {
         setExpandedId(null);
-    }, [page, activeTab]);
+    }, []);
 
     const { data, isLoading } = useComprehensionQuestions({
         lessonId,
@@ -125,8 +121,7 @@ const LessonExercisesPage = () => {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
     const pendingCount = useMemo(
-        () =>
-            questions.filter((q) => q.approvalStatus === "PENDING").length,
+        () => questions.filter((q) => q.approvalStatus === "PENDING").length,
         [questions],
     );
 
@@ -162,9 +157,7 @@ const LessonExercisesPage = () => {
             setEditModalOpen(false);
             setEditingQuestion(null);
         } catch (e) {
-            setEditError(
-                e instanceof Error ? e.message : "Failed to save changes.",
-            );
+            setEditError(e instanceof Error ? e.message : "Failed to save changes.");
         }
     };
 
@@ -191,11 +184,7 @@ const LessonExercisesPage = () => {
             });
             setGenerateModalOpen(false);
         } catch (e) {
-            setGenerateError(
-                e instanceof Error
-                    ? e.message
-                    : "Failed to generate questions.",
-            );
+            setGenerateError(e instanceof Error ? e.message : "Failed to generate questions.");
         }
     };
 
@@ -403,7 +392,10 @@ const LessonExercisesPage = () => {
                                             {/* Expanded detail panel */}
                                             {isExpanded && (
                                                 <tr>
-                                                    <td colSpan={7} className="px-4 pb-4 pt-0 bg-slate-50/80">
+                                                    <td
+                                                        colSpan={7}
+                                                        className="px-4 pb-4 pt-0 bg-slate-50/80"
+                                                    >
                                                         <div className="ml-7 p-4 bg-white border border-slate-100 rounded-xl space-y-4">
                                                             {/* Question */}
                                                             <div>
@@ -434,15 +426,17 @@ const LessonExercisesPage = () => {
                                                                     </p>
                                                                     {distractors.length > 0 ? (
                                                                         <ul className="space-y-1">
-                                                                            {distractors.map((d, i) => (
-                                                                                <li
-                                                                                    key={`${q.id}-d-${i}`}
-                                                                                    className="flex items-center gap-1.5 text-sm text-slate-600"
-                                                                                >
-                                                                                    <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
-                                                                                    {d}
-                                                                                </li>
-                                                                            ))}
+                                                                            {distractors.map(
+                                                                                (d, i) => (
+                                                                                    <li
+                                                                                        key={`${q.id}-d-${i}`}
+                                                                                        className="flex items-center gap-1.5 text-sm text-slate-600"
+                                                                                    >
+                                                                                        <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />
+                                                                                        {d}
+                                                                                    </li>
+                                                                                ),
+                                                                            )}
                                                                         </ul>
                                                                     ) : (
                                                                         <span className="text-xs text-slate-400 italic">
@@ -465,38 +459,55 @@ const LessonExercisesPage = () => {
                                                             )}
 
                                                             {/* Audio timestamps */}
-                                                            {(q.audioStartTime != null || q.audioEndTime != null) && (
+                                                            {(q.audioStartTime != null ||
+                                                                q.audioEndTime != null) && (
                                                                 <div>
                                                                     <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">
                                                                         Audio Range
                                                                     </p>
                                                                     <span className="text-sm text-slate-600 font-mono">
-                                                                        {formatTimestamp(q.audioStartTime)} &mdash; {formatTimestamp(q.audioEndTime)}
+                                                                        {formatTimestamp(
+                                                                            q.audioStartTime,
+                                                                        )}{" "}
+                                                                        &mdash;{" "}
+                                                                        {formatTimestamp(
+                                                                            q.audioEndTime,
+                                                                        )}
                                                                     </span>
                                                                 </div>
                                                             )}
 
                                                             {/* Actions */}
                                                             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
-                                                                {q.approvalStatus !== "APPROVED" && (
+                                                                {q.approvalStatus !==
+                                                                    "APPROVED" && (
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            approveMutation.mutate(q.id);
+                                                                            approveMutation.mutate(
+                                                                                q.id,
+                                                                            );
                                                                         }}
-                                                                        disabled={approveMutation.isPending}
+                                                                        disabled={
+                                                                            approveMutation.isPending
+                                                                        }
                                                                         className="px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-50"
                                                                     >
                                                                         Approve
                                                                     </button>
                                                                 )}
-                                                                {q.approvalStatus !== "REJECTED" && (
+                                                                {q.approvalStatus !==
+                                                                    "REJECTED" && (
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            rejectMutation.mutate(q.id);
+                                                                            rejectMutation.mutate(
+                                                                                q.id,
+                                                                            );
                                                                         }}
-                                                                        disabled={rejectMutation.isPending}
+                                                                        disabled={
+                                                                            rejectMutation.isPending
+                                                                        }
                                                                         className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 transition disabled:opacity-50"
                                                                     >
                                                                         Reject
@@ -621,7 +632,10 @@ const LessonExercisesPage = () => {
                                 </label>
                                 <div className="space-y-2">
                                     {editDistractors.map((d, i) => (
-                                        <div key={`distractor-${i}`} className="flex items-center gap-2">
+                                        <div
+                                            key={`distractor-${i}`}
+                                            className="flex items-center gap-2"
+                                        >
                                             <span className="text-xs text-slate-400 w-4 text-center flex-shrink-0">
                                                 {String.fromCharCode(65 + i)}
                                             </span>
@@ -685,10 +699,7 @@ const LessonExercisesPage = () => {
                             >
                                 Cancel
                             </Btn.Secondary>
-                            <Btn.Primary
-                                onClick={handleSaveEdit}
-                                disabled={editMutation.isPending}
-                            >
+                            <Btn.Primary onClick={handleSaveEdit} disabled={editMutation.isPending}>
                                 {editMutation.isPending ? "Saving..." : "Save"}
                             </Btn.Primary>
                         </div>
@@ -738,9 +749,7 @@ const LessonExercisesPage = () => {
                                         min={1}
                                         max={20}
                                         value={generateCount}
-                                        onChange={(e) =>
-                                            setGenerateCount(Number(e.target.value))
-                                        }
+                                        onChange={(e) => setGenerateCount(Number(e.target.value))}
                                     />
                                 </div>
                                 <div>
@@ -750,9 +759,7 @@ const LessonExercisesPage = () => {
                                     <select
                                         className="w-full rounded-full border border-slate-200 px-3 py-2 text-sm"
                                         value={generateDifficulty}
-                                        onChange={(e) =>
-                                            setGenerateDifficulty(e.target.value)
-                                        }
+                                        onChange={(e) => setGenerateDifficulty(e.target.value)}
                                     >
                                         <option value="A1">A1</option>
                                         <option value="A2">A2</option>

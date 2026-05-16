@@ -14,7 +14,6 @@ import {
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePresignedImageUrl } from "../hooks/usePresignedImageUrl";
 import PageHeader from "../components/common/PageHeader";
 import { Btn } from "../components/ui/Btn";
 import { Input } from "../components/ui/Input.tsx";
@@ -25,6 +24,7 @@ import {
     useDeleteCategory,
     useUpdateCategory,
 } from "../hooks/useCategories";
+import { usePresignedImageUrl } from "../hooks/usePresignedImageUrl";
 import type { Category } from "../types/category";
 
 interface BreadcrumbItem {
@@ -344,7 +344,10 @@ const CategoryManagementPage: React.FC = () => {
                                     >
                                         {/* Image */}
                                         {category.image && (
-                                            <CategoryImage objectKey={category.image} alt={category.name} />
+                                            <CategoryImage
+                                                objectKey={category.image}
+                                                alt={category.name}
+                                            />
                                         )}
 
                                         {/* Info */}

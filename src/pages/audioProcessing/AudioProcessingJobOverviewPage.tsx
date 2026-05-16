@@ -40,7 +40,7 @@ const AudioProcessingJobOverviewPage: React.FC = () => {
         const mapped = mapAudioStatusToServiceStatus(job.status);
         if (mapped) setOverrideStatus(mapped);
         setOverrideNotice({ type: null, message: "" });
-    }, [job.id, job.status]);
+    }, [job.status]);
 
     const handleManualStatusUpdate = async () => {
         if (readOnly) return;

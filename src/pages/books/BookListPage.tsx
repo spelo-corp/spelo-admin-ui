@@ -1,8 +1,8 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Library, Loader2, PlusCircle, RefreshCcw, Search } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
 import PageHeader from "../../components/common/PageHeader";
@@ -21,7 +21,12 @@ const BookListPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [search, setSearch] = useState("");
 
-    const { data: books = [], isLoading: loading, error, isRefetching: refreshing } = useQuery({
+    const {
+        data: books = [],
+        isLoading: loading,
+        error,
+        isRefetching: refreshing,
+    } = useQuery({
         queryKey: BOOKS_QUERY_KEY,
         queryFn: async () => {
             const payload = await api.getContentSources();

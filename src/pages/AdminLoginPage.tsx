@@ -27,7 +27,7 @@ const AdminLoginPage: React.FC = () => {
 
     useEffect(() => {
         setError(null);
-    }, [username, password]);
+    }, []);
 
     if (isAdminLoggedIn()) {
         return <Navigate to={redirectTo} replace />;

@@ -53,7 +53,7 @@ const AudioProcessingDashboardPage: React.FC = () => {
 
     useEffect(() => {
         void loadJobs();
-    }, []);
+    }, [loadJobs]);
 
     const handleRefresh = async () => {
         setRefreshing(true);

@@ -10,6 +10,8 @@ import { jobsApi } from "./jobs";
 import { lessonsApi } from "./lessons";
 import { pipelinesApi } from "./pipelines";
 import { vocabApi } from "./vocab";
+import { youtubeBatchesApi } from "./youtubeBatches";
+import { youtubeChannelsApi } from "./youtubeChannels";
 
 export const api = {
     ...dashboardApi,
@@ -24,6 +26,8 @@ export const api = {
     ...pipelinesApi,
     ...dialogueScenariosApi,
     ...comprehensionApi,
+    ...youtubeChannelsApi,
+    ...youtubeBatchesApi,
 };
 
 export {
@@ -39,4 +43,6 @@ export {
     pipelinesApi,
     dialogueScenariosApi,
     comprehensionApi,
+    youtubeChannelsApi,
+    youtubeBatchesApi,
 };

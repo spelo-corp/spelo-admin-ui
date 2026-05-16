@@ -124,7 +124,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
 
                 {/* Description */}
                 <p className="text-sm text-slate-600 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-                    {lesson.description && lesson.description.trim()
+                    {lesson.description?.trim()
                         ? lesson.description
                         : "No description available for this lesson."}
                 </p>

@@ -1,9 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { comprehensionApi } from "../api/comprehension";
-import type {
-    EditQuestionRequest,
-    GenerateComprehensionRequest,
-} from "../types/comprehension";
+import type { EditQuestionRequest, GenerateComprehensionRequest } from "../types/comprehension";
 
 const COMPREHENSION_QUERY_KEY = "comprehension-questions";
 

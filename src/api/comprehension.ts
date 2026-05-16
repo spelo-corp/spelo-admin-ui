@@ -19,50 +19,40 @@ async function listComprehensionQuestions(params: {
     if (params.size !== undefined) query.set("size", String(params.size));
 
     return handle<ComprehensionQuestionsPage>(
-        await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension/questions?${query.toString()}`,
-            { headers: getAuthHeaders() },
-        ),
+        await fetch(`${BASE_URL}/api/v1/admin/comprehension/questions?${query.toString()}`, {
+            headers: getAuthHeaders(),
+        }),
     );
 }
 
 // Approve a comprehension question
 async function approveQuestion(id: number) {
     return handle<{ success: boolean }>(
-        await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}/approve`,
-            {
-                method: "PUT",
-                headers: getAuthHeaders(),
-            },
-        ),
+        await fetch(`${BASE_URL}/api/v1/admin/comprehension/questions/${id}/approve`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+        }),
     );
 }
 
 // Reject a comprehension question
 async function rejectQuestion(id: number) {
     return handle<{ success: boolean }>(
-        await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}/reject`,
-            {
-                method: "PUT",
-                headers: getAuthHeaders(),
-            },
-        ),
+        await fetch(`${BASE_URL}/api/v1/admin/comprehension/questions/${id}/reject`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+        }),
     );
 }
 
 // Edit a comprehension question
 async function editQuestion(id: number, data: EditQuestionRequest) {
     return handle<{ success: boolean }>(
-        await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension/questions/${id}`,
-            {
-                method: "PUT",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(data),
-            },
-        ),
+        await fetch(`${BASE_URL}/api/v1/admin/comprehension/questions/${id}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        }),
     );
 }
 
@@ -72,14 +62,11 @@ async function generateComprehensionQuestions(
     data: GenerateComprehensionRequest,
 ) {
     return handle<{ success: boolean; message: string }>(
-        await fetch(
-            `${BASE_URL}/api/v1/admin/comprehension/lessons/${lessonId}/generate`,
-            {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(data),
-            },
-        ),
+        await fetch(`${BASE_URL}/api/v1/admin/comprehension/lessons/${lessonId}/generate`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data),
+        }),
     );
 }
 

@@ -22,7 +22,11 @@ export function usePresignedImageUrl(
         }
 
         // If it's already a full URL (http/https/data), use it directly
-        if (objectKey.startsWith("http://") || objectKey.startsWith("https://") || objectKey.startsWith("data:")) {
+        if (
+            objectKey.startsWith("http://") ||
+            objectKey.startsWith("https://") ||
+            objectKey.startsWith("data:")
+        ) {
             setUrl(objectKey);
             return;
         }

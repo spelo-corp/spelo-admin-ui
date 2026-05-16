@@ -40,6 +40,14 @@ import PipelineEditorPage from "../pages/pipelines/PipelineEditorPage";
 import PipelineListPage from "../pages/pipelines/PipelineListPage";
 import SettingsPage from "../pages/SettingsPage";
 import UsersPage from "../pages/UsersPage";
+import YouTubeAnalyticsPage from "../pages/youtube/YouTubeAnalyticsPage";
+import YouTubeBatchDetailPage from "../pages/youtube/YouTubeBatchDetailPage";
+import YouTubeBatchesListPage from "../pages/youtube/YouTubeBatchesListPage";
+import YouTubeChannelDetailPage from "../pages/youtube/YouTubeChannelDetailPage";
+import YouTubeChannelsListPage from "../pages/youtube/YouTubeChannelsListPage";
+import YouTubeSettingsTab from "../pages/youtube/YouTubeSettingsTab";
+import YouTubeSyncHistoryTab from "../pages/youtube/YouTubeSyncHistoryTab";
+import YouTubeVideosTab from "../pages/youtube/YouTubeVideosTab";
 
 export const AppRoutes = () => {
     return (
@@ -218,6 +226,74 @@ export const AppRoutes = () => {
                     <Route path="jobs" element={<LessonJobsPage />} />
                     <Route path="exercises" element={<LessonExercisesPage />} />
                     <Route path="vocab" element={<LessonVocabPage />} />
+                </Route>
+
+                {/* YouTube Sources */}
+                <Route
+                    path="youtube"
+                    element={
+                        <RouteErrorBoundary routeName="YouTube Sources">
+                            <YouTubeChannelsListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="youtube/batches"
+                    element={
+                        <RouteErrorBoundary routeName="YouTube Batches">
+                            <YouTubeBatchesListPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="youtube/batches/:batchId"
+                    element={
+                        <RouteErrorBoundary routeName="YouTube Batch Detail">
+                            <YouTubeBatchDetailPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="youtube/analytics"
+                    element={
+                        <RouteErrorBoundary routeName="YouTube Analytics">
+                            <YouTubeAnalyticsPage />
+                        </RouteErrorBoundary>
+                    }
+                />
+                <Route
+                    path="youtube/:channelId"
+                    element={
+                        <RouteErrorBoundary routeName="YouTube Channel">
+                            <YouTubeChannelDetailPage />
+                        </RouteErrorBoundary>
+                    }
+                >
+                    <Route index element={<Navigate to="videos" replace />} />
+                    <Route
+                        path="videos"
+                        element={
+                            <RouteErrorBoundary routeName="YouTube Videos">
+                                <YouTubeVideosTab />
+                            </RouteErrorBoundary>
+                        }
+                    />
+                    <Route
+                        path="settings"
+                        element={
+                            <RouteErrorBoundary routeName="YouTube Settings">
+                                <YouTubeSettingsTab />
+                            </RouteErrorBoundary>
+                        }
+                    />
+                    <Route
+                        path="sync-history"
+                        element={
+                            <RouteErrorBoundary routeName="YouTube Sync History">
+                                <YouTubeSyncHistoryTab />
+                            </RouteErrorBoundary>
+                        }
+                    />
                 </Route>
             </Route>
         </Routes>

@@ -39,7 +39,7 @@ export const WaveformPlayer: React.FC<Props> = ({ audioUrl, height = 80, onReady
 
     useEffect(() => {
         createWaveSurfer();
-    }, [audioUrl]);
+    }, [createWaveSurfer]);
 
     // ⭐ RESPONSIVE FIX: recreate waveform whenever container width changes
     useEffect(() => {
@@ -55,7 +55,7 @@ export const WaveformPlayer: React.FC<Props> = ({ audioUrl, height = 80, onReady
             resizeObserver.disconnect();
             wavesurferRef.current?.destroy();
         };
-    }, []);
+    }, [createWaveSurfer]);
 
     return (
         <div className="rounded-md bg-slate-50 border border-slate-200 overflow-hidden">

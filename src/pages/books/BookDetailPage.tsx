@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     AlertCircle,
     ArrowLeft,
@@ -18,10 +19,8 @@ import {
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { booksApi } from "../../api/books";
 import { api } from "../../api/client";
-import { BOOKS_QUERY_KEY } from "./BookListPage";
 import { BookStatusBadge } from "../../components/books/BookStatusBadge";
 import EditableSentenceRow from "../../components/books/EditableSentenceRow";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
@@ -32,6 +31,7 @@ import type {
     ContentSource,
     SentenceMetadata,
 } from "../../types/book";
+import { BOOKS_QUERY_KEY } from "./BookListPage";
 
 const InsertBlockButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     <div className="flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity">
@@ -146,12 +146,17 @@ const BookDetailPage: React.FC = () => {
             return;
         }
         let cancelled = false;
-        booksApi.getPresignedUrl("spelo-images", book.coverImage).then((url) => {
-            if (!cancelled) setCoverPreviewUrl(url);
-        }).catch(() => {
-            // ignore
-        });
-        return () => { cancelled = true; };
+        booksApi
+            .getPresignedUrl("spelo-images", book.coverImage)
+            .then((url) => {
+                if (!cancelled) setCoverPreviewUrl(url);
+            })
+            .catch(() => {
+                // ignore
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [book?.coverImage]);
 
     // Poll vocab job status
@@ -745,7 +750,6 @@ const BookDetailPage: React.FC = () => {
                                                                     setEditingSectionId(null);
                                                             }}
                                                             className="w-full px-2 py-1 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-brand/40"
-                                                            autoFocus
                                                             disabled={savingSection}
                                                         />
                                                         <div className="flex gap-1 mt-1.5">

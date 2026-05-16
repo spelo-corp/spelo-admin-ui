@@ -34,9 +34,9 @@ import {
     useUpdateCollection,
     useUploadCollectionImage,
 } from "../hooks/useCollections";
-import { validateImageFile } from "../utils/validateImageFile";
 import type { BookCollectionGroup, Collection } from "../types/collection";
 import { processImage } from "../utils/imageProcessing";
+import { validateImageFile } from "../utils/validateImageFile";
 
 const formatDate = (value?: string) => {
     if (!value) return null;
@@ -416,7 +416,10 @@ const CollectionsPage: React.FC = () => {
         try {
             await updateCollectionMutation.mutateAsync({
                 id: groupedEditTarget.id,
-                data: { collection_name: trimmedName, description: groupedEditDescription.trim() || undefined },
+                data: {
+                    collection_name: trimmedName,
+                    description: groupedEditDescription.trim() || undefined,
+                },
             });
             setGroupedEditTarget(null);
         } catch (e) {
@@ -1299,7 +1302,8 @@ const CollectionsPage: React.FC = () => {
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 space-y-4">
                         <h3 className="text-lg font-semibold">Delete Collection?</h3>
                         <p className="text-sm text-slate-600">
-                            Are you sure you want to delete &quot;{groupedDeleteTarget.name}&quot;? This cannot be undone.
+                            Are you sure you want to delete &quot;{groupedDeleteTarget.name}&quot;?
+                            This cannot be undone.
                         </p>
                         {groupedDeleteError && (
                             <p className="text-sm text-rose-600">{groupedDeleteError}</p>
@@ -1365,7 +1369,8 @@ const CollectionsPage: React.FC = () => {
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 space-y-4">
                         <h3 className="text-lg font-semibold">Delete All Collections?</h3>
                         <p className="text-sm text-slate-600">
-                            Delete all vocabulary collections for &quot;{deleteAllTarget.bookTitle}&quot;? This cannot be undone.
+                            Delete all vocabulary collections for &quot;{deleteAllTarget.bookTitle}
+                            &quot;? This cannot be undone.
                         </p>
                         {deleteAllError && (
                             <p className="text-sm text-rose-600">{deleteAllError}</p>
@@ -1382,7 +1387,9 @@ const CollectionsPage: React.FC = () => {
                                 disabled={deleteVocabCollectionsMutation.isPending}
                                 className="px-4 py-2 text-sm rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
                             >
-                                {deleteVocabCollectionsMutation.isPending ? "Deleting…" : "Delete All"}
+                                {deleteVocabCollectionsMutation.isPending
+                                    ? "Deleting…"
+                                    : "Delete All"}
                             </button>
                         </div>
                     </div>
@@ -1442,10 +1449,7 @@ function BookGroupCard({
                     <BookOpen className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p
-                        className="font-semibold text-slate-800 truncate"
-                        title={group.book_title}
-                    >
+                    <p className="font-semibold text-slate-800 truncate" title={group.book_title}>
                         {group.book_title}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">

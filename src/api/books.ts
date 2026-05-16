@@ -101,7 +101,7 @@ export const booksApi = {
             headers: getAuthHeaders(),
         });
 
-        return handle<{ data: void }>(res).then(() => {});
+        return handle<{ data: undefined }>(res).then(() => {});
     },
 
     async updateSource(
@@ -145,7 +145,7 @@ export const booksApi = {
             method: "DELETE",
             headers: getAuthHeaders(),
         });
-        return handle<{ data: void }>(res).then(() => {});
+        return handle<{ data: undefined }>(res).then(() => {});
     },
 
     async createSentence(
@@ -172,7 +172,7 @@ export const booksApi = {
             method: "DELETE",
             headers: getAuthHeaders(),
         });
-        return handle<{ data: void }>(res).then(() => {});
+        return handle<{ data: undefined }>(res).then(() => {});
     },
 
     async uploadContentImage(file: File): Promise<string> {
@@ -246,6 +246,6 @@ export const booksApi = {
                 headers: getAuthHeaders(),
             },
         );
-        return handle<{ data: void }>(res).then(() => {});
+        return handle<{ data: undefined }>(res).then(() => {});
     },
 };

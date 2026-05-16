@@ -206,8 +206,8 @@ const AudioReviewPage: React.FC = () => {
         const merged: Sentence & { locked?: boolean } = {
             ...s1,
             end_time: s2.end_time,
-            text: s1.text + " " + s2.text,
-            translated_text: (s1.translated_text || "") + " " + (s2.translated_text || ""),
+            text: `${s1.text} ${s2.text}`,
+            translated_text: `${s1.translated_text || ""} ${s2.translated_text || ""}`,
             locked: false,
         };
 

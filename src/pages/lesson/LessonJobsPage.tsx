@@ -122,7 +122,7 @@ const LessonJobsPage: React.FC = () => {
 
     useEffect(() => {
         void loadJobs(1);
-    }, [lessonId]);
+    }, [loadJobs]);
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
@@ -309,7 +309,7 @@ const LessonJobsPage: React.FC = () => {
                                                             };
                                                         const colorClass =
                                                             badgeColors[jobType] ||
-                                                            badgeColors["UNKNOWN"];
+                                                            badgeColors.UNKNOWN;
 
                                                         return (
                                                             <span

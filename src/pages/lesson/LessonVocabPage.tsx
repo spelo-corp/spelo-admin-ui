@@ -127,7 +127,7 @@ const LessonVocabPage = () => {
         setSavingNewWords({});
         setNewWordErrors({});
         setNewWordSuccess({});
-    }, [lessonId]);
+    }, []);
 
     useEffect(() => {
         if (!lessonDetail) return;

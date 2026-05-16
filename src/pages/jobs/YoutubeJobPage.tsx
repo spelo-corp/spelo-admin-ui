@@ -69,7 +69,7 @@ const YoutubeJobPage: React.FC = () => {
 
     useEffect(() => {
         setFinalizeStatus({ type: null, message: "" });
-    }, [jobId]);
+    }, []);
 
     useEffect(() => {
         if (!jobId || !job) return;
@@ -80,7 +80,7 @@ const YoutubeJobPage: React.FC = () => {
         }, 4000);
 
         return () => window.clearInterval(interval);
-    }, [jobId, job?.status, loadJob]);
+    }, [jobId, job?.status, loadJob, job]);
 
     const handleRefresh = async () => {
         setRefreshing(true);

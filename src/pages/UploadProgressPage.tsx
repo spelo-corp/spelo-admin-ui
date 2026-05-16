@@ -43,7 +43,7 @@ const UploadProgressPage: React.FC = () => {
         }, 1200);
 
         return () => clearInterval(interval);
-    }, [taskId]);
+    }, [taskId, navigate, total, uploaded]);
 
     return (
         <div className="max-w-xl mx-auto mt-20 bg-white shadow-lg rounded-2xl p-8 text-center">

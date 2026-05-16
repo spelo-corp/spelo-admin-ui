@@ -93,11 +93,11 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
             }
 
             return () => {
-                if (player && player.destroy) {
+                if (player?.destroy) {
                     player.destroy();
                 }
             };
-        }, [videoId, height, width]); // Re-init if videoId changes
+        }, [videoId, height, width, onReady, onStateChange]); // Re-init if videoId changes
 
         return (
             <div className={`relative rounded-xl overflow-hidden bg-black ${className}`}>

@@ -72,7 +72,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onExtract, onDelete, onApprove }
                     absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px]
                     font-medium shadow-sm flex items-center gap-1
                     transition-all duration-200
-                    ${statusStyles[currentStatus] || statusStyles["pending"]}
+                    ${statusStyles[currentStatus] || statusStyles.pending}
                 `}
             >
                 <StatusIcon className="w-3 h-3" />

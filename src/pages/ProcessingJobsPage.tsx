@@ -49,7 +49,7 @@ const ProcessingJobsPage: React.FC = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     return (
         <div className="space-y-8 px-8 py-6">

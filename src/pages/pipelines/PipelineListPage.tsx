@@ -155,14 +155,10 @@ const PipelineListPage: React.FC = () => {
                     title="Pipeline Engine"
                     description="Manage and configure background job execution steps."
                     actions={
-                        <>
-                            <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
-                                <RefreshCcw
-                                    className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-                                />
-                                Refresh
-                            </Btn.HeroSecondary>
-                        </>
+                        <Btn.HeroSecondary onClick={handleRefresh} disabled={refreshing}>
+                            <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                            Refresh
+                        </Btn.HeroSecondary>
                     }
                 >
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

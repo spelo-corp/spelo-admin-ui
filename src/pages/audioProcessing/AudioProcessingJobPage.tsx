@@ -78,7 +78,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
 
     useEffect(() => {
         setFinalizeStatus({ type: null, message: "" });
-    }, [jobId]);
+    }, []);
 
     useEffect(() => {
         if (!jobId || !job) return;
@@ -89,7 +89,7 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
         }, 4000);
 
         return () => window.clearInterval(interval);
-    }, [jobId, job?.status, loadJob]);
+    }, [jobId, job?.status, loadJob, job]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -260,45 +260,39 @@ const AudioProcessingJobPage: React.FC<AudioProcessingJobPageProps> = ({ mode = 
                             <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
                             Refresh
                         </Btn.HeroSecondary>
-                        {mode !== "review" && (
-                            <>
-                                {showFinalize ? (
-                                    <Btn.HeroPrimary
-                                        onClick={handleFinalizeListening}
-                                        disabled={finalizing}
-                                    >
-                                        {finalizing ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Finalizing…
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Finalize Job
-                                            </>
-                                        )}
-                                    </Btn.HeroPrimary>
-                                ) : (
-                                    <Btn.HeroPrimary
-                                        onClick={handleSubmitJob}
-                                        disabled={disableSubmit}
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Submitting…
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Submit Job
-                                            </>
-                                        )}
-                                    </Btn.HeroPrimary>
-                                )}
-                            </>
-                        )}
+                        {mode !== "review" &&
+                            (showFinalize ? (
+                                <Btn.HeroPrimary
+                                    onClick={handleFinalizeListening}
+                                    disabled={finalizing}
+                                >
+                                    {finalizing ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Finalizing…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Finalize Job
+                                        </>
+                                    )}
+                                </Btn.HeroPrimary>
+                            ) : (
+                                <Btn.HeroPrimary onClick={handleSubmitJob} disabled={disableSubmit}>
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Submitting…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Submit Job
+                                        </>
+                                    )}
+                                </Btn.HeroPrimary>
+                            ))}
                     </>
                 }
             >
